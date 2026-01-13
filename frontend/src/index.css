@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-slate-900;
+  }
+}
+
+/* Component styles */
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 
+           focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 
+           focus:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-slate-200 text-slate-700 hover:bg-slate-300 
+           focus:ring-slate-400;
+  }
+  
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 
+           focus:ring-red-500;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
+  }
+  
+  .input {
+    @apply w-full px-4 py-2 border border-slate-300 rounded-lg 
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           placeholder:text-slate-400;
+  }
+  
+  .label {
+    @apply block text-sm font-medium text-slate-700 mb-1;
+  }
+  
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-normal {
+    @apply badge bg-status-normal/10 text-status-normal;
+  }
+  
+  .badge-at-risk {
+    @apply badge bg-status-atRisk/10 text-status-atRisk;
+  }
+  
+  .badge-probation {
+    @apply badge bg-status-probation/10 text-status-probation;
+  }
+  
+  .badge-graduated {
+    @apply badge bg-status-graduated/10 text-status-graduated;
+  }
+  
+  /* Alert badges */
+  .alert-info {
+    @apply badge bg-alert-info/10 text-alert-info;
+  }
+  
+  .alert-warning {
+    @apply badge bg-alert-warning/10 text-alert-warning;
+  }
+  
+  .alert-high {
+    @apply badge bg-alert-high/10 text-alert-high;
+  }
+  
+  .alert-critical {
+    @apply badge bg-alert-critical/10 text-alert-critical;
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent;
+  }
+}
