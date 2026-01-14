@@ -1,5 +1,6 @@
 package com.spts.patterns.observer;
 
+import com.spts.entity.Enrollment;
 import com.spts.entity.GradeEntry;
 import com.spts.entity.Student;
 import org.springframework.stereotype.Component;
@@ -48,11 +49,12 @@ public class GradeSubject {
      * Observers are notified in priority order.
      *
      * @param student    The student whose grade was updated
+     * @param enrollment The enrollment containing the grade
      * @param gradeEntry The grade entry that was added/modified
      */
-    public void notifyObservers(Student student, GradeEntry gradeEntry) {
+    public void notifyObservers(Student student, Enrollment enrollment, GradeEntry gradeEntry) {
         for (IGradeObserver observer : observers) {
-            observer.onGradeUpdated(student, gradeEntry);
+            observer.onGradeUpdated(student, enrollment, gradeEntry);
         }
     }
 

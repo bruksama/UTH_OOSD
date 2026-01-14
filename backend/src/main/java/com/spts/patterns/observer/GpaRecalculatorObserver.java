@@ -1,5 +1,6 @@
 package com.spts.patterns.observer;
 
+import com.spts.entity.Enrollment;
 import com.spts.entity.GradeEntry;
 import com.spts.entity.Student;
 import org.slf4j.Logger;
@@ -21,16 +22,25 @@ public class GpaRecalculatorObserver implements IGradeObserver {
     private static final String OBSERVER_NAME = "GPA Recalculator";
 
     @Override
-    public void onGradeUpdated(Student student, GradeEntry gradeEntry) {
-        logger.info("Recalculating GPA for student: {} after grade update", student.getStudentId());
+    public void onGradeUpdated(Student student, Enrollment enrollment, GradeEntry gradeEntry) {
+        logger.info("Recalculating GPA for student: {} after grade update in enrollment: {}", 
+                student.getStudentId(), enrollment.getId());
+        
+        // Log grade entry details
+        logger.debug("Grade entry updated: name={}, score={}, weight={}", 
+                gradeEntry.getName(),
+                gradeEntry.getScore(),
+                gradeEntry.getWeight());
+
+        // Log course information
+        if (enrollment.getCourseOffering() != null && enrollment.getCourseOffering().getCourse() != null) {
+            logger.debug("Course: {} ({})", 
+                    enrollment.getCourseOffering().getCourse().getCourseName(),
+                    enrollment.getCourseOffering().getCourse().getCourseCode());
+        }
         
         // GPA recalculation logic will be implemented in service layer
         // This observer triggers the recalculation process
-        
-        logger.debug("Grade entry updated: courseOffering={}, value={}", 
-                gradeEntry.getCourseOffering() != null ? 
-                        gradeEntry.getCourseOffering().getId() : "N/A",
-                gradeEntry.getValue());
     }
 
     @Override

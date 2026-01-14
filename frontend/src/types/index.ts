@@ -46,6 +46,12 @@ export enum AlertType {
   IMPROVEMENT = 'IMPROVEMENT',
 }
 
+export enum EnrollmentStatus {
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  WITHDRAWN = 'WITHDRAWN',
+}
+
 // DTOs matching backend
 export interface StudentDTO {
   id?: number;
@@ -58,6 +64,8 @@ export interface StudentDTO {
   gpa?: number;
   totalCredits?: number;
   status: StudentStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CourseDTO {
@@ -83,31 +91,42 @@ export interface CourseOfferingDTO {
   currentEnrollment?: number;
 }
 
-export interface GradeEntryDTO {
-  id?: number;
-  transcriptId: number;
-  courseOfferingId: number;
-  courseCode?: string;
-  courseName?: string;
-  value: number;
-  weight?: number;
-  entryType: GradeEntryType;
-  componentName?: string;
-  recordedAt?: string;
-  recordedBy?: string;
-  notes?: string;
-}
-
-export interface TranscriptDTO {
+export interface EnrollmentDTO {
   id?: number;
   studentId: number;
   studentName?: string;
-  cumulativeGpa?: number;
-  totalCreditsEarned?: number;
-  totalCreditsAttempted?: number;
-  creditCompletionRate?: number;
-  lastUpdated?: string;
+  studentCode?: string;
+  courseOfferingId: number;
+  courseCode?: string;
+  courseName?: string;
+  credits?: number;
+  semester?: string;
+  academicYear?: number;
+  finalScore?: number;
+  letterGrade?: string;
+  gpaValue?: number;
+  status: EnrollmentStatus;
+  enrolledAt?: string;
+  completedAt?: string;
   gradeEntries?: GradeEntryDTO[];
+}
+
+export interface GradeEntryDTO {
+  id?: number;
+  enrollmentId: number;
+  parentId?: number;
+  children?: GradeEntryDTO[];
+  name: string;
+  weight: number;
+  score?: number;
+  calculatedScore?: number;
+  entryType: GradeEntryType;
+  recordedBy?: string;
+  recordedAt?: string;
+  notes?: string;
+  courseCode?: string;
+  courseName?: string;
+  studentName?: string;
 }
 
 export interface AlertDTO {
@@ -117,13 +136,12 @@ export interface AlertDTO {
   level: AlertLevel;
   type: AlertType;
   message: string;
-  createdDate: string;
-  createdAt?: string;
   isRead: boolean;
   readAt?: string;
   isResolved: boolean;
   resolvedAt?: string;
   resolvedBy?: string;
+  createdAt: string;
 }
 
 // Dashboard statistics
@@ -146,4 +164,15 @@ export interface CreditProgressData {
   category: string;
   earned: number;
   remaining: number;
+}
+
+// Student academic summary (calculated from enrollments)
+export interface StudentAcademicSummary {
+  studentId: number;
+  studentName: string;
+  cumulativeGpa?: number;
+  totalCreditsEarned: number;
+  totalCreditsAttempted: number;
+  creditCompletionRate: number;
+  enrollments: EnrollmentDTO[];
 }

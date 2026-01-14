@@ -2,7 +2,6 @@ package com.spts.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -14,7 +13,7 @@ import java.time.LocalDateTime;
  * - Academic status changes
  * 
  * OCL Constraints:
- * - createdDate <= currentDate
+ * - createdAt <= CURRENT_TIMESTAMP
  * 
  * @author SPTS Team
  */
@@ -45,23 +44,13 @@ public class Alert {
     @NotBlank(message = "Alert message is required")
     private String message;
 
-    /**
-     * OCL Constraint: createdDate <= currentDate
-     */
-    @Column(name = "created_date", nullable = false)
-    @PastOrPresent(message = "Created date cannot be in the future")
-    private LocalDate createdDate;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "is_read")
+    @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
 
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
-    @Column(name = "is_resolved")
+    @Column(name = "is_resolved", nullable = false)
     private Boolean isResolved = false;
 
     @Column(name = "resolved_at")
@@ -70,9 +59,14 @@ public class Alert {
     @Column(name = "resolved_by", length = 100)
     private String resolvedBy;
 
+    /**
+     * OCL Constraint: createdAt <= CURRENT_TIMESTAMP
+     */
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
     // Constructors
     public Alert() {
-        this.createdDate = LocalDate.now();
         this.createdAt = LocalDateTime.now();
     }
 
@@ -81,7 +75,6 @@ public class Alert {
         this.level = level;
         this.type = type;
         this.message = message;
-        this.createdDate = LocalDate.now();
         this.createdAt = LocalDateTime.now();
     }
 
@@ -126,26 +119,6 @@ public class Alert {
         this.message = message;
     }
 
-    public LocalDate getCreatedDate() {
-        return createdDate;
-    }
-
-    public void setCreatedDate(LocalDate createdDate) {
-        // Enforce OCL constraint
-        if (createdDate != null && createdDate.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("Created date cannot be in the future");
-        }
-        this.createdDate = createdDate;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public Boolean getIsRead() {
         return isRead;
     }
@@ -184,6 +157,18 @@ public class Alert {
 
     public void setResolvedBy(String resolvedBy) {
         this.resolvedBy = resolvedBy;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        // Enforce OCL constraint
+        if (createdAt != null && createdAt.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Created time cannot be in the future");
+        }
+        this.createdAt = createdAt;
     }
 
     /**

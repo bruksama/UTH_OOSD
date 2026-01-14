@@ -3,6 +3,7 @@ package com.spts.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +13,7 @@ import java.util.List;
  * Contains student's academic profile, GPA, and current status.
  * 
  * OCL Constraints:
- * - gpa >= 0.0 and gpa <= 4.0 (GPA stored on 4-point scale)
+ * - gpa >= 0.0 AND gpa <= 4.0 (GPA stored on 4-point scale)
  * 
  * @author SPTS Team
  */
@@ -53,7 +54,7 @@ public class Student {
     private LocalDate enrollmentDate;
 
     /**
-     * OCL Constraint: gpa >= 0.0 and gpa <= 4.0
+     * OCL Constraint: gpa >= 0.0 AND gpa <= 4.0
      * GPA is stored on 4-point scale
      */
     @Column(name = "gpa")
@@ -73,14 +74,25 @@ public class Student {
     @Column(name = "status", nullable = false)
     private StudentStatus status = StudentStatus.NORMAL;
 
-    @OneToOne(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Transcript transcript;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    /**
+     * Student's enrollments in course offerings
+     */
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Enrollment> enrollments = new ArrayList<>();
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Alert> alerts = new ArrayList<>();
 
     // Constructors
     public Student() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     public Student(String studentId, String firstName, String lastName, String email) {
@@ -89,6 +101,13 @@ public class Student {
         this.lastName = lastName;
         this.email = email;
         this.status = StudentStatus.NORMAL;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     // Getters and Setters
@@ -180,12 +199,33 @@ public class Student {
         this.status = status;
     }
 
-    public Transcript getTranscript() {
-        return transcript;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setTranscript(Transcript transcript) {
-        this.transcript = transcript;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public List<Enrollment> getEnrollments() {
+        return enrollments;
+    }
+
+    public void setEnrollments(List<Enrollment> enrollments) {
+        this.enrollments = enrollments;
+    }
+
+    public void addEnrollment(Enrollment enrollment) {
+        enrollments.add(enrollment);
+        enrollment.setStudent(this);
     }
 
     public List<Alert> getAlerts() {
@@ -199,5 +239,46 @@ public class Student {
     public void addAlert(Alert alert) {
         alerts.add(alert);
         alert.setStudent(this);
+    }
+
+    /**
+     * Get completed enrollments only
+     */
+    public List<Enrollment> getCompletedEnrollments() {
+        return enrollments.stream()
+                .filter(e -> e.getStatus() == EnrollmentStatus.COMPLETED)
+                .toList();
+    }
+
+    /**
+     * Calculate cumulative GPA from completed enrollments
+     */
+    public Double calculateCumulativeGpa() {
+        List<Enrollment> completed = getCompletedEnrollments();
+        if (completed.isEmpty()) {
+            return null;
+        }
+
+        double totalWeightedGpa = 0.0;
+        int totalCredits = 0;
+
+        for (Enrollment enrollment : completed) {
+            if (enrollment.getGpaValue() != null && enrollment.getCredits() != null) {
+                totalWeightedGpa += enrollment.getGpaValue() * enrollment.getCredits();
+                totalCredits += enrollment.getCredits();
+            }
+        }
+
+        return totalCredits > 0 ? totalWeightedGpa / totalCredits : null;
+    }
+
+    /**
+     * Calculate total earned credits from completed enrollments
+     */
+    public Integer calculateTotalCredits() {
+        return getCompletedEnrollments().stream()
+                .filter(e -> e.getGpaValue() != null && e.getGpaValue() >= 1.0) // Passing grade
+                .mapToInt(Enrollment::getCredits)
+                .sum();
     }
 }

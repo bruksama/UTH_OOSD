@@ -56,10 +56,10 @@ public class CourseOffering {
     private Integer currentEnrollment = 0;
 
     /**
-     * Grade entries for students in this offering
+     * Enrollments in this course offering
      */
     @OneToMany(mappedBy = "courseOffering", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<GradeEntry> gradeEntries = new ArrayList<>();
+    private List<Enrollment> enrollments = new ArrayList<>();
 
     // Constructors
     public CourseOffering() {
@@ -128,12 +128,18 @@ public class CourseOffering {
         this.currentEnrollment = currentEnrollment;
     }
 
-    public List<GradeEntry> getGradeEntries() {
-        return gradeEntries;
+    public List<Enrollment> getEnrollments() {
+        return enrollments;
     }
 
-    public void setGradeEntries(List<GradeEntry> gradeEntries) {
-        this.gradeEntries = gradeEntries;
+    public void setEnrollments(List<Enrollment> enrollments) {
+        this.enrollments = enrollments;
+    }
+
+    public void addEnrollment(Enrollment enrollment) {
+        enrollments.add(enrollment);
+        enrollment.setCourseOffering(this);
+        this.currentEnrollment = enrollments.size();
     }
 
     /**
@@ -141,5 +147,19 @@ public class CourseOffering {
      */
     public String getDisplayName() {
         return course.getCourseName() + " - " + semester.getDisplayName() + " " + academicYear;
+    }
+
+    /**
+     * Check if there are available seats
+     */
+    public boolean hasAvailableSeats() {
+        return maxEnrollment == null || currentEnrollment < maxEnrollment;
+    }
+
+    /**
+     * Get available seats count
+     */
+    public Integer getAvailableSeats() {
+        return maxEnrollment != null ? maxEnrollment - currentEnrollment : null;
     }
 }

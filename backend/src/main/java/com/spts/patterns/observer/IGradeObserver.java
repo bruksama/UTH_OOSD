@@ -1,5 +1,6 @@
 package com.spts.patterns.observer;
 
+import com.spts.entity.Enrollment;
 import com.spts.entity.GradeEntry;
 import com.spts.entity.Student;
 
@@ -21,9 +22,10 @@ public interface IGradeObserver {
      * Called when a new grade entry is added or an existing one is updated.
      *
      * @param student    The student whose grade was updated
+     * @param enrollment The enrollment containing the grade
      * @param gradeEntry The grade entry that was added/modified
      */
-    void onGradeUpdated(Student student, GradeEntry gradeEntry);
+    void onGradeUpdated(Student student, Enrollment enrollment, GradeEntry gradeEntry);
 
     /**
      * Get the priority of this observer (lower = higher priority).

@@ -1,5 +1,6 @@
 package com.spts.patterns.observer;
 
+import com.spts.entity.Enrollment;
 import com.spts.entity.GradeEntry;
 import com.spts.entity.Student;
 import org.slf4j.Logger;
@@ -26,13 +27,20 @@ public class RiskDetectorObserver implements IGradeObserver {
     private static final double PROBATION_THRESHOLD = 1.5;
 
     @Override
-    public void onGradeUpdated(Student student, GradeEntry gradeEntry) {
-        logger.info("Checking risk status for student: {}", student.getStudentId());
+    public void onGradeUpdated(Student student, Enrollment enrollment, GradeEntry gradeEntry) {
+        logger.info("Checking risk status for student: {} after grade update", student.getStudentId());
         
         Double currentGpa = student.getGpa();
         if (currentGpa == null) {
             logger.debug("Student {} has no GPA calculated yet", student.getStudentId());
             return;
+        }
+        
+        // Check enrollment grade
+        Double enrollmentGpa = enrollment.getGpaValue();
+        if (enrollmentGpa != null) {
+            logger.debug("Enrollment GPA for {}: {}", 
+                    enrollment.getCourseOffering().getDisplayName(), enrollmentGpa);
         }
         
         if (currentGpa < PROBATION_THRESHOLD) {
