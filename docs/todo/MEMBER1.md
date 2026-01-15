@@ -66,27 +66,30 @@
 - [ ] Implement pagination for list queries
 
 ### 2.4 Service Layer
-- [ ] Create `StudentService.java`
-  - [ ] CRUD operations
-  - [ ] GPA calculation from enrollments
-  - [ ] Status update logic (integrate with State pattern)
-- [ ] Create `CourseService.java`
-  - [ ] CRUD operations
-  - [ ] Get offerings by course
-- [ ] Create `CourseOfferingService.java`
-  - [ ] CRUD operations
-  - [ ] Enrollment management
-- [ ] Create `EnrollmentService.java`
-  - [ ] CRUD operations
-  - [ ] Grade submission
-  - [ ] GPA calculation per enrollment
-- [ ] Create `GradeEntryService.java`
-  - [ ] CRUD operations
-  - [ ] Composite grade calculation
-  - [ ] Integrate with Observer pattern (coordinate with Member 3)
-- [ ] Create `AlertService.java`
-  - [ ] CRUD operations
-  - [ ] Mark as read/resolved
+- [x] Create `StudentService.java`
+  - [x] CRUD operations
+  - [x] GPA calculation from enrollments
+  - [x] Status update logic (integrate with State pattern)
+- [x] Create `CourseService.java`
+  - [x] CRUD operations
+  - [x] Get offerings by course (Abstraction-Occurrence pattern)
+  - [x] Search and filter methods (by name, department, grading type, credits)
+- [x] Create `CourseOfferingService.java`
+  - [x] CRUD operations
+  - [x] Enrollment management (get enrollments, seat availability, count sync)
+  - [x] Search and filter methods (by semester, year, instructor)
+- [x] Create `EnrollmentService.java`
+  - [x] CRUD operations
+  - [x] Grade submission (complete, submit grade, withdraw)
+  - [x] GPA calculation per enrollment (auto letterGrade and gpaValue)
+  - [x] Triggers StudentService GPA recalculation
+- [x] Create `GradeEntryService.java`
+  - [x] CRUD operations
+  - [x] Composite grade calculation (hierarchical grades with parent-child)
+  - [x] Integrate with Observer pattern (coordinate with Member 3) - hooks added
+- [x] Create `AlertService.java`
+  - [x] CRUD operations
+  - [x] Mark as read/resolved
 
 ### 2.5 Controller Layer
 - [ ] Create `StudentController.java`
@@ -214,12 +217,12 @@
 - [x] `repository/TranscriptRepository.java` - removed
 
 ### To Be Created
-- [ ] `service/StudentService.java`
-- [ ] `service/CourseService.java`
-- [ ] `service/CourseOfferingService.java`
-- [ ] `service/EnrollmentService.java`
-- [ ] `service/GradeEntryService.java`
-- [ ] `service/AlertService.java`
+- [x] `service/StudentService.java`
+- [x] `service/CourseService.java`
+- [x] `service/CourseOfferingService.java`
+- [x] `service/EnrollmentService.java`
+- [x] `service/GradeEntryService.java`
+- [x] `service/AlertService.java`
 - [ ] `controller/StudentController.java`
 - [ ] `controller/CourseController.java`
 - [ ] `controller/CourseOfferingController.java`
@@ -239,7 +242,7 @@
 ## Priority Order
 
 1. **DONE** - ERD Design, Entity Updates, OCL Verification
-2. **High Priority** - Service Layer Implementation
+2. **COMPLETED** - Service Layer Implementation (all services done)
 3. **Medium Priority** - Controller Layer Implementation
 4. **Medium Priority** - Exception Handling
 5. **Low Priority** - Unit Tests
@@ -259,6 +262,45 @@
 
 ## Changes Log
 
+### 2026-01-15
+- Implemented `StudentService.java` with:
+  - CRUD operations (create, read, update, delete)
+  - GPA calculation from completed enrollments (weighted average)
+  - State Pattern integration for automatic status updates
+  - Related queries (enrollments, alerts, at-risk students)
+  - DTO conversion helpers
+- Implemented `CourseService.java` with:
+  - CRUD operations (create, read, update, delete)
+  - Get course offerings (Abstraction-Occurrence pattern)
+  - Search and filter methods (by name, department, grading type, credits)
+  - DTO conversion helpers
+- Implemented `CourseOfferingService.java` with:
+  - CRUD operations (create, read, update, delete)
+  - Enrollment management (get enrollments, seat availability, count sync)
+  - Search and filter methods (by semester, year, instructor)
+  - DTO conversion helpers
+- Implemented `EnrollmentService.java` with:
+  - CRUD operations (create, read, update, delete)
+  - Grade submission (completeEnrollment, submitGrade, withdrawEnrollment)
+  - GPA calculation helpers (auto letterGrade and gpaValue from score)
+  - Triggers StudentService GPA recalculation after grade changes
+  - Search and filter methods (by student, offering, status)
+  - GradeEntry DTO conversion with Composite pattern support
+- Implemented `GradeEntryService.java` with:
+  - CRUD operations (create, read, update, delete)
+  - Composite Pattern support (addChildGradeEntry, getChildren, getHierarchicalGrades)
+  - Composite score calculation (calculateCompositeScore, calculateWeightedScore, calculateFinalGrade)
+  - Weight validation (validateWeights)
+  - Search and filter methods (by enrollment, student, type, offering)
+  - Observer pattern hooks (TODO comments for Member 3 integration)
+- Implemented `AlertService.java` with:
+  - CRUD operations (create, read, update, delete)
+  - Mark as read/resolved (single and batch operations)
+  - Search and filter methods (by student, level, type, read status, resolved status)
+  - Urgent alerts query (CRITICAL and HIGH level, unresolved)
+  - Alert summary statistics (counts by level and status)
+  - Integration method for Observer pattern (createAlert with entity params)
+
 ### 2026-01-14
 - Completed ERD design in `docs/agents/ERD.md`
 - Migrated from Transcript to Enrollment approach
@@ -269,4 +311,4 @@
 
 ---
 
-*Last Updated: 2026-01-14*
+*Last Updated: 2026-01-15*
