@@ -9,9 +9,11 @@
 .DS_Store
 Thumbs.db
 
-# Environment files
-*.env
-*.env.local
+# Environment files (keep .env.example for documentation)
+.env
+.env.local
+.env.*.local
+!.env.example
 
 # Logs
 *.log
