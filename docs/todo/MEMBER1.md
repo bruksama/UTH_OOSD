@@ -1,314 +1,423 @@
 # MEMBER 1 - Foundation Architect Todolist
 
 **Role:** Foundation Architect (Kien truc su chinh va Rang buoc)  
-**Focus:** ERD Design, Entities, OCL Constraints, Base Repository & Controller
+**Focus:** ERD Design, Entities, OCL Constraints, Base Repository, Controller, Exception Handling  
+**SOLID Responsibility:** Single Responsibility for Data Layer and REST API Layer
 
 ---
 
-## Phase 1: Interface and DTO Definitions (Day 1-2)
+## Architecture Overview
 
-### 1.1 Database Design
-- [x] Design Entity-Relationship Diagram (ERD) for SPTS
-  - [x] Define relationships between Student, Course, Enrollment, GradeEntry
-  - [x] Define cardinality (1:1, 1:N, M:N) for all relationships
-  - [x] Document primary keys and foreign keys
-- [x] Create ERD document in `docs/agents/ERD.md`
-- [ ] Create visual ERD diagram file in `docs/diagrams/ERD.png` or `.drawio`
-- [ ] Review ERD with team members for feedback
-
-### 1.2 Entity Review and Enhancement
-- [x] Review and update entity classes in `backend/src/main/java/com/spts/entity/`
-  - [x] `Student.java` - updated with createdAt, updatedAt, enrollments relationship
-  - [x] `Course.java` - has gradingType for Strategy pattern
-  - [x] `CourseOffering.java` - updated with enrollments relationship
-  - [x] `Enrollment.java` - NEW: replaces Transcript approach
-  - [x] `GradeEntry.java` - updated with parent_id for Composite pattern
-  - [x] `Alert.java` - updated with isRead, isResolved, timestamps
-- [x] Removed deprecated Transcript entity (replaced by Enrollment)
-- [x] Ensure all JPA annotations are correct (@Entity, @Table, @Column, etc.)
-
-### 1.3 OCL Constraints Verification
-- [x] Verify OCL constraint implementation in entities:
-  - [x] `GradeEntry.score >= 0 AND score <= 10`
-  - [x] `GradeEntry.weight >= 0 AND weight <= 1`
-  - [x] `Student.gpa >= 0.0 AND gpa <= 4.0`
-  - [x] `Enrollment.finalScore >= 0 AND finalScore <= 10`
-  - [x] `Enrollment.gpaValue >= 0.0 AND gpaValue <= 4.0`
-  - [x] `Alert.createdAt <= CURRENT_TIMESTAMP`
-- [x] Add Jakarta Validation annotations (@Min, @Max, @DecimalMin, @DecimalMax)
-- [x] Implement custom validation in setter methods
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        SPTS Backend Architecture                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    │
+│   │   Controllers   │ -> │    Services     │ -> │  Repositories   │    │
+│   │   (REST API)    │    │ (Business Logic)│    │  (Data Access)  │    │
+│   │   [MEMBER 1]    │    │ [MEMBER 1/2/3]  │    │   [MEMBER 1]    │    │
+│   └─────────────────┘    └─────────────────┘    └─────────────────┘    │
+│            │                      │                      │              │
+│            v                      v                      v              │
+│   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    │
+│   │      DTOs       │    │ Design Patterns │    │    Entities     │    │
+│   │ (Data Transfer) │    │ Strategy[M2]    │    │   (JPA/ORM)     │    │
+│   │   [MEMBER 1]    │    │ Observer[M3]    │    │   [MEMBER 1]    │    │
+│   └─────────────────┘    │ State   [M3]    │    └─────────────────┘    │
+│                          └─────────────────┘                            │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Phase 2: Implementation (Day 3-6)
+## SOLID Principles Applied
 
-### 2.1 Abstraction-Occurrence Pattern (Chapter 6)
-- [x] Verify Course (Abstraction) and CourseOffering (Occurrence) relationship
-- [x] Document pattern usage in code comments
-- [ ] Create sequence diagram showing pattern interaction
-- [ ] Write unit test to verify pattern behavior
-
-### 2.2 Composite Pattern for Grade Entries
-- [x] Implement parent_id self-reference in GradeEntry
-- [x] Add children relationship for hierarchical grades
-- [x] Implement calculateWeightedScore() for composite calculation
-- [ ] Write unit test for composite grade calculation
-
-### 2.3 Repository Layer
-- [x] Review and update repositories in `backend/src/main/java/com/spts/repository/`
-  - [x] `StudentRepository.java`
-  - [x] `CourseRepository.java`
-  - [x] `CourseOfferingRepository.java`
-  - [x] `EnrollmentRepository.java` - NEW
-  - [x] `GradeEntryRepository.java` - updated for Enrollment
-  - [x] `AlertRepository.java`
-- [x] Removed deprecated TranscriptRepository
-- [ ] Implement pagination for list queries
-
-### 2.4 Service Layer
-- [x] Create `StudentService.java`
-  - [x] CRUD operations
-  - [x] GPA calculation from enrollments
-  - [x] Status update logic (integrate with State pattern)
-- [x] Create `CourseService.java`
-  - [x] CRUD operations
-  - [x] Get offerings by course (Abstraction-Occurrence pattern)
-  - [x] Search and filter methods (by name, department, grading type, credits)
-- [x] Create `CourseOfferingService.java`
-  - [x] CRUD operations
-  - [x] Enrollment management (get enrollments, seat availability, count sync)
-  - [x] Search and filter methods (by semester, year, instructor)
-- [x] Create `EnrollmentService.java`
-  - [x] CRUD operations
-  - [x] Grade submission (complete, submit grade, withdraw)
-  - [x] GPA calculation per enrollment (auto letterGrade and gpaValue)
-  - [x] Triggers StudentService GPA recalculation
-- [x] Create `GradeEntryService.java`
-  - [x] CRUD operations
-  - [x] Composite grade calculation (hierarchical grades with parent-child)
-  - [x] Integrate with Observer pattern (coordinate with Member 3) - hooks added
-- [x] Create `AlertService.java`
-  - [x] CRUD operations
-  - [x] Mark as read/resolved
-
-### 2.5 Controller Layer
-- [ ] Create `StudentController.java`
-  - [ ] GET /api/students - List all students
-  - [ ] GET /api/students/{id} - Get student by ID
-  - [ ] POST /api/students - Create new student
-  - [ ] PUT /api/students/{id} - Update student
-  - [ ] DELETE /api/students/{id} - Delete student
-  - [ ] GET /api/students/{id}/enrollments - Get student enrollments
-- [ ] Create `CourseController.java`
-  - [ ] GET /api/courses - List all courses
-  - [ ] GET /api/courses/{id} - Get course by ID
-  - [ ] POST /api/courses - Create new course
-  - [ ] PUT /api/courses/{id} - Update course
-  - [ ] GET /api/courses/{id}/offerings - Get course offerings
-- [ ] Create `CourseOfferingController.java`
-  - [ ] CRUD endpoints for course offerings
-  - [ ] GET /api/offerings/{id}/enrollments - Get enrolled students
-- [ ] Create `EnrollmentController.java`
-  - [ ] CRUD endpoints for enrollments
-  - [ ] POST /api/enrollments/{id}/complete - Complete enrollment with grade
-- [ ] Create `GradeEntryController.java`
-  - [ ] CRUD endpoints for grade entries
-  - [ ] POST /api/grade-entries/{id}/children - Add child grade entry
-- [ ] Create `AlertController.java`
-  - [ ] GET /api/alerts - List all alerts
-  - [ ] PUT /api/alerts/{id}/read - Mark as read
-  - [ ] PUT /api/alerts/{id}/resolve - Resolve alert
-
-### 2.6 Exception Handling
-- [ ] Create custom exceptions:
-  - [ ] `ResourceNotFoundException.java`
-  - [ ] `ValidationException.java`
-  - [ ] `DuplicateResourceException.java`
-- [ ] Create `GlobalExceptionHandler.java` with @ControllerAdvice
-- [ ] Define standard error response format (ErrorResponse DTO)
-
-### 2.7 Data Initialization
-- [ ] Create `DataInitializer.java` (@Component with CommandLineRunner)
-  - [ ] Seed sample students
-  - [ ] Seed sample courses
-  - [ ] Seed sample course offerings
-  - [ ] Seed sample enrollments and grade entries
-- [ ] Ensure data matches frontend mock data for consistency
+| Principle | Application in Member 1's Work |
+|-----------|-------------------------------|
+| **S** - Single Responsibility | Each Controller handles one resource (StudentController -> Student only) |
+| **O** - Open/Closed | Entities use validation annotations, extensible without modification |
+| **L** - Liskov Substitution | DTOs can substitute Entities in API responses |
+| **I** - Interface Segregation | Repositories extend JpaRepository with specific methods |
+| **D** - Dependency Inversion | Controllers depend on Service interfaces, not implementations |
 
 ---
 
-## Phase 3: Integration and Testing (Day 7)
+## Phase 1: Foundation Layer - COMPLETED
 
-### 3.1 Unit Tests
-- [ ] Write unit tests for entities (validation logic)
-  - [ ] `StudentTest.java`
-  - [ ] `EnrollmentTest.java`
-  - [ ] `GradeEntryTest.java` (including Composite pattern)
-  - [ ] `AlertTest.java`
-- [ ] Write unit tests for repositories
-  - [ ] Test custom query methods
-- [ ] Write unit tests for services
-  - [ ] Mock repository dependencies
+### 1.1 Database Design - DONE
+- [x] Design Entity-Relationship Diagram (ERD)
+- [x] Define relationships (Student -> Enrollment -> GradeEntry)
+- [x] Define cardinality (1:N, M:N with join entity)
+- [x] Document in `docs/agents/ERD.md`
 
-### 3.2 Integration Tests
-- [ ] Write integration tests for controllers
-  - [ ] Test API endpoints with MockMvc
-  - [ ] Test error handling
-- [ ] Verify database constraints work correctly
+### 1.2 Entity Layer - DONE
+- [x] `Student.java` - Core entity with enrollments relationship
+- [x] `Course.java` - Abstraction pattern, has gradingType
+- [x] `CourseOffering.java` - Occurrence pattern, links to Course
+- [x] `Enrollment.java` - Student-CourseOffering junction
+- [x] `GradeEntry.java` - Composite pattern with parent/children
+- [x] `Alert.java` - Generated by Observer pattern
+- [x] All supporting enums (StudentStatus, GradingType, Semester, etc.)
 
-### 3.3 Documentation
-- [ ] Update Swagger/OpenAPI annotations on controllers
-  - [ ] Add @Operation descriptions
-  - [ ] Add @ApiResponse for each endpoint
-  - [ ] Add @Parameter descriptions
-- [ ] Create API documentation in `docs/API.md`
-- [ ] Document database schema in `docs/DATABASE.md`
+### 1.3 OCL Constraints - DONE
+- [x] `GradeEntry.score` - @DecimalMin(0.0), @DecimalMax(10.0)
+- [x] `GradeEntry.weight` - @DecimalMin(0.0), @DecimalMax(1.0)
+- [x] `Student.gpa` - @DecimalMin(0.0), @DecimalMax(4.0)
+- [x] `Enrollment.finalScore` - @DecimalMin(0.0), @DecimalMax(10.0)
+- [x] `Enrollment.gpaValue` - @DecimalMin(0.0), @DecimalMax(4.0)
 
-### 3.4 Code Review and Cleanup
-- [ ] Review all entity classes for consistency
-- [ ] Ensure all code comments are in English
-- [ ] Run code formatter (follow Java conventions)
-- [ ] Remove unused imports and dead code
-- [ ] Verify all tests pass
+### 1.4 Repository Layer - DONE
+- [x] `StudentRepository.java` - Custom queries (findByStatus, findAtRiskStudents)
+- [x] `CourseRepository.java` - Search by name, department
+- [x] `CourseOfferingRepository.java` - Search by semester, year
+- [x] `EnrollmentRepository.java` - Student/Offering queries
+- [x] `GradeEntryRepository.java` - Enrollment/Student queries
+- [x] `AlertRepository.java` - Unread/unresolved queries
+
+### 1.5 DTO Layer - DONE
+- [x] `StudentDTO.java`
+- [x] `CourseDTO.java`
+- [x] `CourseOfferingDTO.java`
+- [x] `EnrollmentDTO.java`
+- [x] `GradeEntryDTO.java` - Supports hierarchical structure
+- [x] `AlertDTO.java`
+
+### 1.6 Service Layer - DONE
+- [x] `StudentService.java` - CRUD + GPA calculation + State integration
+- [x] `CourseService.java` - CRUD + Abstraction-Occurrence support
+- [x] `CourseOfferingService.java` - CRUD + Enrollment management
+- [x] `EnrollmentService.java` - CRUD + Grade submission
+- [x] `GradeEntryService.java` - CRUD + Composite pattern support
+- [x] `AlertService.java` - CRUD + Mark read/resolved
+
+---
+
+## Phase 2: API Layer - IN PROGRESS
+
+### 2.1 Exception Handling Infrastructure - TODO
+**Priority: HIGH (Required before Controllers)**
+
+- [ ] Create `exception/` package
+- [ ] Create `ResourceNotFoundException.java`
+  ```
+  - Extends RuntimeException
+  - Constructor: (String resourceName, String fieldName, Object fieldValue)
+  - Example: "Student not found with id: 123"
+  ```
+- [ ] Create `ValidationException.java`
+  ```
+  - Extends RuntimeException
+  - Fields: Map<String, String> errors
+  - For multiple validation errors
+  ```
+- [ ] Create `DuplicateResourceException.java`
+  ```
+  - Extends RuntimeException
+  - Constructor: (String resourceName, String fieldName, Object fieldValue)
+  - Example: "Student already exists with email: test@email.com"
+  ```
+- [ ] Create `BusinessRuleException.java`
+  ```
+  - Extends RuntimeException
+  - For business rule violations (e.g., enrollment limit exceeded)
+  ```
+- [ ] Create `ErrorResponse.java` DTO
+  ```
+  - Fields: timestamp, status, error, message, path, errors (Map)
+  - Standard API error format
+  ```
+- [ ] Create `GlobalExceptionHandler.java`
+  ```
+  - @ControllerAdvice annotation
+  - Handle all custom exceptions
+  - Handle MethodArgumentNotValidException (Bean Validation)
+  - Handle ConstraintViolationException (JPA)
+  - Return consistent ErrorResponse
+  ```
+
+### 2.2 Controller Layer - TODO
+**Priority: HIGH**
+
+**SOLID Note:** Each controller has Single Responsibility for one resource.
+
+#### StudentController.java
+- [ ] `@RestController`, `@RequestMapping("/api/students")`
+- [ ] `GET /api/students` - List all (with pagination)
+- [ ] `GET /api/students/{id}` - Get by ID
+- [ ] `GET /api/students/code/{studentId}` - Get by student code
+- [ ] `POST /api/students` - Create new
+- [ ] `PUT /api/students/{id}` - Update
+- [ ] `DELETE /api/students/{id}` - Delete
+- [ ] `GET /api/students/{id}/enrollments` - Get student's enrollments
+- [ ] `GET /api/students/{id}/alerts` - Get student's alerts
+- [ ] `GET /api/students/at-risk` - Get at-risk students
+- [ ] Add OpenAPI annotations (@Operation, @ApiResponse)
+
+#### CourseController.java
+- [ ] `@RestController`, `@RequestMapping("/api/courses")`
+- [ ] `GET /api/courses` - List all
+- [ ] `GET /api/courses/{id}` - Get by ID
+- [ ] `GET /api/courses/code/{courseCode}` - Get by course code
+- [ ] `POST /api/courses` - Create new
+- [ ] `PUT /api/courses/{id}` - Update
+- [ ] `DELETE /api/courses/{id}` - Delete
+- [ ] `GET /api/courses/{id}/offerings` - Get course offerings (Abstraction-Occurrence)
+- [ ] `GET /api/courses/search?name=&department=` - Search/filter
+
+#### CourseOfferingController.java
+- [ ] `@RestController`, `@RequestMapping("/api/offerings")`
+- [ ] Standard CRUD endpoints
+- [ ] `GET /api/offerings/{id}/enrollments` - Get enrolled students
+- [ ] `GET /api/offerings/search?semester=&year=&instructor=` - Search/filter
+- [ ] `GET /api/offerings/{id}/availability` - Check seat availability
+
+#### EnrollmentController.java
+- [ ] `@RestController`, `@RequestMapping("/api/enrollments")`
+- [ ] Standard CRUD endpoints
+- [ ] `POST /api/enrollments/{id}/submit-grade` - Submit final grade
+- [ ] `POST /api/enrollments/{id}/complete` - Complete enrollment
+- [ ] `POST /api/enrollments/{id}/withdraw` - Withdraw from course
+- [ ] `GET /api/enrollments/student/{studentId}` - By student
+- [ ] `GET /api/enrollments/offering/{offeringId}` - By offering
+
+#### GradeEntryController.java
+- [ ] `@RestController`, `@RequestMapping("/api/grade-entries")`
+- [ ] Standard CRUD endpoints
+- [ ] `POST /api/grade-entries/{id}/children` - Add child entry (Composite)
+- [ ] `GET /api/grade-entries/{id}/children` - Get children
+- [ ] `GET /api/grade-entries/enrollment/{enrollmentId}` - By enrollment
+- [ ] `GET /api/grade-entries/enrollment/{enrollmentId}/hierarchy` - Hierarchical view
+- [ ] `PUT /api/grade-entries/{id}/score` - Update score only
+
+#### AlertController.java
+- [ ] `@RestController`, `@RequestMapping("/api/alerts")`
+- [ ] `GET /api/alerts` - List all (with pagination)
+- [ ] `GET /api/alerts/{id}` - Get by ID
+- [ ] `GET /api/alerts/unread` - Get unread alerts
+- [ ] `GET /api/alerts/urgent` - Get urgent alerts (HIGH/CRITICAL)
+- [ ] `GET /api/alerts/student/{studentId}` - By student
+- [ ] `PUT /api/alerts/{id}/read` - Mark as read
+- [ ] `PUT /api/alerts/{id}/resolve` - Resolve alert
+- [ ] `PUT /api/alerts/batch-read` - Batch mark as read
+- [ ] `GET /api/alerts/summary` - Alert statistics
+
+### 2.3 Data Initializer - TODO
+**Priority: MEDIUM**
+
+- [ ] Create `DataInitializer.java`
+  ```
+  - @Component with CommandLineRunner
+  - @Profile("dev") - Only run in development
+  - Seed sample data matching frontend mock data
+  ```
+- [ ] Seed data:
+  - [ ] 5-10 Students with various statuses
+  - [ ] 5-8 Courses with different grading types
+  - [ ] 10-15 CourseOfferings across semesters
+  - [ ] 20-30 Enrollments with grades
+  - [ ] Sample GradeEntries (including composite structure)
+  - [ ] Sample Alerts
+
+---
+
+## Phase 3: Testing and Documentation - TODO
+
+### 3.1 Controller Integration Tests
+**Priority: MEDIUM**
+
+- [ ] `StudentControllerTest.java` - MockMvc tests
+- [ ] `CourseControllerTest.java`
+- [ ] `EnrollmentControllerTest.java`
+- [ ] `GradeEntryControllerTest.java`
+- [ ] `AlertControllerTest.java`
+- [ ] Test error handling (404, 400, validation errors)
+
+### 3.2 Documentation
+**Priority: LOW**
+
+- [ ] Update Swagger annotations on all controllers
+- [ ] Create `docs/API.md` - API documentation
+- [ ] Create `docs/DATABASE.md` - Database schema documentation
+- [ ] Create visual ERD diagram (`docs/diagrams/ERD.png`)
 
 ---
 
 ## Coordination with Other Members
 
-### With Member 2 (Logic Engineer - Strategy Pattern)
-- [x] Ensure `GradingType` enum aligns with strategy implementations
-- [ ] Verify grade calculation flow works with Enrollment entity
+### With Member 2 (Logic Engineer)
+| Item | Status | Notes |
+|------|--------|-------|
+| GradingType enum | Done | Aligned with Strategy Pattern |
+| CourseOffering.gradingType | Done | Used by Strategy Factory |
+| EnrollmentService hooks | Done | Ready for Strategy integration |
 
-### With Member 3 (Behavioral Engineer - Observer/State Patterns)
-- [x] Ensure `StudentStatus` enum aligns with State pattern
-- [x] Updated Observer interfaces for Enrollment-based approach
-- [ ] Provide hooks for Observer pattern in GradeEntryService
-- [ ] Coordinate Alert entity with RiskDetectorObserver
+**Member 2 will:** Implement GradingStrategyFactory and integrate with EnrollmentService
+
+### With Member 3 (Behavioral Engineer)
+| Item | Status | Notes |
+|------|--------|-------|
+| StudentStatus enum | Done | Aligned with State Pattern |
+| Alert entity | Done | Ready for Observer integration |
+| GradeEntryService hooks | Done | TODO comments for Observer |
+
+**Member 3 will:** Complete Observer implementations and integrate with services
 
 ### With Member 4 (UX Developer)
-- [x] Updated frontend TypeScript types to match new DTOs
-- [ ] Verify DTO structure matches TypeScript interfaces
-- [ ] Coordinate mock data consistency
+| Item | Status | Notes |
+|------|--------|-------|
+| DTO structure | Done | Matches TypeScript interfaces |
+| API endpoints | In Progress | Controllers being created |
+| Mock data | Pending | Will match DataInitializer |
 
 ---
 
-## Files Created/Modified Checklist
+## Files Checklist
 
-### Completed
-- [x] `entity/Student.java` - updated
-- [x] `entity/Course.java` - verified
-- [x] `entity/CourseOffering.java` - updated
-- [x] `entity/Enrollment.java` - NEW
-- [x] `entity/EnrollmentStatus.java` - NEW
-- [x] `entity/GradeEntry.java` - updated with Composite pattern
-- [x] `entity/Alert.java` - updated
-- [x] `entity/*` (Enums) - verified
-- [x] `repository/EnrollmentRepository.java` - NEW
-- [x] `repository/GradeEntryRepository.java` - updated
-- [x] `dto/EnrollmentDTO.java` - NEW
-- [x] `dto/GradeEntryDTO.java` - updated
-- [x] `patterns/observer/*` - updated for Enrollment
-- [x] `docs/agents/ERD.md` - completed
-- [x] `frontend/src/types/index.ts` - updated
+### Completed Files
+```
+entity/
+  ├── Student.java .............. [x]
+  ├── Course.java ............... [x]
+  ├── CourseOffering.java ....... [x]
+  ├── Enrollment.java ........... [x]
+  ├── GradeEntry.java ........... [x]
+  ├── Alert.java ................ [x]
+  └── [All enums] ............... [x]
 
-### Removed (Deprecated)
-- [x] `entity/Transcript.java` - removed
-- [x] `dto/TranscriptDTO.java` - removed
-- [x] `repository/TranscriptRepository.java` - removed
+repository/
+  ├── StudentRepository.java .... [x]
+  ├── CourseRepository.java ..... [x]
+  ├── CourseOfferingRepository .. [x]
+  ├── EnrollmentRepository.java . [x]
+  ├── GradeEntryRepository.java . [x]
+  └── AlertRepository.java ...... [x]
+
+dto/
+  ├── StudentDTO.java ........... [x]
+  ├── CourseDTO.java ............ [x]
+  ├── CourseOfferingDTO.java .... [x]
+  ├── EnrollmentDTO.java ........ [x]
+  ├── GradeEntryDTO.java ........ [x]
+  └── AlertDTO.java ............. [x]
+
+service/
+  ├── StudentService.java ....... [x]
+  ├── CourseService.java ........ [x]
+  ├── CourseOfferingService.java  [x]
+  ├── EnrollmentService.java .... [x]
+  ├── GradeEntryService.java .... [x]
+  └── AlertService.java ......... [x]
+
+docs/
+  └── agents/ERD.md ............. [x]
+```
 
 ### To Be Created
-- [x] `service/StudentService.java`
-- [x] `service/CourseService.java`
-- [x] `service/CourseOfferingService.java`
-- [x] `service/EnrollmentService.java`
-- [x] `service/GradeEntryService.java`
-- [x] `service/AlertService.java`
-- [ ] `controller/StudentController.java`
-- [ ] `controller/CourseController.java`
-- [ ] `controller/CourseOfferingController.java`
-- [ ] `controller/EnrollmentController.java`
-- [ ] `controller/GradeEntryController.java`
-- [ ] `controller/AlertController.java`
-- [ ] `exception/ResourceNotFoundException.java`
-- [ ] `exception/ValidationException.java`
-- [ ] `exception/GlobalExceptionHandler.java`
-- [ ] `config/DataInitializer.java`
-- [ ] `docs/diagrams/ERD.drawio`
-- [ ] `docs/API.md`
-- [ ] `docs/DATABASE.md`
+```
+exception/
+  ├── ResourceNotFoundException.java ..... [ ]
+  ├── ValidationException.java ........... [ ]
+  ├── DuplicateResourceException.java .... [ ]
+  ├── BusinessRuleException.java ......... [ ]
+  ├── ErrorResponse.java ................. [ ]
+  └── GlobalExceptionHandler.java ........ [ ]
+
+controller/
+  ├── StudentController.java ............. [ ]
+  ├── CourseController.java .............. [ ]
+  ├── CourseOfferingController.java ...... [ ]
+  ├── EnrollmentController.java .......... [ ]
+  ├── GradeEntryController.java .......... [ ]
+  └── AlertController.java ............... [ ]
+
+config/
+  └── DataInitializer.java ............... [ ]
+
+test/
+  └── controller/
+      ├── StudentControllerTest.java ..... [ ]
+      └── [Other controller tests] ....... [ ]
+
+docs/
+  ├── API.md ............................. [ ]
+  ├── DATABASE.md ........................ [ ]
+  └── diagrams/ERD.png ................... [ ]
+```
 
 ---
 
 ## Priority Order
 
-1. **DONE** - ERD Design, Entity Updates, OCL Verification
-2. **COMPLETED** - Service Layer Implementation (all services done)
-3. **Medium Priority** - Controller Layer Implementation
-4. **Medium Priority** - Exception Handling
-5. **Low Priority** - Unit Tests
-6. **Low Priority** - Documentation
+| # | Task | Priority | Status | Est. Time |
+|---|------|----------|--------|-----------|
+| 1 | Exception Handling | HIGH | TODO | 1 hour |
+| 2 | StudentController | HIGH | TODO | 45 min |
+| 3 | CourseController | HIGH | TODO | 30 min |
+| 4 | CourseOfferingController | HIGH | TODO | 30 min |
+| 5 | EnrollmentController | HIGH | TODO | 45 min |
+| 6 | GradeEntryController | HIGH | TODO | 45 min |
+| 7 | AlertController | HIGH | TODO | 30 min |
+| 8 | DataInitializer | MEDIUM | TODO | 1 hour |
+| 9 | Controller Tests | MEDIUM | TODO | 2 hours |
+| 10 | Documentation | LOW | TODO | 1 hour |
+
+**Total Estimated Time: ~8 hours**
+
+---
+
+## Commit Plan
+
+```
+1. feat(exception): add custom exceptions and global handler
+2. feat(controller): add StudentController with CRUD endpoints
+3. feat(controller): add CourseController with CRUD endpoints
+4. feat(controller): add CourseOfferingController
+5. feat(controller): add EnrollmentController with grade submission
+6. feat(controller): add GradeEntryController with composite support
+7. feat(controller): add AlertController
+8. feat(config): add DataInitializer for sample data
+9. test(controller): add integration tests
+10. docs: add API and database documentation
+```
 
 ---
 
 ## Notes
 
-- All code comments must be in **English**
-- Follow naming conventions: PascalCase for classes, camelCase for methods/variables
-- Commit format: `feat: description` or `fix: description`
-- Coordinate with team before making changes to shared interfaces
-- **IMPORTANT:** Transcript entity has been replaced by Enrollment entity
+- All code comments in **English**
+- Follow naming: PascalCase (classes), camelCase (methods/variables)
+- Commit format: `feat(scope): description` or `fix(scope): description`
+- Controllers should be **thin** - delegate to services
+- Use `@Valid` annotation for request body validation
+- Return proper HTTP status codes (200, 201, 204, 400, 404, 500)
 
 ---
 
 ## Changes Log
 
+### 2026-01-16
+- Refactored TODO list to align with current codebase state
+- Added SOLID principles documentation
+- Added architecture overview diagram
+- Reorganized tasks by phase (Foundation -> API -> Testing)
+- Updated coordination section with current status
+- Added detailed file checklist
+- Added commit plan
+- Removed completed items from active TODO (moved to Completed section)
+
 ### 2026-01-15
-- Implemented `StudentService.java` with:
-  - CRUD operations (create, read, update, delete)
-  - GPA calculation from completed enrollments (weighted average)
-  - State Pattern integration for automatic status updates
-  - Related queries (enrollments, alerts, at-risk students)
-  - DTO conversion helpers
-- Implemented `CourseService.java` with:
-  - CRUD operations (create, read, update, delete)
-  - Get course offerings (Abstraction-Occurrence pattern)
-  - Search and filter methods (by name, department, grading type, credits)
-  - DTO conversion helpers
-- Implemented `CourseOfferingService.java` with:
-  - CRUD operations (create, read, update, delete)
-  - Enrollment management (get enrollments, seat availability, count sync)
-  - Search and filter methods (by semester, year, instructor)
-  - DTO conversion helpers
-- Implemented `EnrollmentService.java` with:
-  - CRUD operations (create, read, update, delete)
-  - Grade submission (completeEnrollment, submitGrade, withdrawEnrollment)
-  - GPA calculation helpers (auto letterGrade and gpaValue from score)
-  - Triggers StudentService GPA recalculation after grade changes
-  - Search and filter methods (by student, offering, status)
-  - GradeEntry DTO conversion with Composite pattern support
-- Implemented `GradeEntryService.java` with:
-  - CRUD operations (create, read, update, delete)
-  - Composite Pattern support (addChildGradeEntry, getChildren, getHierarchicalGrades)
-  - Composite score calculation (calculateCompositeScore, calculateWeightedScore, calculateFinalGrade)
-  - Weight validation (validateWeights)
-  - Search and filter methods (by enrollment, student, type, offering)
-  - Observer pattern hooks (TODO comments for Member 3 integration)
-- Implemented `AlertService.java` with:
-  - CRUD operations (create, read, update, delete)
-  - Mark as read/resolved (single and batch operations)
-  - Search and filter methods (by student, level, type, read status, resolved status)
-  - Urgent alerts query (CRITICAL and HIGH level, unresolved)
-  - Alert summary statistics (counts by level and status)
-  - Integration method for Observer pattern (createAlert with entity params)
+- Completed all Service layer implementations
+- Completed all Repository layer implementations
+- Completed ERD design
+- Migrated from Transcript to Enrollment approach
 
 ### 2026-01-14
-- Completed ERD design in `docs/agents/ERD.md`
-- Migrated from Transcript to Enrollment approach
-- Added Composite Pattern support in GradeEntry (parent_id, children)
-- Updated all related entities, repositories, DTOs
-- Updated Observer pattern interfaces for Enrollment
-- Updated frontend TypeScript types
+- Completed ERD design
+- Completed Entity layer
+- Completed DTO layer
 
 ---
 
-*Last Updated: 2026-01-15*
+*Last Updated: 2026-01-16*
