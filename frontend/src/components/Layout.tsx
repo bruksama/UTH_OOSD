@@ -1,17 +1,13 @@
-import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-
-interface LayoutProps {
-  children: ReactNode;
-}
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 
 /**
  * Main layout component with navigation sidebar
- * 
+ *
  * @author SPTS Team
  */
-const Layout = ({ children }: LayoutProps) => {
+const Layout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -22,82 +18,63 @@ const Layout = ({ children }: LayoutProps) => {
 
   const isActive = (path: string) => location.pathname === path;
 
+
+  const handleLogout = () => {
+    navigate('/login');
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 text-white">
-        {/* Logo */}
-        <div className="flex items-center justify-center h-16 border-b border-slate-800">
-          <h1 className="text-xl font-bold tracking-tight">
-            <span className="text-primary-400">SPTS</span>
-          </h1>
-        </div>
-
-        {/* Navigation */}
-        <nav className="mt-6 px-3">
-          <ul className="space-y-1">
-            {navItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={`flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
-                    isActive(item.path)
-                      ? 'bg-primary-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  }`}
-                >
-                  <svg
-                    className="w-5 h-5 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d={item.icon}
-                    />
-                  </svg>
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800">
-          <p className="text-xs text-slate-500 text-center">
-            Student Performance Tracking System
-          </p>
-          <p className="text-xs text-slate-600 text-center mt-1">
-            v1.0.0
-          </p>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <main className="ml-64 min-h-screen">
-        {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
-          <h2 className="text-lg font-semibold text-slate-800">
-            {navItems.find((item) => isActive(item.path))?.label || 'Dashboard'}
-          </h2>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-slate-600">Admin User</span>
-            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-              <span className="text-primary-600 font-medium text-sm">A</span>
-            </div>
+      <div className="min-h-screen bg-slate-50">
+        <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 text-white">
+          <div className="flex items-center justify-center h-16 border-b border-slate-800">
+            <h1 className="text-xl font-bold tracking-tight">
+              <span className="text-primary-400">SPTS</span>
+            </h1>
           </div>
-        </header>
 
-        {/* Page content */}
-        <div className="p-6">
-          {children}
-        </div>
-      </main>
-    </div>
+          <nav className="mt-6 px-3">
+            <ul className="space-y-1">
+              {navItems.map((item) => (
+                  <li key={item.path}>
+                    <Link
+                        to={item.path}
+                        className={`flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
+                            isActive(item.path)
+                                ? 'bg-primary-600 text-white'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                        }`}
+                    >
+                      <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                      </svg>
+                      {item.label}
+                    </Link>
+                  </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
+
+        <main className="ml-64 min-h-screen">
+          <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
+            <h2 className="text-lg font-semibold text-slate-800">
+              {navItems.find((item) => isActive(item.path))?.label || 'Dashboard'}
+            </h2>
+
+            {/*  Logout */}
+            <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Logout
+            </button>
+          </header>
+
+          <div className="p-6">
+            <Outlet />
+          </div>
+        </main>
+      </div>
   );
 };
 
