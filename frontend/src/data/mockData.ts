@@ -64,7 +64,7 @@ export const mockStudents: StudentDTO[] = [
     dateOfBirth: '1999-07-12',
     enrollmentDate: '2020-09-01',
     gpa: 3.78,
-    totalCredits: 130,
+    totalCredits: 120,
     status: StudentStatus.GRADUATED,
   },
   {
@@ -195,12 +195,12 @@ export const mockDashboardStats: DashboardStats = {
 
 // GPA Trend Data for charts
 export const mockGpaTrend: GpaTrendData[] = [
-  { semester: 'Fall 2022', gpa: 2.8 },
-  { semester: 'Spring 2023', gpa: 2.9 },
-  { semester: 'Fall 2023', gpa: 3.1 },
-  { semester: 'Spring 2024', gpa: 2.95 },
-  { semester: 'Fall 2024', gpa: 3.2 },
-  { semester: 'Spring 2025', gpa: 3.45 },
+  { semester: 'Sem 1 23', gpa: 2.8 },
+  { semester: 'Sem 2 24', gpa: 2.9 },
+  { semester: 'Sem 1 24', gpa: 3.1 },
+  { semester: 'Sem 2 25', gpa: 2.95 },
+  { semester: 'Sem 1 25', gpa: 3.2 },
+  { semester: 'Sem 2 26', gpa: 3.45 },
 ];
 
 // Helper functions
