@@ -432,9 +432,9 @@ public class StudentService {
         dto.setStudentCode(enrollment.getStudent().getStudentId());
         dto.setCourseOfferingId(enrollment.getCourseOffering().getId());
         dto.setCourseCode(enrollment.getCourseOffering().getCourse().getCourseCode());
-        dto.setCourseName(enrollment.getCourseOffering().getCourse().getName());
+        dto.setCourseName(enrollment.getCourseOffering().getCourse().getCourseName());
         dto.setCredits(enrollment.getCourseOffering().getCourse().getCredits());
-        dto.setSemester(enrollment.getCourseOffering().getSemester());
+        dto.setSemester(enrollment.getCourseOffering().getSemester().getDisplayName());
         dto.setAcademicYear(enrollment.getCourseOffering().getAcademicYear());
         dto.setFinalScore(enrollment.getFinalScore());
         dto.setLetterGrade(enrollment.getLetterGrade());
