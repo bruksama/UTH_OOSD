@@ -1,323 +1,257 @@
-# MEMBER 3 - Behavioral Engineer Todolist
+# MEMBER3 - Behavioral Engineer
 
-**Role:** Behavioral Engineer (Kỹ sư Hành vi)  
-**Focus:** Observer Pattern, State Pattern, Alert System Integration
+## ROLE
+Behavioral Engineer - Observer Pattern, State Pattern, Alert System
 
----
-
-## Phase 1: Interface and DTO Definitions (Day 1-2)
-
-### 1.1 Observer Pattern - Interface Review
-- [x] Review `IGradeObserver.java` interface
-  - [x] Method: `onGradeUpdated(Student, Enrollment, GradeEntry)`
-  - [x] Priority mechanism implemented
-  - [x] Observer name for logging
-- [x] Review `GradeSubject.java` subject class
-  - [x] Observer registration (attach/detach)
-  - [x] Priority-based notification
-  - [x] Observer count tracking
-
-### 1.2 Observer Pattern - Observer Implementations
-- [x] Review `GpaRecalculatorObserver.java`
-  - [x] Priority = 0 (highest - runs first)
-  - [x] Logging structure in place
-  - [ ] **TODO:** Inject StudentService
-  - [ ] **TODO:** Implement GPA recalculation logic
-- [x] Review `RiskDetectorObserver.java`
-  - [x] Priority = 10 (runs after GPA recalc)
-  - [x] Thresholds defined (AT_RISK = 2.0, PROBATION = 1.5)
-  - [ ] **TODO:** Inject AlertService
-  - [ ] **TODO:** Implement alert creation logic
-
-### 1.3 State Pattern - State Classes Review
-- [x] Review `StudentState.java` abstract class
-  - [x] Methods: getStateName, canRegisterCourses, requiresCounseling
-  - [x] Methods: getMaxCreditHours, handleGpaChange, getRequiredActions
-- [x] Review concrete state implementations
-  - [x] `NormalState.java` - GPA >= 2.0, max 18 credits
-  - [x] `AtRiskState.java` - 1.5 <= GPA < 2.0, max 15 credits
-  - [x] `ProbationState.java` - GPA < 1.5, max 12 credits
-  - [x] `GraduatedState.java` - Terminal state, no registration
+## CURRENT STATE
+- [x] Observer Pattern STRUCTURE complete
+  - [x] IGradeObserver interface
+  - [x] GradeSubject class
+  - [!] GpaRecalculatorObserver (structure only, needs completion)
+  - [!] RiskDetectorObserver (structure only, needs completion)
+- [x] State Pattern COMPLETE
+  - [x] StudentState abstract class
+  - [x] NormalState, AtRiskState, ProbationState, GraduatedState
+- [ ] Observer Integration NOT DONE
+- [ ] ObserverConfig NOT CREATED
 
 ---
 
-## Phase 2: Implementation (Day 3-6)
+## TASK 1: Complete Observer Implementations
+**Priority: CRITICAL**
 
-### 2.1 Observer Pattern Integration
-- [ ] Create `ObserverConfig.java` configuration class
-  - [ ] Inject GradeSubject and all observers
-  - [ ] Auto-register observers in @PostConstruct
-  - [ ] Verify observer count and priority ordering
-- [ ] Complete `GpaRecalculatorObserver.java` implementation
-  - [ ] Add StudentService dependency injection
-  - [ ] Implement `recalculateAndUpdateGpa()` call
-  - [ ] Add try-catch error handling
-  - [ ] Test: Grade update triggers GPA recalculation
-- [ ] Complete `RiskDetectorObserver.java` implementation
-  - [ ] Add AlertService dependency injection
-  - [ ] Implement alert creation for AT_RISK (GPA < 2.0)
-  - [ ] Implement alert creation for PROBATION (GPA < 1.5)
-  - [ ] Add duplicate alert prevention logic
-  - [ ] Test: Low GPA triggers alert creation
-- [ ] Integrate Observer Pattern with `GradeEntryService.java`
-  - [ ] Inject GradeSubject into service
-  - [ ] Add `notifyGradeObservers()` helper method
-  - [ ] Call observers in `createGradeEntry()` (line ~103)
-  - [ ] Call observers in `updateGradeEntry()` (line ~135)
-  - [ ] Call observers in `updateScore()` (line ~403)
-  - [ ] Test: Grade changes trigger observer notifications
+### 1.1 Complete GpaRecalculatorObserver.java
+```
+Location: backend/src/main/java/com/spts/patterns/observer/
+Current: Has structure but logic is placeholder
+```
 
-### 2.2 State Pattern Enhancement
-- [ ] Create `StudentStateManager.java` helper class
-  - [ ] Inject all state beans (Normal, AtRisk, Probation, Graduated)
-  - [ ] Implement `getStateForStatus(StudentStatus)` method
-  - [ ] Implement `determineStateFromGpa(Double)` method
-  - [ ] Implement `canTransition(StudentState, StudentState)` validation
-  - [ ] Add logging for state transitions
-- [ ] Update `StudentService.java` to use StateManager
-  - [ ] Inject StudentStateManager
-  - [ ] Refactor `updateStudentStatus()` to use manager
-  - [ ] Refactor `getStateForStatus()` to delegate to manager
-  - [ ] Add state transition logging
-  - [ ] Test: GPA changes trigger correct state transitions
-- [ ] Create `StateTransitionObserver.java` (optional enhancement)
-  - [ ] Implement IGradeObserver interface
-  - [ ] Set priority = 20 (runs after risk detection)
-  - [ ] Detect state transitions
-  - [ ] Create alerts for state changes
-  - [ ] Log transition history
+CHANGES NEEDED:
+```java
+// Add service injection
+private final StudentService studentService;
 
-### 2.3 DTO and Supporting Classes
-- [ ] Create `StudentStateDTO.java`
-  - [ ] Fields: stateName, canRegister, requiresCounseling
-  - [ ] Fields: maxCredits, requiredActions
-  - [ ] Getters and setters
-  - [ ] Constructor for easy creation
+// Constructor injection
+public GpaRecalculatorObserver(StudentService studentService) {
+    this.studentService = studentService;
+}
 
----
+// In onGradeUpdated method:
+@Override
+public void onGradeUpdated(Student student, Enrollment enrollment, GradeEntry gradeEntry) {
+    try {
+        log.info("Recalculating GPA for student: {}", student.getStudentId());
+        studentService.recalculateAndUpdateGpa(student.getId());
+        log.info("GPA recalculation completed for student: {}", student.getStudentId());
+    } catch (Exception e) {
+        log.error("Error recalculating GPA for student {}: {}", student.getStudentId(), e.getMessage());
+    }
+}
+```
 
-## Phase 3: Integration and Testing (Day 7)
+### 1.2 Complete RiskDetectorObserver.java
+```
+Location: backend/src/main/java/com/spts/patterns/observer/
+Current: Has structure but logic is placeholder
+```
 
-### 3.1 Unit Tests - Observer Pattern
-- [ ] Write `GradeSubjectTest.java`
-  - [ ] Test attach() adds observer
-  - [ ] Test attach() prevents duplicates
-  - [ ] Test detach() removes observer
-  - [ ] Test notifyObservers() calls all observers
-  - [ ] Test observer priority ordering
-  - [ ] Test getObserverCount()
-- [ ] Write `GpaRecalculatorObserverTest.java`
-  - [ ] Mock StudentService
-  - [ ] Test onGradeUpdated() calls recalculateAndUpdateGpa()
-  - [ ] Test getPriority() returns 0
-  - [ ] Test exception handling
-- [ ] Write `RiskDetectorObserverTest.java`
-  - [ ] Mock AlertService
-  - [ ] Test GPA < 1.5 creates CRITICAL alert
-  - [ ] Test 1.5 <= GPA < 2.0 creates WARNING alert
-  - [ ] Test GPA >= 2.0 creates no alert
-  - [ ] Test duplicate alert prevention
-- [ ] Write `StateTransitionObserverTest.java` (if implemented)
-  - [ ] Test state transition detection
-  - [ ] Test alert creation on state change
+CHANGES NEEDED:
+```java
+// Add service injection
+private final AlertService alertService;
 
-### 3.2 Unit Tests - State Pattern
-- [ ] Write `NormalStateTest.java`
-  - [ ] Test getStateName() = "NORMAL"
-  - [ ] Test canRegisterCourses() = true
-  - [ ] Test requiresCounseling() = false
-  - [ ] Test getMaxCreditHours() = 18
-  - [ ] Test handleGpaChange() with GPA >= 2.0 stays NORMAL
-  - [ ] Test handleGpaChange() with GPA < 2.0 transitions to AT_RISK
-- [ ] Write `AtRiskStateTest.java`
-  - [ ] Test all state properties
-  - [ ] Test handleGpaChange() transitions (3 cases)
-  - [ ] Test getMaxCreditHours() = 15
-- [ ] Write `ProbationStateTest.java`
-  - [ ] Test all state properties
-  - [ ] Test handleGpaChange() transitions (3 cases)
-  - [ ] Test getMaxCreditHours() = 12
-- [ ] Write `GraduatedStateTest.java`
-  - [ ] Test canRegisterCourses() = false
-  - [ ] Test handleGpaChange() always returns same state (terminal)
-- [ ] Write `StudentStateManagerTest.java`
-  - [ ] Test determineStateFromGpa() logic
-  - [ ] Test getStateForStatus() returns correct state
-  - [ ] Test canTransition() validation
+// Constructor injection
+public RiskDetectorObserver(AlertService alertService) {
+    this.alertService = alertService;
+}
 
-### 3.3 Integration Tests
-- [ ] Write `ObserverPatternIntegrationTest.java`
-  - [ ] Setup: Create student, enrollment, grade entry
-  - [ ] Test: Add grade entry -> GPA recalculated
-  - [ ] Test: Update grade -> GPA updated
-  - [ ] Test: GPA drops below 2.0 -> Alert created
-  - [ ] Verify full observer chain works end-to-end
-- [ ] Write `StatePatternIntegrationTest.java`
-  - [ ] Test student lifecycle: NORMAL -> AT_RISK -> PROBATION -> NORMAL
-  - [ ] Verify state transitions based on GPA changes
-  - [ ] Verify alerts created at each transition
-  - [ ] Test edge cases (GPA = 2.0, 1.5, etc.)
-- [ ] Write `EndToEndGradeFlowTest.java`
-  - [ ] Simulate realistic scenario: student enrolls in 4 courses
-  - [ ] Enter grades progressively
-  - [ ] Verify GPA calculation after each grade
-  - [ ] Verify state transitions tracked correctly
-  - [ ] Verify alerts generated appropriately
+// In onGradeUpdated method:
+@Override
+public void onGradeUpdated(Student student, Enrollment enrollment, GradeEntry gradeEntry) {
+    Double gpa = student.getGpa();
+    if (gpa == null) return;
+    
+    if (gpa < PROBATION_THRESHOLD) { // 1.5
+        createAlertIfNotExists(student, AlertLevel.CRITICAL, AlertType.PROBATION,
+            "Student GPA (" + gpa + ") is below probation threshold");
+    } else if (gpa < AT_RISK_THRESHOLD) { // 2.0
+        createAlertIfNotExists(student, AlertLevel.WARNING, AlertType.LOW_GPA,
+            "Student GPA (" + gpa + ") is below acceptable level");
+    }
+}
 
-### 3.4 Documentation
-- [ ] Create `docs/patterns/OBSERVER_PATTERN.md`
-  - [ ] Pattern overview and motivation
-  - [ ] Class diagram (text-based or image)
-  - [ ] Sequence diagram for grade update flow
-  - [ ] Implementation details and code examples
-  - [ ] How to add new observers
-  - [ ] Testing guide
-- [ ] Create `docs/patterns/STATE_PATTERN.md`
-  - [ ] Pattern overview and motivation
-  - [ ] State diagram showing transitions
-  - [ ] State transition rules and thresholds
-  - [ ] Implementation details and code examples
-  - [ ] How to add new states
-  - [ ] Testing guide
-- [ ] Update main `README.md`
-  - [ ] Add Observer Pattern section
-  - [ ] Add State Pattern section
-  - [ ] Link to detailed documentation
-- [ ] Add comprehensive Javadoc comments
-  - [ ] All observer classes
-  - [ ] All state classes
-  - [ ] Include @see references between related classes
-
-### 3.5 Code Review and Cleanup
-- [ ] Review all observer classes for consistency
-- [ ] Review all state classes for consistency
-- [ ] Ensure all code comments are in English
-- [ ] Run code formatter (follow Java conventions)
-- [ ] Remove unused imports and dead code
-- [ ] Verify all tests pass
-- [ ] Verify test coverage > 80%
+private void createAlertIfNotExists(Student student, AlertLevel level, AlertType type, String message) {
+    // Check for existing unresolved alert of same type
+    // If not exists, create new alert via alertService
+}
+```
 
 ---
 
-## Coordination with Other Members
+## TASK 2: Create ObserverConfig
+**Priority: HIGH**
 
-### With Member 1 (Foundation Architect)
-- [x] Entity structure ready (Student, Enrollment, GradeEntry, Alert)
-- [x] Service layer has hooks for Observer pattern
-- [ ] Verify controller layer doesn't conflict with patterns
-- [ ] Coordinate Alert entity usage with RiskDetectorObserver
+### 2.1 Create config/ObserverConfig.java
+```
+Location: backend/src/main/java/com/spts/config/
+Purpose: Wire up observer pattern at startup
+```
 
-### With Member 2 (Logic Engineer - Strategy Pattern)
-- [ ] Ensure grading strategies compatible with Observer notifications
-- [ ] Test integration between Strategy and Observer patterns
-- [ ] Coordinate grade calculation flow
-
-### With Member 4 (UX Developer)
-- [ ] Verify frontend displays alerts correctly
-- [ ] Verify frontend displays student states correctly
-- [ ] Coordinate alert notification UI
-- [ ] Test frontend-backend integration for state changes
-
----
-
-## Files Created/Modified Checklist
-
-### Completed (Pattern Structure)
-- [x] `patterns/observer/IGradeObserver.java` - interface
-- [x] `patterns/observer/GradeSubject.java` - subject
-- [x] `patterns/observer/GpaRecalculatorObserver.java` - observer (needs completion)
-- [x] `patterns/observer/RiskDetectorObserver.java` - observer (needs completion)
-- [x] `patterns/state/StudentState.java` - abstract state
-- [x] `patterns/state/NormalState.java` - concrete state
-- [x] `patterns/state/AtRiskState.java` - concrete state
-- [x] `patterns/state/ProbationState.java` - concrete state
-- [x] `patterns/state/GraduatedState.java` - concrete state
-
-### To Be Created
-- [ ] `config/ObserverConfig.java`
-- [ ] `patterns/state/StudentStateManager.java`
-- [ ] `patterns/observer/StateTransitionObserver.java` (optional)
-- [ ] `dto/StudentStateDTO.java`
-- [ ] `test/.../observer/GradeSubjectTest.java`
-- [ ] `test/.../observer/GpaRecalculatorObserverTest.java`
-- [ ] `test/.../observer/RiskDetectorObserverTest.java`
-- [ ] `test/.../observer/StateTransitionObserverTest.java`
-- [ ] `test/.../state/NormalStateTest.java`
-- [ ] `test/.../state/AtRiskStateTest.java`
-- [ ] `test/.../state/ProbationStateTest.java`
-- [ ] `test/.../state/GraduatedStateTest.java`
-- [ ] `test/.../state/StudentStateManagerTest.java`
-- [ ] `test/.../integration/ObserverPatternIntegrationTest.java`
-- [ ] `test/.../integration/StatePatternIntegrationTest.java`
-- [ ] `test/.../integration/EndToEndGradeFlowTest.java`
-- [ ] `docs/patterns/OBSERVER_PATTERN.md`
-- [ ] `docs/patterns/STATE_PATTERN.md`
-
-### To Be Modified
-- [ ] `service/GradeEntryService.java` - integrate Observer pattern
-- [ ] `service/StudentService.java` - use StudentStateManager
-- [ ] `README.md` - add pattern documentation
+SPEC:
+```java
+@Configuration
+public class ObserverConfig {
+    
+    private final GradeSubject gradeSubject;
+    private final GpaRecalculatorObserver gpaRecalculatorObserver;
+    private final RiskDetectorObserver riskDetectorObserver;
+    
+    // Constructor injection for all
+    
+    @PostConstruct
+    public void registerObservers() {
+        gradeSubject.attach(gpaRecalculatorObserver);  // Priority 0
+        gradeSubject.attach(riskDetectorObserver);     // Priority 10
+        log.info("Registered {} observers with GradeSubject", gradeSubject.getObserverCount());
+    }
+}
+```
 
 ---
 
-## Priority Order
+## TASK 3: Integrate Observer with Services
+**Priority: HIGH**
 
-1. **HIGH Priority** - Observer Pattern Integration (Day 1-2)
-   - Complete observer implementations
-   - Integrate with GradeEntryService
-   - Manual testing to verify flow works
-2. **HIGH Priority** - State Pattern Enhancement (Day 2-3)
-   - Create StudentStateManager
-   - Update StudentService
-   - Test state transitions
-3. **HIGH Priority** - Unit Tests (Day 3-5)
-   - Observer pattern tests (4 files)
-   - State pattern tests (5 files)
-   - Coverage > 80%
-4. **MEDIUM Priority** - Integration Tests (Day 5-6)
-   - End-to-end flow testing
-   - Bug fixes from testing
-5. **MEDIUM Priority** - Documentation (Day 6-7)
-   - Pattern documentation
-   - Code examples
-   - Javadoc improvements
-6. **LOW Priority** - Optional Enhancements
-   - StateTransitionObserver
-   - Advanced state tracking
-   - Performance optimizations
+### 3.1 Update GradeEntryService.java
+```
+Location: backend/src/main/java/com/spts/service/
+Changes: Inject GradeSubject and call notifyObservers
+```
 
----
+FIND these TODO comments and implement:
+1. In `createGradeEntry()` - after saving, call notifyObservers
+2. In `updateGradeEntry()` - after saving, call notifyObservers  
+3. In `updateScore()` - after saving, call notifyObservers
 
-## Notes
+IMPLEMENTATION:
+```java
+// Add to class
+private final GradeSubject gradeSubject;
 
-- All code comments must be in **English**
-- Follow naming conventions: PascalCase for classes, camelCase for methods/variables
-- Commit format: `feat(observer): description` or `feat(state): description`
-- Coordinate with team before making changes to shared interfaces
-- **IMPORTANT:** Observer pattern must not impact performance - keep notifications lightweight
-- **IMPORTANT:** State transitions must be logged for debugging and audit purposes
+// In constructor, add GradeSubject parameter
 
----
+// Create helper method
+private void notifyGradeObservers(GradeEntry gradeEntry) {
+    Enrollment enrollment = gradeEntry.getEnrollment();
+    Student student = enrollment.getStudent();
+    gradeSubject.notifyObservers(student, enrollment, gradeEntry);
+}
 
-## Changes Log
+// Call after each save:
+notifyGradeObservers(savedEntry);
+```
 
-### 2026-01-15
-- Reviewed existing Observer Pattern implementation (4 files)
-  - IGradeObserver interface complete
-  - GradeSubject complete
-  - GpaRecalculatorObserver structure ready (needs logic)
-  - RiskDetectorObserver structure ready (needs logic)
-- Reviewed existing State Pattern implementation (5 files)
-  - StudentState abstract class complete
-  - All 4 concrete states complete (Normal, AtRisk, Probation, Graduated)
-  - State transition logic implemented
-  - Integration with StudentService verified
-- Identified integration points:
-  - GradeEntryService has 3 TODO comments for observer integration
-  - StudentService already uses State Pattern but can be improved with StateManager
-- Created comprehensive todolist with 7-day plan
-- Estimated 18 new files to create, 2 files to modify
+### 3.2 Update EnrollmentService.java (Optional)
+The `completeEnrollmentWithStrategy()` method already has a TODO comment for observer integration.
+Add:
+```java
+// After grade calculation, notify observers
+gradeSubject.notifyObservers(student, enrollment, null);
+```
 
 ---
 
-*Last Updated: 2026-01-15*
+## TASK 4: State Pattern Enhancement (Optional)
+**Priority: MEDIUM**
+
+### 4.1 Create StudentStateManager.java (Optional)
+```
+Location: backend/src/main/java/com/spts/patterns/state/
+Purpose: Centralize state transition logic
+```
+
+SPEC:
+```java
+@Component
+public class StudentStateManager {
+    
+    private final Map<StudentStatus, StudentState> states;
+    
+    // Initialize map with all state beans
+    
+    public StudentState getStateForStatus(StudentStatus status) {
+        return states.get(status);
+    }
+    
+    public StudentStatus determineStatusFromGpa(Double gpa) {
+        if (gpa >= 2.0) return StudentStatus.NORMAL;
+        if (gpa >= 1.5) return StudentStatus.AT_RISK;
+        return StudentStatus.PROBATION;
+    }
+}
+```
+
+---
+
+## EXECUTION ORDER
+```
+1. Read current GpaRecalculatorObserver.java and RiskDetectorObserver.java
+2. Update both observers with proper service injection and logic
+3. Create ObserverConfig.java
+4. Compile and verify: mvn compile -q
+5. Update GradeEntryService.java to use GradeSubject
+6. Compile and verify
+7. Test manually: create grade entry, verify GPA recalculates and alerts created
+8. (Optional) Create StudentStateManager.java
+```
+
+## VERIFICATION STEPS
+```bash
+# After each change
+cd backend && mvn compile -q
+
+# Integration test
+cd backend && mvn spring-boot:run
+# Then:
+# 1. Create a student via API
+# 2. Create enrollment
+# 3. Create grade entry with low score
+# 4. Verify alert was created
+# 5. Verify student GPA was updated
+```
+
+---
+
+## SUCCESS CRITERIA
+- [ ] GpaRecalculatorObserver properly injects StudentService
+- [ ] RiskDetectorObserver properly injects AlertService
+- [ ] ObserverConfig registers observers at startup
+- [ ] GradeEntryService notifies observers on grade changes
+- [ ] Low GPA automatically creates alert
+- [ ] Backend compiles without errors
+
+---
+
+## DEPENDENCIES
+- Requires: Entity layer (DONE)
+- Requires: Service layer (DONE)
+- Requires: Alert entity and AlertService (DONE)
+- Provides to: Frontend (alerts display)
+
+## DO NOT
+- Modify Observer interface signatures without team approval
+- Add heavy processing in observers (keep lightweight)
+- Create circular dependencies between observers
+
+## KEY FILES TO READ FIRST
+```
+1. backend/src/main/java/com/spts/patterns/observer/IGradeObserver.java
+2. backend/src/main/java/com/spts/patterns/observer/GradeSubject.java
+3. backend/src/main/java/com/spts/patterns/observer/GpaRecalculatorObserver.java
+4. backend/src/main/java/com/spts/patterns/observer/RiskDetectorObserver.java
+5. backend/src/main/java/com/spts/service/GradeEntryService.java
+6. backend/src/main/java/com/spts/service/AlertService.java
+```
+
+---
+*Last Updated: 2026-01-17*
