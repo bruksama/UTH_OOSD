@@ -9,7 +9,7 @@ Foundation Architect - REST API Layer, Exception Handling, Data Initialization
 - [x] DTO layer COMPLETE (6 DTOs)
 - [x] Service layer COMPLETE (6 services)
 - [x] Strategy Pattern integrated (gradingScale field added)
-- [ ] Exception handling NOT STARTED
+- [x] Exception handling COMPLETE (5 classes)
 - [ ] Controller layer NOT STARTED
 - [ ] DataInitializer NOT STARTED
 
@@ -456,8 +456,8 @@ curl http://localhost:8080/api/students
 ---
 
 ## SUCCESS CRITERIA
-- [ ] All 5 exception classes created
-- [ ] GlobalExceptionHandler created
+- [x] All 5 exception classes created
+- [x] GlobalExceptionHandler created
 - [ ] All 6 controllers created
 - [ ] Backend compiles: mvn compile -q
 - [ ] Application starts: mvn spring-boot:run
