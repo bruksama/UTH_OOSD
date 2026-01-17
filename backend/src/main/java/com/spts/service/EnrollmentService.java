@@ -3,6 +3,8 @@ package com.spts.service;
 import com.spts.dto.EnrollmentDTO;
 import com.spts.dto.GradeEntryDTO;
 import com.spts.entity.*;
+import com.spts.patterns.strategy.GradingStrategyFactory;
+import com.spts.patterns.strategy.IGradingStrategy;
 import com.spts.repository.CourseOfferingRepository;
 import com.spts.repository.EnrollmentRepository;
 import com.spts.repository.StudentRepository;
@@ -35,15 +37,18 @@ public class EnrollmentService {
     private final StudentRepository studentRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final StudentService studentService;
+    private final GradingStrategyFactory gradingStrategyFactory;
 
     public EnrollmentService(EnrollmentRepository enrollmentRepository,
                               StudentRepository studentRepository,
                               CourseOfferingRepository courseOfferingRepository,
-                              StudentService studentService) {
+                              StudentService studentService,
+                              GradingStrategyFactory gradingStrategyFactory) {
         this.enrollmentRepository = enrollmentRepository;
         this.studentRepository = studentRepository;
         this.courseOfferingRepository = courseOfferingRepository;
         this.studentService = studentService;
+        this.gradingStrategyFactory = gradingStrategyFactory;
     }
 
     // ==================== CRUD Operations ====================
@@ -275,11 +280,103 @@ public class EnrollmentService {
     // ==================== GPA Calculation Helpers ====================
 
     /**
+     * Calculate final grade using the Strategy Pattern.
+     * Gets the grading scale from CourseOffering and uses the appropriate strategy.
+     * 
+     * Integration points:
+     * - Strategy Pattern: Uses GradingStrategyFactory to get appropriate strategy
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @param rawScore Raw score to convert (0-10 scale)
+     * @return EnrollmentDTO with calculated grades
+     * @throws RuntimeException if enrollment not found
+     */
+    public EnrollmentDTO calculateFinalGradeWithStrategy(Long enrollmentId, Double rawScore) {
+        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+
+        // Get grading scale from course offering
+        String gradingScale = enrollment.getCourseOffering().getGradingScale();
+        if (gradingScale == null || gradingScale.isBlank()) {
+            gradingScale = "SCALE_10"; // Default
+        }
+
+        // Get appropriate strategy from factory
+        IGradingStrategy strategy = gradingStrategyFactory.getStrategy(gradingScale);
+
+        // Calculate grades using strategy
+        Double gpaValue = strategy.calculateGpa(rawScore);
+        String letterGrade = strategy.calculateLetterGrade(rawScore);
+        boolean isPassing = strategy.isPassing(rawScore);
+
+        // Update enrollment
+        enrollment.setFinalScore(rawScore);
+        enrollment.setGpaValue(gpaValue);
+        enrollment.setLetterGrade(letterGrade);
+
+        // If passing, mark status appropriately (but don't auto-complete)
+        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+
+        return convertToDTO(savedEnrollment);
+    }
+
+    /**
+     * Complete enrollment with final grade using Strategy Pattern.
+     * Auto-selects grading strategy based on CourseOffering's gradingScale.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @param rawScore Raw score (0-10 scale)
+     * @return Updated EnrollmentDTO
+     * @throws RuntimeException if enrollment not found or already completed
+     */
+    public EnrollmentDTO completeEnrollmentWithStrategy(Long enrollmentId, Double rawScore) {
+        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+
+        if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
+            throw new RuntimeException("Enrollment is already completed");
+        }
+
+        if (enrollment.getStatus() == EnrollmentStatus.WITHDRAWN) {
+            throw new RuntimeException("Cannot complete a withdrawn enrollment");
+        }
+
+        // Get grading scale and strategy
+        String gradingScale = enrollment.getCourseOffering().getGradingScale();
+        if (gradingScale == null || gradingScale.isBlank()) {
+            gradingScale = "SCALE_10";
+        }
+        IGradingStrategy strategy = gradingStrategyFactory.getStrategy(gradingScale);
+
+        // Calculate grades using strategy
+        Double gpaValue = strategy.calculateGpa(rawScore);
+        String letterGrade = strategy.calculateLetterGrade(rawScore);
+
+        // Update enrollment with calculated values
+        enrollment.setFinalScore(rawScore);
+        enrollment.setGpaValue(gpaValue);
+        enrollment.setLetterGrade(letterGrade);
+        enrollment.setStatus(EnrollmentStatus.COMPLETED);
+        enrollment.setCompletedAt(LocalDateTime.now());
+
+        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+
+        // Trigger student GPA recalculation
+        studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());
+
+        // TODO: Notify observers (Observer pattern hook for Member 3)
+        // gradeSubject.notifyObservers(enrollment);
+
+        return convertToDTO(savedEnrollment);
+    }
+
+    /**
      * Calculate GPA value from score (10-point to 4-point conversion).
      * Static utility method that mirrors Enrollment entity logic.
      * 
      * @param score Score on 10-point scale
      * @return GPA value on 4-point scale
+     * @deprecated Use calculateFinalGradeWithStrategy for strategy-based calculation
      */
     public static Double calculateGpaFromScore(Double score) {
         if (score == null) return null;

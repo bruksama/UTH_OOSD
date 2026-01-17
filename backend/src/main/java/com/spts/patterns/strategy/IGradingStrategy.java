@@ -47,4 +47,28 @@ public interface IGradingStrategy {
      * @return Minimum grade considered as "passing"
      */
     double getPassingGrade();
+
+    /**
+     * Calculate GPA value from a raw score.
+     * 
+     * @param score Raw score (typically 0-10 scale)
+     * @return GPA value according to this strategy scale
+     */
+    double calculateGpa(Double score);
+
+    /**
+     * Calculate letter grade from a raw score.
+     * 
+     * @param score Raw score (typically 0-10 scale)
+     * @return Letter grade (A, B+, B, C+, C, D, F, or P/F)
+     */
+    String calculateLetterGrade(Double score);
+
+    /**
+     * Check if a score is passing according to this strategy.
+     * 
+     * @param score Raw score to check
+     * @return true if score meets or exceeds passing threshold
+     */
+    boolean isPassing(Double score);
 }

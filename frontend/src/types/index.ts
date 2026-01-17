@@ -89,6 +89,7 @@ export interface CourseOfferingDTO {
   instructor?: string;
   maxEnrollment?: number;
   currentEnrollment?: number;
+  gradingScale?: GradingType;
 }
 
 export interface EnrollmentDTO {

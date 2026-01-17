@@ -52,6 +52,23 @@ public class PassFailStrategy implements IGradingStrategy {
         return PASSING_GRADE;
     }
 
+    @Override
+    public double calculateGpa(Double score) {
+        // Pass/Fail typically doesn't affect GPA
+        // Return passing grade value if passed, 0 if failed
+        return isPassing(score) ? PASSING_GRADE : 0.0;
+    }
+
+    @Override
+    public String calculateLetterGrade(Double score) {
+        return isPassing(score) ? "P" : "F";
+    }
+
+    @Override
+    public boolean isPassing(Double score) {
+        return score != null && score >= PASS_THRESHOLD;
+    }
+
     /**
      * Validate input parameters for grade calculation.
      */

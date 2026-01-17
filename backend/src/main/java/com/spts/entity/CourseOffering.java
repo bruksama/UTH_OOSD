@@ -56,6 +56,14 @@ public class CourseOffering {
     private Integer currentEnrollment = 0;
 
     /**
+     * Grading scale for this course offering.
+     * Supports Strategy Pattern for dynamic grading.
+     * Values: SCALE_10 (default), SCALE_4, PASS_FAIL
+     */
+    @Column(name = "grading_scale", length = 20)
+    private String gradingScale = "SCALE_10";
+
+    /**
      * Enrollments in this course offering
      */
     @OneToMany(mappedBy = "courseOffering", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -134,6 +142,14 @@ public class CourseOffering {
 
     public void setEnrollments(List<Enrollment> enrollments) {
         this.enrollments = enrollments;
+    }
+
+    public String getGradingScale() {
+        return gradingScale;
+    }
+
+    public void setGradingScale(String gradingScale) {
+        this.gradingScale = gradingScale != null ? gradingScale : "SCALE_10";
     }
 
     public void addEnrollment(Enrollment enrollment) {

@@ -74,6 +74,34 @@ public class Scale4Strategy implements IGradingStrategy {
         return 0.0;
     }
 
+    @Override
+    public double calculateGpa(Double score) {
+        if (score == null) return 0.0;
+        // Input is on 10-point scale, convert to 4-point GPA
+        return convertToScale4(score);
+    }
+
+    @Override
+    public String calculateLetterGrade(Double score) {
+        if (score == null) return "F";
+        // Input is on 10-point scale
+        if (score >= 9.0) return "A";
+        if (score >= 8.5) return "A-";
+        if (score >= 8.0) return "B+";
+        if (score >= 7.0) return "B";
+        if (score >= 6.5) return "C+";
+        if (score >= 5.5) return "C";
+        if (score >= 5.0) return "D+";
+        if (score >= 4.0) return "D";
+        return "F";
+    }
+
+    @Override
+    public boolean isPassing(Double score) {
+        // On 10-point scale, passing is >= 4.0
+        return score != null && score >= 4.0;
+    }
+
     /**
      * Validate input parameters for grade calculation.
      */

@@ -30,6 +30,12 @@ public class CourseOfferingDTO {
     private String instructor;
     private Integer maxEnrollment;
     private Integer currentEnrollment;
+    
+    /**
+     * Grading scale for this course offering.
+     * Values: SCALE_10 (default), SCALE_4, PASS_FAIL
+     */
+    private String gradingScale;
 
     // Constructors
     public CourseOfferingDTO() {
@@ -114,6 +120,14 @@ public class CourseOfferingDTO {
 
     public void setCurrentEnrollment(Integer currentEnrollment) {
         this.currentEnrollment = currentEnrollment;
+    }
+
+    public String getGradingScale() {
+        return gradingScale;
+    }
+
+    public void setGradingScale(String gradingScale) {
+        this.gradingScale = gradingScale;
     }
 
     public String getDisplayName() {

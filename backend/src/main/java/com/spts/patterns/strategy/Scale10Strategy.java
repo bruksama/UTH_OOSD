@@ -53,6 +53,40 @@ public class Scale10Strategy implements IGradingStrategy {
         return PASSING_GRADE;
     }
 
+    @Override
+    public double calculateGpa(Double score) {
+        if (score == null) return 0.0;
+        // Vietnamese 10-point to 4-point GPA conversion
+        if (score >= 9.0) return 4.0;
+        if (score >= 8.5) return 3.7;
+        if (score >= 8.0) return 3.5;
+        if (score >= 7.0) return 3.0;
+        if (score >= 6.5) return 2.5;
+        if (score >= 5.5) return 2.0;
+        if (score >= 5.0) return 1.5;
+        if (score >= 4.0) return 1.0;
+        return 0.0;
+    }
+
+    @Override
+    public String calculateLetterGrade(Double score) {
+        if (score == null) return "F";
+        if (score >= 9.0) return "A";
+        if (score >= 8.5) return "A-";
+        if (score >= 8.0) return "B+";
+        if (score >= 7.0) return "B";
+        if (score >= 6.5) return "C+";
+        if (score >= 5.5) return "C";
+        if (score >= 5.0) return "D+";
+        if (score >= 4.0) return "D";
+        return "F";
+    }
+
+    @Override
+    public boolean isPassing(Double score) {
+        return score != null && score >= PASSING_GRADE;
+    }
+
     /**
      * Validate input parameters for grade calculation.
      */

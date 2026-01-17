@@ -96,6 +96,7 @@ public class CourseOfferingService {
         offering.setInstructor(dto.getInstructor());
         offering.setMaxEnrollment(dto.getMaxEnrollment());
         offering.setCurrentEnrollment(0);
+        offering.setGradingScale(dto.getGradingScale() != null ? dto.getGradingScale() : "SCALE_10");
 
         CourseOffering savedOffering = courseOfferingRepository.save(offering);
         return convertToDTO(savedOffering);
@@ -137,6 +138,9 @@ public class CourseOfferingService {
         offering.setAcademicYear(dto.getAcademicYear());
         offering.setInstructor(dto.getInstructor());
         offering.setMaxEnrollment(dto.getMaxEnrollment());
+        if (dto.getGradingScale() != null) {
+            offering.setGradingScale(dto.getGradingScale());
+        }
         // Note: currentEnrollment is managed by the system
 
         CourseOffering savedOffering = courseOfferingRepository.save(offering);
@@ -356,6 +360,7 @@ public class CourseOfferingService {
         dto.setInstructor(offering.getInstructor());
         dto.setMaxEnrollment(offering.getMaxEnrollment());
         dto.setCurrentEnrollment(offering.getCurrentEnrollment());
+        dto.setGradingScale(offering.getGradingScale());
         return dto;
     }
 
