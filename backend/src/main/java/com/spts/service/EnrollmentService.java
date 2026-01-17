@@ -3,6 +3,8 @@ package com.spts.service;
 import com.spts.dto.EnrollmentDTO;
 import com.spts.dto.GradeEntryDTO;
 import com.spts.entity.*;
+import com.spts.exception.ResourceNotFoundException;
+import com.spts.exception.DuplicateResourceException;
 import com.spts.patterns.strategy.GradingStrategyFactory;
 import com.spts.patterns.strategy.IGradingStrategy;
 import com.spts.repository.CourseOfferingRepository;
@@ -75,7 +77,7 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public EnrollmentDTO getEnrollmentById(Long id) {
         Enrollment enrollment = enrollmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", id));
         return convertToDTO(enrollment);
     }
 
@@ -89,21 +91,22 @@ public class EnrollmentService {
     public EnrollmentDTO createEnrollment(EnrollmentDTO dto) {
         // Validate student exists
         Student student = studentRepository.findById(dto.getStudentId())
-                .orElseThrow(() -> new RuntimeException("Student not found with id: " + dto.getStudentId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", dto.getStudentId()));
 
         // Validate course offering exists
         CourseOffering offering = courseOfferingRepository.findById(dto.getCourseOfferingId())
-                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + dto.getCourseOfferingId()));
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", dto.getCourseOfferingId()));
 
         // Check if already enrolled
         if (enrollmentRepository.existsByStudentIdAndCourseOfferingId(
                 dto.getStudentId(), dto.getCourseOfferingId())) {
-            throw new RuntimeException("Student is already enrolled in this course offering");
+            throw new DuplicateResourceException("Enrollment", "student/offering", 
+                    dto.getStudentId() + "/" + dto.getCourseOfferingId());
         }
 
         // Check seat availability
         if (!offering.hasAvailableSeats()) {
-            throw new RuntimeException("No available seats in this course offering");
+            throw new IllegalStateException("No available seats in this course offering");
         }
 
         // Create enrollment
@@ -131,7 +134,7 @@ public class EnrollmentService {
      */
     public EnrollmentDTO updateEnrollment(Long id, EnrollmentDTO dto) {
         Enrollment enrollment = enrollmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", id));
 
         // Note: Student and CourseOffering cannot be changed after creation
         // Only status and grades can be updated
@@ -167,7 +170,7 @@ public class EnrollmentService {
      */
     public void deleteEnrollment(Long id) {
         Enrollment enrollment = enrollmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", id));
 
         Long studentId = enrollment.getStudent().getId();
         Long offeringId = enrollment.getCourseOffering().getId();
@@ -199,14 +202,14 @@ public class EnrollmentService {
      */
     public EnrollmentDTO completeEnrollment(Long enrollmentId, Double finalScore) {
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
-                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", enrollmentId));
 
         if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
-            throw new RuntimeException("Enrollment is already completed");
+            throw new IllegalStateException("Enrollment is already completed");
         }
 
         if (enrollment.getStatus() == EnrollmentStatus.WITHDRAWN) {
-            throw new RuntimeException("Cannot complete a withdrawn enrollment");
+            throw new IllegalStateException("Cannot complete a withdrawn enrollment");
         }
 
         // Complete the enrollment (auto-calculates letterGrade and gpaValue)
@@ -232,7 +235,7 @@ public class EnrollmentService {
      */
     public EnrollmentDTO submitGrade(Long enrollmentId, Double score) {
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
-                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", enrollmentId));
 
         enrollment.setFinalScore(score);
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
@@ -254,14 +257,14 @@ public class EnrollmentService {
      */
     public EnrollmentDTO withdrawEnrollment(Long enrollmentId) {
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
-                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", enrollmentId));
 
         if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
-            throw new RuntimeException("Cannot withdraw from a completed enrollment");
+            throw new IllegalStateException("Cannot withdraw from a completed enrollment");
         }
 
         if (enrollment.getStatus() == EnrollmentStatus.WITHDRAWN) {
-            throw new RuntimeException("Enrollment is already withdrawn");
+            throw new IllegalStateException("Enrollment is already withdrawn");
         }
 
         enrollment.withdraw();
@@ -293,7 +296,7 @@ public class EnrollmentService {
      */
     public EnrollmentDTO calculateFinalGradeWithStrategy(Long enrollmentId, Double rawScore) {
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
-                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", enrollmentId));
 
         // Get grading scale from course offering
         String gradingScale = enrollment.getCourseOffering().getGradingScale();
@@ -331,14 +334,14 @@ public class EnrollmentService {
      */
     public EnrollmentDTO completeEnrollmentWithStrategy(Long enrollmentId, Double rawScore) {
         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
-                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", enrollmentId));
 
         if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
-            throw new RuntimeException("Enrollment is already completed");
+            throw new IllegalStateException("Enrollment is already completed");
         }
 
         if (enrollment.getStatus() == EnrollmentStatus.WITHDRAWN) {
-            throw new RuntimeException("Cannot complete a withdrawn enrollment");
+            throw new IllegalStateException("Cannot complete a withdrawn enrollment");
         }
 
         // Get grading scale and strategy
@@ -422,7 +425,7 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public List<EnrollmentDTO> getEnrollmentsByStudent(Long studentId) {
         if (!studentRepository.existsById(studentId)) {
-            throw new RuntimeException("Student not found with id: " + studentId);
+            throw new ResourceNotFoundException("Student", "id", studentId);
         }
         return enrollmentRepository.findByStudentId(studentId).stream()
                 .map(this::convertToDTO)
@@ -438,7 +441,7 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public List<EnrollmentDTO> getEnrollmentsByOffering(Long offeringId) {
         if (!courseOfferingRepository.existsById(offeringId)) {
-            throw new RuntimeException("Course offering not found with id: " + offeringId);
+            throw new ResourceNotFoundException("CourseOffering", "id", offeringId);
         }
         return enrollmentRepository.findByCourseOfferingId(offeringId).stream()
                 .map(this::convertToDTO)

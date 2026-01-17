@@ -5,6 +5,8 @@ import com.spts.dto.CourseOfferingDTO;
 import com.spts.entity.Course;
 import com.spts.entity.CourseOffering;
 import com.spts.entity.GradingType;
+import com.spts.exception.ResourceNotFoundException;
+import com.spts.exception.DuplicateResourceException;
 import com.spts.repository.CourseOfferingRepository;
 import com.spts.repository.CourseRepository;
 import org.springframework.stereotype.Service;
@@ -61,7 +63,7 @@ public class CourseService {
     @Transactional(readOnly = true)
     public CourseDTO getCourseById(Long id) {
         Course course = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Course not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
         return convertToDTO(course);
     }
 
@@ -75,7 +77,7 @@ public class CourseService {
     @Transactional(readOnly = true)
     public CourseDTO getCourseByCourseCode(String courseCode) {
         Course course = courseRepository.findByCourseCode(courseCode)
-                .orElseThrow(() -> new RuntimeException("Course not found with code: " + courseCode));
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "courseCode", courseCode));
         return convertToDTO(course);
     }
 
@@ -89,7 +91,7 @@ public class CourseService {
     public CourseDTO createCourse(CourseDTO dto) {
         // Check for duplicate course code
         if (courseRepository.existsByCourseCode(dto.getCourseCode())) {
-            throw new RuntimeException("Course code already exists: " + dto.getCourseCode());
+            throw new DuplicateResourceException("Course", "courseCode", dto.getCourseCode());
         }
 
         Course course = convertToEntity(dto);
@@ -113,12 +115,12 @@ public class CourseService {
      */
     public CourseDTO updateCourse(Long id, CourseDTO dto) {
         Course course = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Course not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
 
         // Check for duplicate course code (if changed)
         if (!course.getCourseCode().equals(dto.getCourseCode()) 
                 && courseRepository.existsByCourseCode(dto.getCourseCode())) {
-            throw new RuntimeException("Course code already exists: " + dto.getCourseCode());
+            throw new DuplicateResourceException("Course", "courseCode", dto.getCourseCode());
         }
 
         // Update fields
@@ -147,12 +149,12 @@ public class CourseService {
      */
     public void deleteCourse(Long id) {
         Course course = courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Course not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
 
         // Check if course has offerings
         List<CourseOffering> offerings = courseOfferingRepository.findByCourseId(id);
         if (!offerings.isEmpty()) {
-            throw new RuntimeException("Cannot delete course with existing offerings. " +
+            throw new IllegalStateException("Cannot delete course with existing offerings. " +
                     "Delete offerings first or use archive instead.");
         }
 
@@ -173,7 +175,7 @@ public class CourseService {
     @Transactional(readOnly = true)
     public List<CourseOfferingDTO> getCourseOfferings(Long courseId) {
         if (!courseRepository.existsById(courseId)) {
-            throw new RuntimeException("Course not found with id: " + courseId);
+            throw new ResourceNotFoundException("Course", "id", courseId);
         }
 
         return courseOfferingRepository.findByCourseId(courseId).stream()

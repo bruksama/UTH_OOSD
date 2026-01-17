@@ -2,6 +2,7 @@ package com.spts.service;
 
 import com.spts.dto.AlertDTO;
 import com.spts.entity.*;
+import com.spts.exception.ResourceNotFoundException;
 import com.spts.repository.AlertRepository;
 import com.spts.repository.StudentRepository;
 import org.springframework.stereotype.Service;
@@ -67,7 +68,7 @@ public class AlertService {
     @Transactional(readOnly = true)
     public AlertDTO getAlertById(Long id) {
         Alert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Alert not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Alert", "id", id));
         return convertToDTO(alert);
     }
 
@@ -80,7 +81,7 @@ public class AlertService {
      */
     public AlertDTO createAlert(AlertDTO dto) {
         Student student = studentRepository.findById(dto.getStudentId())
-                .orElseThrow(() -> new RuntimeException("Student not found with id: " + dto.getStudentId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", dto.getStudentId()));
 
         Alert alert = new Alert();
         alert.setStudent(student);
@@ -118,7 +119,7 @@ public class AlertService {
      */
     public AlertDTO updateAlert(Long id, AlertDTO dto) {
         Alert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Alert not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Alert", "id", id));
 
         // Update fields
         alert.setLevel(dto.getLevel());
@@ -137,7 +138,7 @@ public class AlertService {
      */
     public void deleteAlert(Long id) {
         if (!alertRepository.existsById(id)) {
-            throw new RuntimeException("Alert not found with id: " + id);
+            throw new ResourceNotFoundException("Alert", "id", id);
         }
         alertRepository.deleteById(id);
     }
@@ -153,7 +154,7 @@ public class AlertService {
      */
     public AlertDTO markAsRead(Long id) {
         Alert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Alert not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Alert", "id", id));
 
         alert.markAsRead();
         Alert savedAlert = alertRepository.save(alert);
@@ -204,7 +205,7 @@ public class AlertService {
      */
     public AlertDTO markAsResolved(Long id, String resolvedBy) {
         Alert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Alert not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Alert", "id", id));
 
         alert.markAsResolved(resolvedBy);
         Alert savedAlert = alertRepository.save(alert);

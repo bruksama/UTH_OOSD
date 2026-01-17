@@ -2,6 +2,7 @@ package com.spts.service;
 
 import com.spts.dto.GradeEntryDTO;
 import com.spts.entity.*;
+import com.spts.exception.ResourceNotFoundException;
 import com.spts.repository.EnrollmentRepository;
 import com.spts.repository.GradeEntryRepository;
 import org.springframework.stereotype.Service;
@@ -65,7 +66,7 @@ public class GradeEntryService {
     @Transactional(readOnly = true)
     public GradeEntryDTO getGradeEntryById(Long id) {
         GradeEntry gradeEntry = gradeEntryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Grade entry not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("GradeEntry", "id", id));
         return convertToDTO(gradeEntry);
     }
 
@@ -79,7 +80,7 @@ public class GradeEntryService {
     public GradeEntryDTO createGradeEntry(GradeEntryDTO dto) {
         // Validate enrollment exists
         Enrollment enrollment = enrollmentRepository.findById(dto.getEnrollmentId())
-                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + dto.getEnrollmentId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", dto.getEnrollmentId()));
 
         GradeEntry gradeEntry = new GradeEntry();
         gradeEntry.setEnrollment(enrollment);
@@ -94,7 +95,7 @@ public class GradeEntryService {
         // Set parent if specified (Composite Pattern)
         if (dto.getParentId() != null) {
             GradeEntry parent = gradeEntryRepository.findById(dto.getParentId())
-                    .orElseThrow(() -> new RuntimeException("Parent grade entry not found with id: " + dto.getParentId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("GradeEntry", "id", dto.getParentId()));
             gradeEntry.setParent(parent);
         }
 
@@ -116,7 +117,7 @@ public class GradeEntryService {
      */
     public GradeEntryDTO updateGradeEntry(Long id, GradeEntryDTO dto) {
         GradeEntry gradeEntry = gradeEntryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Grade entry not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("GradeEntry", "id", id));
 
         // Update fields
         gradeEntry.setName(dto.getName());
@@ -147,7 +148,7 @@ public class GradeEntryService {
      */
     public void deleteGradeEntry(Long id) {
         if (!gradeEntryRepository.existsById(id)) {
-            throw new RuntimeException("Grade entry not found with id: " + id);
+            throw new ResourceNotFoundException("GradeEntry", "id", id);
         }
         gradeEntryRepository.deleteById(id);
     }
@@ -166,7 +167,7 @@ public class GradeEntryService {
      */
     public GradeEntryDTO addChildGradeEntry(Long parentId, GradeEntryDTO dto) {
         GradeEntry parent = gradeEntryRepository.findById(parentId)
-                .orElseThrow(() -> new RuntimeException("Parent grade entry not found with id: " + parentId));
+                .orElseThrow(() -> new ResourceNotFoundException("GradeEntry", "id", parentId));
 
         GradeEntry child = new GradeEntry();
         child.setEnrollment(parent.getEnrollment());
@@ -193,7 +194,7 @@ public class GradeEntryService {
     @Transactional(readOnly = true)
     public List<GradeEntryDTO> getChildren(Long parentId) {
         if (!gradeEntryRepository.existsById(parentId)) {
-            throw new RuntimeException("Grade entry not found with id: " + parentId);
+            throw new ResourceNotFoundException("GradeEntry", "id", parentId);
         }
         return gradeEntryRepository.findByParentId(parentId).stream()
                 .map(this::convertToDTO)
@@ -209,7 +210,7 @@ public class GradeEntryService {
     @Transactional(readOnly = true)
     public List<GradeEntryDTO> getRootEntriesByEnrollment(Long enrollmentId) {
         if (!enrollmentRepository.existsById(enrollmentId)) {
-            throw new RuntimeException("Enrollment not found with id: " + enrollmentId);
+            throw new ResourceNotFoundException("Enrollment", "id", enrollmentId);
         }
         return gradeEntryRepository.findByEnrollmentIdAndParentIsNull(enrollmentId).stream()
                 .map(this::convertToDTO)
@@ -226,7 +227,7 @@ public class GradeEntryService {
     @Transactional(readOnly = true)
     public List<GradeEntryDTO> getHierarchicalGrades(Long enrollmentId) {
         if (!enrollmentRepository.existsById(enrollmentId)) {
-            throw new RuntimeException("Enrollment not found with id: " + enrollmentId);
+            throw new ResourceNotFoundException("Enrollment", "id", enrollmentId);
         }
         
         // Get root entries and convert with children recursively
@@ -246,7 +247,7 @@ public class GradeEntryService {
     @Transactional(readOnly = true)
     public Double calculateCompositeScore(Long gradeEntryId) {
         GradeEntry gradeEntry = gradeEntryRepository.findById(gradeEntryId)
-                .orElseThrow(() -> new RuntimeException("Grade entry not found with id: " + gradeEntryId));
+                .orElseThrow(() -> new ResourceNotFoundException("GradeEntry", "id", gradeEntryId));
         return gradeEntry.getCalculatedScore();
     }
 
@@ -260,7 +261,7 @@ public class GradeEntryService {
     @Transactional(readOnly = true)
     public Double calculateWeightedScore(Long gradeEntryId) {
         GradeEntry gradeEntry = gradeEntryRepository.findById(gradeEntryId)
-                .orElseThrow(() -> new RuntimeException("Grade entry not found with id: " + gradeEntryId));
+                .orElseThrow(() -> new ResourceNotFoundException("GradeEntry", "id", gradeEntryId));
         return gradeEntry.calculateWeightedScore();
     }
 
@@ -322,7 +323,7 @@ public class GradeEntryService {
     @Transactional(readOnly = true)
     public List<GradeEntryDTO> getEntriesByEnrollment(Long enrollmentId) {
         if (!enrollmentRepository.existsById(enrollmentId)) {
-            throw new RuntimeException("Enrollment not found with id: " + enrollmentId);
+            throw new ResourceNotFoundException("Enrollment", "id", enrollmentId);
         }
         return gradeEntryRepository.findByEnrollmentId(enrollmentId).stream()
                 .map(this::convertToDTO)
@@ -392,7 +393,7 @@ public class GradeEntryService {
      */
     public GradeEntryDTO updateScore(Long gradeEntryId, Double score, String recordedBy) {
         GradeEntry gradeEntry = gradeEntryRepository.findById(gradeEntryId)
-                .orElseThrow(() -> new RuntimeException("Grade entry not found with id: " + gradeEntryId));
+                .orElseThrow(() -> new ResourceNotFoundException("GradeEntry", "id", gradeEntryId));
 
         gradeEntry.setScore(score);
         gradeEntry.setRecordedBy(recordedBy);

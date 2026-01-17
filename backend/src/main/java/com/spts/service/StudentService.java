@@ -4,6 +4,8 @@ import com.spts.dto.AlertDTO;
 import com.spts.dto.EnrollmentDTO;
 import com.spts.dto.StudentDTO;
 import com.spts.entity.*;
+import com.spts.exception.ResourceNotFoundException;
+import com.spts.exception.DuplicateResourceException;
 import com.spts.patterns.state.*;
 import com.spts.repository.AlertRepository;
 import com.spts.repository.EnrollmentRepository;
@@ -64,7 +66,7 @@ public class StudentService {
     @Transactional(readOnly = true)
     public StudentDTO getStudentById(Long id) {
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
         return convertToDTO(student);
     }
 
@@ -78,7 +80,7 @@ public class StudentService {
     @Transactional(readOnly = true)
     public StudentDTO getStudentByStudentId(String studentId) {
         Student student = studentRepository.findByStudentId(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found with studentId: " + studentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "studentId", studentId));
         return convertToDTO(student);
     }
 
@@ -92,10 +94,10 @@ public class StudentService {
     public StudentDTO createStudent(StudentDTO dto) {
         // Check for duplicates
         if (studentRepository.existsByStudentId(dto.getStudentId())) {
-            throw new RuntimeException("Student ID already exists: " + dto.getStudentId());
+            throw new DuplicateResourceException("Student", "studentId", dto.getStudentId());
         }
         if (studentRepository.existsByEmail(dto.getEmail())) {
-            throw new RuntimeException("Email already exists: " + dto.getEmail());
+            throw new DuplicateResourceException("Student", "email", dto.getEmail());
         }
 
         Student student = convertToEntity(dto);
@@ -117,18 +119,18 @@ public class StudentService {
      */
     public StudentDTO updateStudent(Long id, StudentDTO dto) {
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
 
         // Check for duplicate email (if changed)
         if (!student.getEmail().equals(dto.getEmail()) 
                 && studentRepository.existsByEmail(dto.getEmail())) {
-            throw new RuntimeException("Email already exists: " + dto.getEmail());
+            throw new DuplicateResourceException("Student", "email", dto.getEmail());
         }
 
         // Check for duplicate student ID (if changed)
         if (!student.getStudentId().equals(dto.getStudentId()) 
                 && studentRepository.existsByStudentId(dto.getStudentId())) {
-            throw new RuntimeException("Student ID already exists: " + dto.getStudentId());
+            throw new DuplicateResourceException("Student", "studentId", dto.getStudentId());
         }
 
         // Update fields
@@ -152,7 +154,7 @@ public class StudentService {
      */
     public void deleteStudent(Long id) {
         if (!studentRepository.existsById(id)) {
-            throw new RuntimeException("Student not found with id: " + id);
+            throw new ResourceNotFoundException("Student", "id", id);
         }
         studentRepository.deleteById(id);
     }
@@ -169,7 +171,7 @@ public class StudentService {
     @Transactional(readOnly = true)
     public Double calculateGpa(Long studentId) {
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
         List<Enrollment> completedEnrollments = enrollmentRepository
                 .findByStudentIdAndStatus(studentId, EnrollmentStatus.COMPLETED);
@@ -199,7 +201,7 @@ public class StudentService {
      */
     public void recalculateAndUpdateGpa(Long studentId) {
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
         Double newGpa = calculateGpa(studentId);
         Integer totalCredits = calculateTotalCredits(studentId);
@@ -294,14 +296,14 @@ public class StudentService {
      */
     public void graduateStudent(Long studentId) {
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
         // Check graduation requirements (example: minimum credits and GPA)
         if (student.getTotalCredits() == null || student.getTotalCredits() < 120) {
-            throw new RuntimeException("Student does not meet minimum credit requirement (120 credits)");
+            throw new IllegalStateException("Student does not meet minimum credit requirement (120 credits)");
         }
         if (student.getGpa() == null || student.getGpa() < 2.0) {
-            throw new RuntimeException("Student does not meet minimum GPA requirement (2.0)");
+            throw new IllegalStateException("Student does not meet minimum GPA requirement (2.0)");
         }
 
         student.setStatus(StudentStatus.GRADUATED);
@@ -319,7 +321,7 @@ public class StudentService {
     @Transactional(readOnly = true)
     public List<EnrollmentDTO> getStudentEnrollments(Long studentId) {
         if (!studentRepository.existsById(studentId)) {
-            throw new RuntimeException("Student not found with id: " + studentId);
+            throw new ResourceNotFoundException("Student", "id", studentId);
         }
 
         return enrollmentRepository.findByStudentId(studentId).stream()
@@ -336,7 +338,7 @@ public class StudentService {
     @Transactional(readOnly = true)
     public List<AlertDTO> getStudentAlerts(Long studentId) {
         if (!studentRepository.existsById(studentId)) {
-            throw new RuntimeException("Student not found with id: " + studentId);
+            throw new ResourceNotFoundException("Student", "id", studentId);
         }
 
         return alertRepository.findByStudentId(studentId).stream()

@@ -6,6 +6,8 @@ import com.spts.entity.Course;
 import com.spts.entity.CourseOffering;
 import com.spts.entity.Enrollment;
 import com.spts.entity.Semester;
+import com.spts.exception.ResourceNotFoundException;
+import com.spts.exception.DuplicateResourceException;
 import com.spts.repository.CourseOfferingRepository;
 import com.spts.repository.CourseRepository;
 import com.spts.repository.EnrollmentRepository;
@@ -66,7 +68,7 @@ public class CourseOfferingService {
     @Transactional(readOnly = true)
     public CourseOfferingDTO getOfferingById(Long id) {
         CourseOffering offering = courseOfferingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", id));
         return convertToDTO(offering);
     }
 
@@ -80,13 +82,13 @@ public class CourseOfferingService {
     public CourseOfferingDTO createOffering(CourseOfferingDTO dto) {
         // Validate course exists
         Course course = courseRepository.findById(dto.getCourseId())
-                .orElseThrow(() -> new RuntimeException("Course not found with id: " + dto.getCourseId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "id", dto.getCourseId()));
 
         // Check for duplicate offering (same course, semester, year)
         if (courseOfferingRepository.findByCourseIdAndSemesterAndAcademicYear(
                 dto.getCourseId(), dto.getSemester(), dto.getAcademicYear()).isPresent()) {
-            throw new RuntimeException("Offering already exists for this course in " + 
-                    dto.getSemester() + " " + dto.getAcademicYear());
+            throw new DuplicateResourceException("CourseOffering", 
+                    "course/semester/year", dto.getCourseId() + "/" + dto.getSemester() + "/" + dto.getAcademicYear());
         }
 
         CourseOffering offering = new CourseOffering();
@@ -112,7 +114,7 @@ public class CourseOfferingService {
      */
     public CourseOfferingDTO updateOffering(Long id, CourseOfferingDTO dto) {
         CourseOffering offering = courseOfferingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", id));
 
         // Check if changing to a combination that already exists
         if (!offering.getCourse().getId().equals(dto.getCourseId()) ||
@@ -121,15 +123,15 @@ public class CourseOfferingService {
             
             if (courseOfferingRepository.findByCourseIdAndSemesterAndAcademicYear(
                     dto.getCourseId(), dto.getSemester(), dto.getAcademicYear()).isPresent()) {
-                throw new RuntimeException("Offering already exists for this course in " + 
-                        dto.getSemester() + " " + dto.getAcademicYear());
+                throw new DuplicateResourceException("CourseOffering", 
+                        "course/semester/year", dto.getCourseId() + "/" + dto.getSemester() + "/" + dto.getAcademicYear());
             }
         }
 
         // Update course if changed
         if (!offering.getCourse().getId().equals(dto.getCourseId())) {
             Course course = courseRepository.findById(dto.getCourseId())
-                    .orElseThrow(() -> new RuntimeException("Course not found with id: " + dto.getCourseId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Course", "id", dto.getCourseId()));
             offering.setCourse(course);
         }
 
@@ -155,12 +157,12 @@ public class CourseOfferingService {
      */
     public void deleteOffering(Long id) {
         CourseOffering offering = courseOfferingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", id));
 
         // Check if offering has enrollments
         List<Enrollment> enrollments = enrollmentRepository.findByCourseOfferingId(id);
         if (!enrollments.isEmpty()) {
-            throw new RuntimeException("Cannot delete offering with existing enrollments. " +
+            throw new IllegalStateException("Cannot delete offering with existing enrollments. " +
                     "Remove enrollments first or archive instead.");
         }
 
@@ -178,7 +180,7 @@ public class CourseOfferingService {
     @Transactional(readOnly = true)
     public List<EnrollmentDTO> getOfferingEnrollments(Long offeringId) {
         if (!courseOfferingRepository.existsById(offeringId)) {
-            throw new RuntimeException("Course offering not found with id: " + offeringId);
+            throw new ResourceNotFoundException("CourseOffering", "id", offeringId);
         }
 
         return enrollmentRepository.findByCourseOfferingId(offeringId).stream()
@@ -195,7 +197,7 @@ public class CourseOfferingService {
     @Transactional(readOnly = true)
     public boolean hasAvailableSeats(Long offeringId) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
-                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + offeringId));
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", offeringId));
         return offering.hasAvailableSeats();
     }
 
@@ -208,7 +210,7 @@ public class CourseOfferingService {
     @Transactional(readOnly = true)
     public Integer getAvailableSeats(Long offeringId) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
-                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + offeringId));
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", offeringId));
         return offering.getAvailableSeats();
     }
 
@@ -220,7 +222,7 @@ public class CourseOfferingService {
      */
     public void syncEnrollmentCount(Long offeringId) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
-                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + offeringId));
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", offeringId));
 
         int actualCount = enrollmentRepository.findByCourseOfferingId(offeringId).size();
         offering.setCurrentEnrollment(actualCount);
@@ -235,10 +237,10 @@ public class CourseOfferingService {
      */
     public void incrementEnrollmentCount(Long offeringId) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
-                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + offeringId));
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", offeringId));
 
         if (!offering.hasAvailableSeats()) {
-            throw new RuntimeException("No available seats in this offering");
+            throw new IllegalStateException("No available seats in this offering");
         }
 
         offering.setCurrentEnrollment(offering.getCurrentEnrollment() + 1);
@@ -252,7 +254,7 @@ public class CourseOfferingService {
      */
     public void decrementEnrollmentCount(Long offeringId) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
-                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + offeringId));
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", offeringId));
 
         if (offering.getCurrentEnrollment() > 0) {
             offering.setCurrentEnrollment(offering.getCurrentEnrollment() - 1);

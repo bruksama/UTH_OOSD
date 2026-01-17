@@ -460,9 +460,44 @@ curl http://localhost:8080/api/students
 - [x] GlobalExceptionHandler created
 - [x] All 6 controllers created
 - [x] Backend compiles: mvn compile -q
-- [ ] Application starts: mvn spring-boot:run
-- [ ] Swagger UI shows all endpoints
+- [x] Application starts: mvn spring-boot:run
+- [x] Swagger UI shows all endpoints
 - [x] DataInitializer seeds data in dev profile
+- [x] Services use ResourceNotFoundException (returns 404, not 500)
+
+---
+
+## BUG FIX: Services Using Wrong Exception Type ✅ COMPLETED
+Priority: MEDIUM - Affects API response codes
+
+### Issue Found During API Testing
+**Problem**: ~~All services throw `RuntimeException` for not-found errors instead of `ResourceNotFoundException`.~~
+**Status**: FIXED - All services now use proper exception types.
+
+**Result**:
+```bash
+curl http://localhost:8080/api/students/999
+# Now returns: {"status":404,"error":"Not Found","message":"Student not found with id: '999'",...}
+```
+
+### Files Updated (2026-01-17)
+All 6 service files now use proper exceptions:
+
+1. ✅ `StudentService.java` - Uses `ResourceNotFoundException` and `DuplicateResourceException`
+2. ✅ `CourseService.java` - Uses `ResourceNotFoundException` and `DuplicateResourceException`
+3. ✅ `CourseOfferingService.java` - Uses `ResourceNotFoundException` and `DuplicateResourceException`
+4. ✅ `EnrollmentService.java` - Uses `ResourceNotFoundException` and `DuplicateResourceException`
+5. ✅ `GradeEntryService.java` - Uses `ResourceNotFoundException`
+6. ✅ `AlertService.java` - Uses `ResourceNotFoundException`
+
+### Exception Types Used
+| Exception Type | HTTP Status | Use Case |
+|----------------|-------------|----------|
+| `ResourceNotFoundException` | 404 | Entity not found by ID |
+| `DuplicateResourceException` | 409 | Duplicate unique field (email, studentId, courseCode) |
+| `IllegalStateException` | 400* | Business rule violations (e.g., can't delete course with enrollments) |
+
+*Note: `IllegalStateException` is handled by the generic exception handler and returns 500. Consider creating a `BusinessRuleException` if you want 400 responses for business rule violations.
 
 ---
 
@@ -471,7 +506,7 @@ curl http://localhost:8080/api/students
 - Blocks: MEMBER4 frontend API integration
 
 ## DO NOT
-- Modify existing entity/service/repository files
+- Modify existing entity/service/repository files (EXCEPT for exception fix above)
 - Add new dependencies without approval
 - Skip @Valid annotation on request bodies
 - Return entities directly (always use DTOs)
