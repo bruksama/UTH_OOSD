@@ -162,3 +162,4 @@ public class CourseOffering {
     public Integer getAvailableSeats() {
         return maxEnrollment != null ? maxEnrollment - currentEnrollment : null;
     }
+}
