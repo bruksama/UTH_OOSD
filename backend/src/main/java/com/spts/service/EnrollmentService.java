@@ -1,14 +1,242 @@
+package com.spts.service;
+
+import com.spts.dto.EnrollmentDTO;
+import com.spts.dto.GradeEntryDTO;
+import com.spts.entity.*;
+import com.spts.repository.CourseOfferingRepository;
+import com.spts.repository.EnrollmentRepository;
+import com.spts.repository.StudentRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Service class for Enrollment entity.
+ * Provides CRUD operations, grade submission, and GPA calculation.
+ * 
+ * Enrollment represents the junction between Student and CourseOffering,
+ * storing the final grade and enrollment status.
+ * 
+ * Integrates with:
+ * - StudentService: Triggers GPA recalculation after grade changes
+ * - CourseOfferingService: Updates enrollment counts
+ * - Observer Pattern: Hook for grade change notifications (Member 3)
+ * 
+ * @author SPTS Team
+ */
 @Service
+@Transactional
 public class EnrollmentService {
 
-    @Autowired
-    private EnrollmentRepository enrollmentRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final StudentRepository studentRepository;
+    private final CourseOfferingRepository courseOfferingRepository;
+    private final StudentService studentService;
+
+    public EnrollmentService(EnrollmentRepository enrollmentRepository,
+                              StudentRepository studentRepository,
+                              CourseOfferingRepository courseOfferingRepository,
+                              StudentService studentService) {
+        this.enrollmentRepository = enrollmentRepository;
+        this.studentRepository = studentRepository;
+        this.courseOfferingRepository = courseOfferingRepository;
+        this.studentService = studentService;
+    }
+
+    // ==================== CRUD Operations ====================
+
+    /**
+     * Get all enrollments
+     * 
+     * @return List of all enrollments as DTOs
+     */
+    @Transactional(readOnly = true)
+    public List<EnrollmentDTO> getAllEnrollments() {
+        return enrollmentRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get enrollment by ID
+     * 
+     * @param id Enrollment database ID
+     * @return EnrollmentDTO
+     * @throws RuntimeException if enrollment not found
+     */
+    @Transactional(readOnly = true)
+    public EnrollmentDTO getEnrollmentById(Long id) {
+        Enrollment enrollment = enrollmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + id));
+        return convertToDTO(enrollment);
+    }
+
+    /**
+     * Create a new enrollment (enroll student in course offering)
+     * 
+     * @param dto EnrollmentDTO with student and offering IDs
+     * @return Created EnrollmentDTO with generated ID
+     * @throws RuntimeException if student/offering not found, already enrolled, or no seats
+     */
+    public EnrollmentDTO createEnrollment(EnrollmentDTO dto) {
+        // Validate student exists
+        Student student = studentRepository.findById(dto.getStudentId())
+                .orElseThrow(() -> new RuntimeException("Student not found with id: " + dto.getStudentId()));
+
+        // Validate course offering exists
+        CourseOffering offering = courseOfferingRepository.findById(dto.getCourseOfferingId())
+                .orElseThrow(() -> new RuntimeException("Course offering not found with id: " + dto.getCourseOfferingId()));
+
+        // Check if already enrolled
+        if (enrollmentRepository.existsByStudentIdAndCourseOfferingId(
+                dto.getStudentId(), dto.getCourseOfferingId())) {
+            throw new RuntimeException("Student is already enrolled in this course offering");
+        }
+
+        // Check seat availability
+        if (!offering.hasAvailableSeats()) {
+            throw new RuntimeException("No available seats in this course offering");
+        }
+
+        // Create enrollment
+        Enrollment enrollment = new Enrollment(student, offering);
+        enrollment.setStatus(EnrollmentStatus.IN_PROGRESS);
+        enrollment.setEnrolledAt(LocalDateTime.now());
+
+        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+
+        // Update offering enrollment count
+        offering.setCurrentEnrollment(offering.getCurrentEnrollment() + 1);
+        courseOfferingRepository.save(offering);
+
+        return convertToDTO(savedEnrollment);
+    }
+
+    /**
+     * Update an existing enrollment
+     * Note: Cannot change student or offering after creation
+     * 
+     * @param id  Enrollment database ID
+     * @param dto EnrollmentDTO with updated data
+     * @return Updated EnrollmentDTO
+     * @throws RuntimeException if enrollment not found
+     */
+    public EnrollmentDTO updateEnrollment(Long id, EnrollmentDTO dto) {
+        Enrollment enrollment = enrollmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + id));
+
+        // Note: Student and CourseOffering cannot be changed after creation
+        // Only status and grades can be updated
+
+        if (dto.getFinalScore() != null) {
+            enrollment.setFinalScore(dto.getFinalScore());
+            // letterGrade and gpaValue are auto-calculated in setFinalScore
+        }
+
+        if (dto.getStatus() != null) {
+            enrollment.setStatus(dto.getStatus());
+            if (dto.getStatus() == EnrollmentStatus.COMPLETED || 
+                dto.getStatus() == EnrollmentStatus.WITHDRAWN) {
+                enrollment.setCompletedAt(LocalDateTime.now());
+            }
+        }
+
+        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+
+        // Trigger student GPA recalculation if grade changed
+        if (dto.getFinalScore() != null && enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
+            studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());
+        }
+
+        return convertToDTO(savedEnrollment);
+    }
+
+    /**
+     * Delete an enrollment
+     * 
+     * @param id Enrollment database ID
+     * @throws RuntimeException if enrollment not found
+     */
+    public void deleteEnrollment(Long id) {
+        Enrollment enrollment = enrollmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + id));
+
+        Long studentId = enrollment.getStudent().getId();
+        Long offeringId = enrollment.getCourseOffering().getId();
+
+        enrollmentRepository.deleteById(id);
+
+        // Update offering enrollment count
+        CourseOffering offering = courseOfferingRepository.findById(offeringId).orElse(null);
+        if (offering != null && offering.getCurrentEnrollment() > 0) {
+            offering.setCurrentEnrollment(offering.getCurrentEnrollment() - 1);
+            courseOfferingRepository.save(offering);
+        }
+
+        // Recalculate student GPA
+        studentService.recalculateAndUpdateGpa(studentId);
+    }
+
+    // ==================== Grade Submission ====================
+
+    /**
+     * Complete enrollment with final grade.
+     * Auto-calculates letter grade and GPA value.
+     * Triggers student GPA recalculation.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @param finalScore Final score (0-10 scale)
+     * @return Updated EnrollmentDTO
+     * @throws RuntimeException if enrollment not found or already completed
+     */
+    public EnrollmentDTO completeEnrollment(Long enrollmentId, Double finalScore) {
+        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+
+        if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
+            throw new RuntimeException("Enrollment is already completed");
+        }
+
+        if (enrollment.getStatus() == EnrollmentStatus.WITHDRAWN) {
+            throw new RuntimeException("Cannot complete a withdrawn enrollment");
+        }
+
+        // Complete the enrollment (auto-calculates letterGrade and gpaValue)
+        enrollment.complete(finalScore);
+        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+
+        // Trigger student GPA recalculation
+        studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());
+
+        // TODO: Notify observers (Observer pattern hook for Member 3)
+        // gradeSubject.notifyObservers(enrollment);
+
+        return convertToDTO(savedEnrollment);
+    }
+
+    /**
+     * Submit or update grade for an enrollment.
+     * Does not change status - use completeEnrollment for that.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @param score Score (0-10 scale)
+     * @return Updated EnrollmentDTO
+     */
+    public EnrollmentDTO submitGrade(Long enrollmentId, Double score) {
+        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
+
+        enrollment.setFinalScore(score);
+        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
 
         // If already completed, recalculate GPA
         if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
             studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());
         }
-    
+
         return convertToDTO(savedEnrollment);
     }
 
@@ -20,17 +248,21 @@ public class EnrollmentService {
      * @throws RuntimeException if enrollment not found or already completed
      */
     public EnrollmentDTO withdrawEnrollment(Long enrollmentId) {
-         Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("Enrollment not found with id: " + enrollmentId));
-                if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
+
+        if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
             throw new RuntimeException("Cannot withdraw from a completed enrollment");
         }
+
         if (enrollment.getStatus() == EnrollmentStatus.WITHDRAWN) {
             throw new RuntimeException("Enrollment is already withdrawn");
         }
-         enrollment.withdraw();
+
+        enrollment.withdraw();
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
-         // Update offering enrollment count
+
+        // Update offering enrollment count
         CourseOffering offering = enrollment.getCourseOffering();
         if (offering.getCurrentEnrollment() > 0) {
             offering.setCurrentEnrollment(offering.getCurrentEnrollment() - 1);
@@ -39,6 +271,7 @@ public class EnrollmentService {
 
         return convertToDTO(savedEnrollment);
     }
+
     // ==================== GPA Calculation Helpers ====================
 
     /**
@@ -80,6 +313,7 @@ public class EnrollmentService {
         if (score >= 4.0) return "D";
         return "F";
     }
+
     // ==================== Search and Filter ====================
 
     /**
@@ -202,7 +436,7 @@ public class EnrollmentService {
         dto.setStatus(enrollment.getStatus());
         dto.setEnrolledAt(enrollment.getEnrolledAt());
         dto.setCompletedAt(enrollment.getCompletedAt());
-
+        
         // Convert grade entries if present
         if (enrollment.getGradeEntries() != null && !enrollment.getGradeEntries().isEmpty()) {
             List<GradeEntryDTO> gradeEntryDTOs = enrollment.getGradeEntries().stream()
@@ -211,10 +445,11 @@ public class EnrollmentService {
                     .collect(Collectors.toList());
             dto.setGradeEntries(gradeEntryDTOs);
         }
-
+        
         return dto;
     }
-     /**
+
+    /**
      * Convert GradeEntry entity to GradeEntryDTO (with children)
      */
     private GradeEntryDTO convertGradeEntryToDTO(GradeEntry gradeEntry) {
@@ -229,17 +464,17 @@ public class EnrollmentService {
         dto.setRecordedBy(gradeEntry.getRecordedBy());
         dto.setRecordedAt(gradeEntry.getRecordedAt());
         dto.setNotes(gradeEntry.getNotes());
-
+        
         // Set course and student info from enrollment
         Enrollment enrollment = gradeEntry.getEnrollment();
         dto.setCourseCode(enrollment.getCourseOffering().getCourse().getCourseCode());
         dto.setCourseName(enrollment.getCourseOffering().getCourse().getCourseName());
         dto.setStudentName(enrollment.getStudent().getFullName());
-
+        
         if (gradeEntry.getParent() != null) {
             dto.setParentId(gradeEntry.getParent().getId());
         }
-
+        
         // Recursively convert children
         if (gradeEntry.getChildren() != null && !gradeEntry.getChildren().isEmpty()) {
             List<GradeEntryDTO> childDTOs = gradeEntry.getChildren().stream()
@@ -247,7 +482,7 @@ public class EnrollmentService {
                     .collect(Collectors.toList());
             dto.setChildren(childDTOs);
         }
-
+        
         return dto;
     }
 }
