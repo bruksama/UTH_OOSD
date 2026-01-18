@@ -1,8 +1,11 @@
 package com.spts.patterns.observer;
 
+import com.spts.entity.AlertLevel;
+import com.spts.entity.AlertType;
 import com.spts.entity.Enrollment;
 import com.spts.entity.GradeEntry;
 import com.spts.entity.Student;
+import com.spts.service.AlertService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -13,9 +16,8 @@ import org.springframework.stereotype.Component;
  * Monitors GPA changes and creates alerts when:
  * - GPA falls below 2.0 (AT_RISK threshold)
  * - GPA falls below 1.5 (PROBATION threshold)
- * - Significant GPA drop in a single semester
  * 
- * @author SPTS Team
+ * @author SPTS Team - Member 3 (Behavioral Engineer)
  */
 @Component
 public class RiskDetectorObserver implements IGradeObserver {
@@ -25,6 +27,12 @@ public class RiskDetectorObserver implements IGradeObserver {
     
     private static final double AT_RISK_THRESHOLD = 2.0;
     private static final double PROBATION_THRESHOLD = 1.5;
+    
+    private final AlertService alertService;
+    
+    public RiskDetectorObserver(AlertService alertService) {
+        this.alertService = alertService;
+    }
 
     @Override
     public void onGradeUpdated(Student student, Enrollment enrollment, GradeEntry gradeEntry) {
@@ -43,14 +51,27 @@ public class RiskDetectorObserver implements IGradeObserver {
                     enrollment.getCourseOffering().getDisplayName(), enrollmentGpa);
         }
         
+        // Create alerts based on GPA thresholds
         if (currentGpa < PROBATION_THRESHOLD) {
-            logger.warn("CRITICAL: Student {} GPA ({}) is below probation threshold ({})", 
-                    student.getStudentId(), currentGpa, PROBATION_THRESHOLD);
-            // Alert creation will be handled by AlertService
+            createAlert(student, AlertLevel.CRITICAL, AlertType.PROBATION,
+                String.format("Student GPA (%.2f) is below probation threshold (%.1f)", 
+                    currentGpa, PROBATION_THRESHOLD));
         } else if (currentGpa < AT_RISK_THRESHOLD) {
-            logger.warn("WARNING: Student {} GPA ({}) is below at-risk threshold ({})", 
-                    student.getStudentId(), currentGpa, AT_RISK_THRESHOLD);
-            // Alert creation will be handled by AlertService
+            createAlert(student, AlertLevel.WARNING, AlertType.LOW_GPA,
+                String.format("Student GPA (%.2f) is below at-risk threshold (%.1f)", 
+                    currentGpa, AT_RISK_THRESHOLD));
+        }
+    }
+    
+    /**
+     * Create alert using AlertService with error handling.
+     */
+    private void createAlert(Student student, AlertLevel level, AlertType type, String message) {
+        try {
+            alertService.createAlert(student, level, type, message);
+            logger.info("Created {} alert for student {}: {}", level, student.getStudentId(), type);
+        } catch (Exception e) {
+            logger.error("Failed to create alert for student {}: {}", student.getStudentId(), e.getMessage());
         }
     }
 
@@ -65,3 +86,4 @@ public class RiskDetectorObserver implements IGradeObserver {
         return OBSERVER_NAME;
     }
 }
+
