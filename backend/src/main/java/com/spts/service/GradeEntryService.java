@@ -3,8 +3,11 @@ package com.spts.service;
 import com.spts.dto.GradeEntryDTO;
 import com.spts.entity.*;
 import com.spts.exception.ResourceNotFoundException;
+import com.spts.patterns.observer.GradeSubject;
 import com.spts.repository.EnrollmentRepository;
 import com.spts.repository.GradeEntryRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,13 +36,38 @@ import java.util.stream.Collectors;
 @Transactional
 public class GradeEntryService {
 
+    private static final Logger logger = LoggerFactory.getLogger(GradeEntryService.class);
+
     private final GradeEntryRepository gradeEntryRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final GradeSubject gradeSubject;
 
     public GradeEntryService(GradeEntryRepository gradeEntryRepository,
-                              EnrollmentRepository enrollmentRepository) {
+                              EnrollmentRepository enrollmentRepository,
+                              GradeSubject gradeSubject) {
         this.gradeEntryRepository = gradeEntryRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.gradeSubject = gradeSubject;
+    }
+
+    // ==================== Observer Pattern Helper ====================
+
+    /**
+     * Notify all registered observers about a grade change.
+     * This triggers GPA recalculation and risk detection.
+     * 
+     * @param gradeEntry The grade entry that was created/updated
+     */
+    private void notifyGradeObservers(GradeEntry gradeEntry) {
+        if (gradeEntry == null || gradeEntry.getEnrollment() == null) {
+            return;
+        }
+        
+        Enrollment enrollment = gradeEntry.getEnrollment();
+        Student student = enrollment.getStudent();
+        
+        logger.debug("Notifying observers about grade change for student: {}", student.getStudentId());
+        gradeSubject.notifyObservers(student, enrollment, gradeEntry);
     }
 
     // ==================== CRUD Operations ====================
@@ -101,8 +129,8 @@ public class GradeEntryService {
 
         GradeEntry savedEntry = gradeEntryRepository.save(gradeEntry);
 
-        // TODO: Notify observers (Observer pattern hook for Member 3)
-        // gradeSubject.notifyObservers(savedEntry);
+        // Notify observers about grade creation (Observer Pattern - Member 3)
+        notifyGradeObservers(savedEntry);
 
         return convertToDTO(savedEntry);
     }
@@ -133,8 +161,8 @@ public class GradeEntryService {
 
         GradeEntry savedEntry = gradeEntryRepository.save(gradeEntry);
 
-        // TODO: Notify observers on grade change (Observer pattern hook for Member 3)
-        // gradeSubject.notifyObservers(savedEntry);
+        // Notify observers about grade update (Observer Pattern - Member 3)
+        notifyGradeObservers(savedEntry);
 
         return convertToDTO(savedEntry);
     }
@@ -401,8 +429,8 @@ public class GradeEntryService {
 
         GradeEntry savedEntry = gradeEntryRepository.save(gradeEntry);
 
-        // TODO: Notify observers on score change (Observer pattern hook for Member 3)
-        // gradeSubject.notifyObservers(savedEntry);
+        // Notify observers about score update (Observer Pattern - Member 3)
+        notifyGradeObservers(savedEntry);
 
         return convertToDTO(savedEntry);
     }
