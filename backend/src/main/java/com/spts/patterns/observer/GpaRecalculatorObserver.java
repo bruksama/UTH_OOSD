@@ -3,6 +3,7 @@ package com.spts.patterns.observer;
 import com.spts.entity.Enrollment;
 import com.spts.entity.GradeEntry;
 import com.spts.entity.Student;
+import com.spts.service.StudentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,12 @@ public class GpaRecalculatorObserver implements IGradeObserver {
 
     private static final Logger logger = LoggerFactory.getLogger(GpaRecalculatorObserver.class);
     private static final String OBSERVER_NAME = "GPA Recalculator";
+    
+    private final StudentService studentService;
+    
+    public GpaRecalculatorObserver(StudentService studentService) {
+        this.studentService = studentService;
+    }
 
     @Override
     public void onGradeUpdated(Student student, Enrollment enrollment, GradeEntry gradeEntry) {
@@ -39,8 +46,13 @@ public class GpaRecalculatorObserver implements IGradeObserver {
                     enrollment.getCourseOffering().getCourse().getCourseCode());
         }
         
-        // GPA recalculation logic will be implemented in service layer
-        // This observer triggers the recalculation process
+        // Call StudentService to recalculate and update GPA
+        try {
+            studentService.recalculateAndUpdateGpa(student.getId());
+            logger.info("GPA recalculation completed for student: {}", student.getStudentId());
+        } catch (Exception e) {
+            logger.error("Error recalculating GPA for student {}: {}", student.getStudentId(), e.getMessage());
+        }
     }
 
     @Override
