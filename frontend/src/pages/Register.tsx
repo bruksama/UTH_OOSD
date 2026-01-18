@@ -8,7 +8,7 @@ export default function Register() {
     const [confirm, setConfirm] = useState('');
 
     const handleRegister = () => {
-        if (!username || !password) {
+        if (!username || !password || !confirm) {
             alert('Please fill all fields');
             return;
         }

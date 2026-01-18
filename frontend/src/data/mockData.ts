@@ -1,7 +1,7 @@
 /**
  * Mock data for frontend development
  * Matches Backend DTO structures
- * 
+ *
  * @author SPTS Team
  */
 
@@ -17,10 +17,10 @@ import {
   GpaTrendData,
 } from '../types';
 
-// Mock Students
+/* ===================== STUDENTS ===================== */
+
 export const mockStudents: StudentDTO[] = [
   {
-    id: 1,
     studentId: 'STU001',
     firstName: 'Nguyen',
     lastName: 'Van A',
@@ -32,7 +32,6 @@ export const mockStudents: StudentDTO[] = [
     status: StudentStatus.NORMAL,
   },
   {
-    id: 2,
     studentId: 'STU002',
     firstName: 'Tran',
     lastName: 'Thi B',
@@ -44,7 +43,6 @@ export const mockStudents: StudentDTO[] = [
     status: StudentStatus.AT_RISK,
   },
   {
-    id: 3,
     studentId: 'STU003',
     firstName: 'Le',
     lastName: 'Van C',
@@ -56,7 +54,6 @@ export const mockStudents: StudentDTO[] = [
     status: StudentStatus.PROBATION,
   },
   {
-    id: 4,
     studentId: 'STU004',
     firstName: 'Pham',
     lastName: 'Thi D',
@@ -68,7 +65,6 @@ export const mockStudents: StudentDTO[] = [
     status: StudentStatus.GRADUATED,
   },
   {
-    id: 5,
     studentId: 'STU005',
     firstName: 'Hoang',
     lastName: 'Van E',
@@ -81,10 +77,10 @@ export const mockStudents: StudentDTO[] = [
   },
 ];
 
-// Mock Courses
+/* ===================== COURSES ===================== */
+
 export const mockCourses: CourseDTO[] = [
   {
-    id: 1,
     courseCode: 'CS101',
     courseName: 'Introduction to Computer Science',
     description: 'Fundamental concepts of computer science and programming',
@@ -93,7 +89,6 @@ export const mockCourses: CourseDTO[] = [
     gradingType: GradingType.SCALE_10,
   },
   {
-    id: 2,
     courseCode: 'CS201',
     courseName: 'Data Structures and Algorithms',
     description: 'Advanced data structures and algorithm analysis',
@@ -102,7 +97,6 @@ export const mockCourses: CourseDTO[] = [
     gradingType: GradingType.SCALE_10,
   },
   {
-    id: 3,
     courseCode: 'SE301',
     courseName: 'Software Engineering',
     description: 'Software development methodologies and practices',
@@ -111,7 +105,6 @@ export const mockCourses: CourseDTO[] = [
     gradingType: GradingType.SCALE_10,
   },
   {
-    id: 4,
     courseCode: 'DB201',
     courseName: 'Database Systems',
     description: 'Relational database design and SQL',
@@ -120,7 +113,6 @@ export const mockCourses: CourseDTO[] = [
     gradingType: GradingType.SCALE_10,
   },
   {
-    id: 5,
     courseCode: 'INT100',
     courseName: 'Internship',
     description: 'Industry internship program',
@@ -130,61 +122,59 @@ export const mockCourses: CourseDTO[] = [
   },
 ];
 
-// Mock Alerts
+/* ===================== ALERTS ===================== */
+
 export const mockAlerts: AlertDTO[] = [
   {
     id: 1,
-    studentId: 2,
+    studentId: 2, // ✅ number
     studentName: 'Tran Thi B',
     level: AlertLevel.HIGH,
     type: AlertType.LOW_GPA,
-    message: 'GPA has fallen below 2.0 threshold. Academic counseling recommended.',
-    createdDate: '2025-01-10',
-    createdAt: '2025-01-10T09:30:00',
+    message: 'ýP A has fallen below 2.0 threshold. Academic counseling recommended.',
+    createdAt: '2025-01-10T09:30:00', // ✅ string
     isRead: false,
     isResolved: false,
   },
   {
     id: 2,
-    studentId: 3,
+    studentId: 3, // ✅ number
     studentName: 'Le Van C',
     level: AlertLevel.CRITICAL,
     type: AlertType.PROBATION,
     message: 'Student has been placed on academic probation. GPA is below 1.5.',
-    createdDate: '2025-01-08',
-    createdAt: '2025-01-08T14:15:00',
+    createdAt: '2025-01-08T14:15:00', // ✅ string
     isRead: true,
     isResolved: false,
   },
   {
     id: 3,
-    studentId: 5,
+    studentId: 5, // ✅ number
     studentName: 'Hoang Van E',
     level: AlertLevel.INFO,
     type: AlertType.IMPROVEMENT,
     message: 'GPA has improved from 2.5 to 2.95. Good progress!',
-    createdDate: '2025-01-05',
-    createdAt: '2025-01-05T11:00:00',
+    createdAt: '2025-01-05T11:00:00', // ✅ string
     isRead: true,
     isResolved: true,
     resolvedBy: 'admin',
-    resolvedAt: '2025-01-06T10:00:00',
+    resolvedAt: '2025-01-06T10:00:00', // ✅ string
   },
   {
     id: 4,
-    studentId: 2,
+    studentId: 2, // ✅ number
     studentName: 'Tran Thi B',
     level: AlertLevel.WARNING,
     type: AlertType.GPA_DROP,
     message: 'GPA dropped by 0.5 points in the last semester.',
-    createdDate: '2025-01-03',
-    createdAt: '2025-01-03T16:45:00',
+    createdAt: '2025-01-03T16:45:00', // ✅ string
     isRead: false,
     isResolved: false,
   },
 ];
 
-// Dashboard Statistics
+/* ===================== DASHBOARD ===================== */
+
 export const mockDashboardStats: DashboardStats = {
   totalStudents: 5,
   atRiskCount: 1,
@@ -193,7 +183,6 @@ export const mockDashboardStats: DashboardStats = {
   activeAlerts: 3,
 };
 
-// GPA Trend Data for charts
 export const mockGpaTrend: GpaTrendData[] = [
   { semester: 'Sem 1 23', gpa: 2.8 },
   { semester: 'Sem 2 24', gpa: 2.9 },
@@ -203,10 +192,10 @@ export const mockGpaTrend: GpaTrendData[] = [
   { semester: 'Sem 2 26', gpa: 3.45 },
 ];
 
-// Helper functions
-export const getStudentFullName = (student: StudentDTO): string => {
-  return `${student.firstName} ${student.lastName}`;
-};
+/* ===================== HELPERS ===================== */
+
+export const getStudentFullName = (student: StudentDTO): string =>
+    `${student.firstName} ${student.lastName}`;
 
 export const getStatusColor = (status: StudentStatus): string => {
   switch (status) {

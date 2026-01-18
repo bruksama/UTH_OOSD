@@ -19,8 +19,26 @@ export default function ForgotPassword() {
             return;
         }
 
-        // Demo only (chưa có backend)
-        alert(`Password reset successful for user: ${username}`);
+        // ✅ LẤY USER TỪ localStorage
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!storedUser.username) {
+            alert('No user found. Please register first');
+            return;
+        }
+
+        if (storedUser.username !== username) {
+            alert('Username not found');
+            return;
+        }
+
+        // ✅ CẬP NHẬT MẬT KHẨU
+        localStorage.setItem(
+            'user',
+            JSON.stringify({ username, password: newPassword })
+        );
+
+        alert('Password reset successful');
         navigate('/login');
     };
 
@@ -65,7 +83,7 @@ export default function ForgotPassword() {
     );
 }
 
-/* ===== Styles ===== */
+/* ===== Styles (GIỮ NGUYÊN) ===== */
 const styles: any = {
     container: {
         height: '100vh',
