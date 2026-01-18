@@ -22,7 +22,7 @@ import {
 
 import { StudentStatus } from '../types';
 
-/* ===== STAT CARD (NO ICON – CENTER TEXT) ===== */
+/* ===== STAT CARD ===== */
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -124,13 +124,17 @@ const Dashboard = () => {
           {/* ALERTS */}
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">Recent Alerts</h3>
+
             {recentAlerts.map(alert => (
-                <div key={alert.id} className="p-3 bg-slate-50 rounded-lg mb-2">
+                <div
+                    key={alert.id}
+                    className="p-3 bg-slate-50 rounded-lg mb-2"
+                >
               <span className={getAlertLevelColor(alert.level)}>
                 {alert.level}
               </span>
-                  <p>{alert.studentName}</p>
-                  <p className="text-sm">{alert.message}</p>
+                  <p className="mt-1 font-medium">{alert.studentName}</p>
+                  <p className="text-sm text-slate-600">{alert.message}</p>
                 </div>
             ))}
           </div>
@@ -140,18 +144,19 @@ const Dashboard = () => {
             <h3 className="text-lg font-semibold mb-4">
               Students Requiring Attention
             </h3>
+
             {mockStudents
                 .filter(s => s.status === StudentStatus.AT_RISK)
                 .map(student => (
                     <div
-                        key={student.id}
+                        key={student.studentId}
                         className="p-3 bg-slate-50 rounded-lg mb-2"
                     >
-                      <p>
+                      <p className="font-medium">
                         {student.firstName} {student.lastName}
                       </p>
                       <span className={getStatusColor(student.status)}>
-                  {student.status}
+                  {student.status.replace('_', ' ')}
                 </span>
                     </div>
                 ))}

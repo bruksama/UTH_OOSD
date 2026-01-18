@@ -134,7 +134,7 @@ const AlertCard = ({ alert }: AlertCardProps) => {
           <p className="text-slate-600">{alert.message}</p>
 
           <div className="flex items-center gap-4 mt-3 text-sm text-slate-500">
-            <span>Created: {alert.createdDate}</span>
+            alert.createdAt
             {alert.isResolved && alert.resolvedBy && (
               <span>Resolved by: {alert.resolvedBy}</span>
             )}
