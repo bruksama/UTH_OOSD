@@ -33,13 +33,16 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final AlertRepository alertRepository;
+    private final StudentStateManager stateManager;
 
     public StudentService(StudentRepository studentRepository,
                           EnrollmentRepository enrollmentRepository,
-                          AlertRepository alertRepository) {
+                          AlertRepository alertRepository,
+                          StudentStateManager stateManager) {
         this.studentRepository = studentRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.alertRepository = alertRepository;
+        this.stateManager = stateManager;
     }
 
     // ==================== CRUD Operations ====================
@@ -235,12 +238,7 @@ public class StudentService {
 
     /**
      * Update student status based on GPA using State Pattern.
-     * 
-     * Status thresholds:
-     * - NORMAL: GPA >= 2.0
-     * - AT_RISK: 1.5 <= GPA < 2.0
-     * - PROBATION: GPA < 1.5
-     * - GRADUATED: Manually set when requirements completed
+     * Uses StudentStateManager for centralized state management.
      * 
      * @param student Student entity to update
      * @param newGpa  New GPA value
@@ -251,41 +249,20 @@ public class StudentService {
             return;
         }
 
-        StudentState currentState = getStateForStatus(student.getStatus());
-        StudentState newState = currentState.handleGpaChange(student, newGpa);
-
-        // Update status based on new state
-        StudentStatus newStatus = getStatusForState(newState);
+        // Use StateManager for state transition
+        StudentStatus newStatus = stateManager.handleStateTransition(student, newGpa);
         student.setStatus(newStatus);
     }
 
     /**
-     * Get StudentState object for a given StudentStatus enum
+     * Get StudentState object for a given StudentStatus enum.
+     * Delegates to StudentStateManager.
      * 
      * @param status StudentStatus enum value
      * @return Corresponding StudentState implementation
      */
     public StudentState getStateForStatus(StudentStatus status) {
-        return switch (status) {
-            case NORMAL -> new NormalState();
-            case AT_RISK -> new AtRiskState();
-            case PROBATION -> new ProbationState();
-            case GRADUATED -> new GraduatedState();
-        };
-    }
-
-    /**
-     * Get StudentStatus enum for a given StudentState
-     * 
-     * @param state StudentState implementation
-     * @return Corresponding StudentStatus enum value
-     */
-    private StudentStatus getStatusForState(StudentState state) {
-        if (state instanceof NormalState) return StudentStatus.NORMAL;
-        if (state instanceof AtRiskState) return StudentStatus.AT_RISK;
-        if (state instanceof ProbationState) return StudentStatus.PROBATION;
-        if (state instanceof GraduatedState) return StudentStatus.GRADUATED;
-        return StudentStatus.NORMAL;
+        return stateManager.getStateForStatus(status);
     }
 
     /**
