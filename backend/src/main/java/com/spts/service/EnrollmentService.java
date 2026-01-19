@@ -5,11 +5,14 @@ import com.spts.dto.GradeEntryDTO;
 import com.spts.entity.*;
 import com.spts.exception.ResourceNotFoundException;
 import com.spts.exception.DuplicateResourceException;
+import com.spts.patterns.observer.GradeSubject;
 import com.spts.patterns.strategy.GradingStrategyFactory;
 import com.spts.patterns.strategy.IGradingStrategy;
 import com.spts.repository.CourseOfferingRepository;
 import com.spts.repository.EnrollmentRepository;
 import com.spts.repository.StudentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,22 +38,48 @@ import java.util.stream.Collectors;
 @Transactional
 public class EnrollmentService {
 
+    private static final Logger logger = LoggerFactory.getLogger(EnrollmentService.class);
+
     private final EnrollmentRepository enrollmentRepository;
     private final StudentRepository studentRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final StudentService studentService;
     private final GradingStrategyFactory gradingStrategyFactory;
+    private final GradeSubject gradeSubject;
 
     public EnrollmentService(EnrollmentRepository enrollmentRepository,
                               StudentRepository studentRepository,
                               CourseOfferingRepository courseOfferingRepository,
                               StudentService studentService,
-                              GradingStrategyFactory gradingStrategyFactory) {
+                              GradingStrategyFactory gradingStrategyFactory,
+                              GradeSubject gradeSubject) {
         this.enrollmentRepository = enrollmentRepository;
         this.studentRepository = studentRepository;
         this.courseOfferingRepository = courseOfferingRepository;
         this.studentService = studentService;
         this.gradingStrategyFactory = gradingStrategyFactory;
+        this.gradeSubject = gradeSubject;
+    }
+
+    // ==================== Observer Pattern Helper ====================
+
+    /**
+     * Notify all registered observers about an enrollment completion.
+     * This triggers GPA recalculation and risk detection for the student.
+     * 
+     * @param enrollment The enrollment that was completed
+     */
+    private void notifyEnrollmentObservers(Enrollment enrollment) {
+        if (enrollment == null) {
+            return;
+        }
+        
+        Student student = enrollment.getStudent();
+        logger.debug("Notifying observers about enrollment completion for student: {}", 
+                student.getStudentId());
+        
+        // Notify with null gradeEntry since this is enrollment-level notification
+        gradeSubject.notifyObservers(student, enrollment, null);
     }
 
     // ==================== CRUD Operations ====================
@@ -219,8 +248,8 @@ public class EnrollmentService {
         // Trigger student GPA recalculation
         studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());
 
-        // TODO: Notify observers (Observer pattern hook for Member 3)
-        // gradeSubject.notifyObservers(enrollment);
+        // Notify observers about enrollment completion (Observer Pattern - Member 3)
+        notifyEnrollmentObservers(enrollment);
 
         return convertToDTO(savedEnrollment);
     }
@@ -367,8 +396,8 @@ public class EnrollmentService {
         // Trigger student GPA recalculation
         studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());
 
-        // TODO: Notify observers (Observer pattern hook for Member 3)
-        // gradeSubject.notifyObservers(enrollment);
+        // Notify observers about enrollment completion (Observer Pattern - Member 3)
+        notifyEnrollmentObservers(enrollment);
 
         return convertToDTO(savedEnrollment);
     }
