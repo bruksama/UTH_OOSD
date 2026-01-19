@@ -512,4 +512,139 @@ All 6 service files now use proper exceptions:
 - Return entities directly (always use DTOs)
 
 ---
-Last Updated: 2026-01-17
+
+## TASK 4: Unit Tests for Strategy Pattern (Helping MEMBER2)
+Priority: MEDIUM - Project charter requirement
+
+### Current Progress
+- [x] `GradingStrategyFactoryTest.java` - 10 tests PASSED
+- [ ] `Scale10StrategyTest.java` - 12 tests planned
+- [ ] `Scale4StrategyTest.java` - 10 tests planned
+- [ ] `PassFailStrategyTest.java` - 8 tests planned
+
+### 4.1 GradingStrategyFactoryTest.java - COMPLETED
+Location: `backend/src/test/java/com/spts/patterns/strategy/`
+
+| Test Case | Status |
+|-----------|--------|
+| testGetScale10Strategy | PASS |
+| testGetScale4Strategy | PASS |
+| testGetPassFailStrategy | PASS |
+| testCaseInsensitive_lowercase | PASS |
+| testCaseInsensitive_mixedCase | PASS |
+| testCaseInsensitive_allVariations | PASS |
+| testNullInput_throwsException | PASS |
+| testEmptyInput_throwsException | PASS |
+| testBlankInput_throwsException | PASS |
+| testUnknownScale_throwsException | PASS |
+
+### 4.2 Scale10StrategyTest.java - PENDING
+Location: `backend/src/test/java/com/spts/patterns/strategy/`
+
+**Group A: Metadata Tests**
+| Test Case | Scenario | Expected |
+|-----------|----------|----------|
+| testStrategyName | Get name | `"Scale 10 (Vietnamese Standard)"` |
+| testMaxGrade | Get max | `10.0` |
+| testPassingGrade | Get passing | `4.0` |
+
+**Group B: calculate() Tests**
+| Test Case | Scenario | Expected |
+|-----------|----------|----------|
+| testCalculate_simpleWeightedAverage | scores=[8,7,9], weights=[0.3,0.4,0.3] | `7.9` |
+| testCalculate_singleScore | scores=[10], weights=[1.0] | `10.0` |
+| testCalculate_mismatchedSizes | scores=[8,7], weights=[0.5,0.3,0.2] | `IllegalArgumentException` |
+| testCalculate_weightsNotSumToOne | scores=[8,7], weights=[0.3,0.3] | `IllegalArgumentException` |
+| testCalculate_scoreOutOfRange | scores=[8,11], weights=[0.5,0.5] | `IllegalArgumentException` |
+
+**Group C: calculateGpa() Tests (Parameterized)**
+| Input Score | Expected GPA |
+|-------------|--------------|
+| 10.0 | 4.0 |
+| 9.0 | 4.0 |
+| 8.5 | 3.7 |
+| 8.0 | 3.5 |
+| 7.0 | 3.0 |
+| 6.5 | 2.5 |
+| 5.5 | 2.0 |
+| 5.0 | 1.5 |
+| 4.0 | 1.0 |
+| 3.9 | 0.0 |
+| null | 0.0 |
+
+**Group D: calculateLetterGrade() Tests (Parameterized)**
+| Input Score | Expected Letter |
+|-------------|-----------------|
+| 10.0 | A |
+| 9.0 | A |
+| 8.5 | A- |
+| 8.0 | B+ |
+| 7.0 | B |
+| 6.5 | C+ |
+| 5.5 | C |
+| 5.0 | D+ |
+| 4.0 | D |
+| 3.9 | F |
+
+**Group E: isPassing() Tests**
+| Test Case | Input | Expected |
+|-----------|-------|----------|
+| testIsPassing_atThreshold | 4.0 | `true` |
+| testIsPassing_aboveThreshold | 10.0 | `true` |
+| testIsPassing_belowThreshold | 3.9 | `false` |
+| testIsPassing_null | null | `false` |
+
+### 4.3 Scale4StrategyTest.java - PENDING
+Location: `backend/src/test/java/com/spts/patterns/strategy/`
+
+| Test Case | Scenario | Expected |
+|-----------|----------|----------|
+| testStrategyName | Get name | `"Scale 4 (US GPA Standard)"` |
+| testMaxGrade | Get max | `4.0` |
+| testPassingGrade | Get passing | `1.0` |
+| testCalculate_convertsToGpa | scores=[9,8], weights=[0.5,0.5] | `3.7` (8.5 → 3.7) |
+| testCalculateGpa_boundaries | Same as Scale10 | Same conversion |
+| testLetterGrade_boundaries | Same as Scale10 | Same letters |
+| testIsPassing_atThreshold | 4.0 (10-point) | `true` |
+| testIsPassing_belowThreshold | 3.9 | `false` |
+| testValidation_errors | Same tests | Same exceptions |
+
+### 4.4 PassFailStrategyTest.java - PENDING
+Location: `backend/src/test/java/com/spts/patterns/strategy/`
+
+| Test Case | Scenario | Expected |
+|-----------|----------|----------|
+| testStrategyName | Get name | `"Pass/Fail"` |
+| testMaxGrade | Get max | `1.0` |
+| testPassingGrade | Get passing | `1.0` |
+| testCalculate_pass | scores=[6,7], weights=[0.5,0.5] → 6.5 | `1.0` |
+| testCalculate_fail | scores=[4,4], weights=[0.5,0.5] → 4.0 | `0.0` |
+| testCalculate_atThreshold | scores=[5,5], weights=[0.5,0.5] → 5.0 | `1.0` |
+| testCalculateGpa_pass | 5.0 | `1.0` |
+| testCalculateGpa_fail | 4.9 | `0.0` |
+| testLetterGrade_pass | 5.0 | `"P"` |
+| testLetterGrade_fail | 4.9 | `"F"` |
+| testIsPassing | 5.0 / 4.9 | `true` / `false` |
+
+### Verification Commands
+```bash
+# Run individual test file
+cd backend && mvn test -Dtest=GradingStrategyFactoryTest
+cd backend && mvn test -Dtest=Scale10StrategyTest
+cd backend && mvn test -Dtest=Scale4StrategyTest
+cd backend && mvn test -Dtest=PassFailStrategyTest
+
+# Run all strategy tests
+cd backend && mvn test -Dtest=*StrategyTest
+```
+
+### Success Criteria
+- [ ] All 4 test files created
+- [ ] GradingStrategyFactoryTest: 10 tests pass (DONE)
+- [ ] Scale10StrategyTest: 12+ tests pass
+- [ ] Scale4StrategyTest: 10+ tests pass
+- [ ] PassFailStrategyTest: 8+ tests pass
+- [ ] Total: ~40 tests pass
+
+---
+Last Updated: 2026-01-18
