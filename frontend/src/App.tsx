@@ -1,25 +1,33 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
 
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Students from './pages/Students';
-import Courses from './pages/Courses';
-import Alerts from './pages/Alerts';
-
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-
 import ProtectedRoute from './components/ProtectedRoute';
 
+// ===== TEACHER PAGES =====
+import TeacherDashboard from './pages/teacher/Dashboard';
+import Students from './pages/teacher/Students';
+import Courses from './pages/teacher/Courses';
+import Alerts from './pages/teacher/Alerts';
+
+// ===== STUDENT PAGES =====
+import StudentDashboard from './pages/student/Dashboard';
+import StudentAlerts from './pages/student/MyAlerts';
+
+// ===== AUTH PAGES =====
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+
 function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(
+        localStorage.getItem('isAuthenticated') === 'true'
+    );
 
     return (
         <Router>
             <Routes>
-                {/* ===== Auth pages (KHÔNG dùng Layout) ===== */}
+                {/* ===== AUTH (NO LAYOUT) ===== */}
                 <Route
                     path="/login"
                     element={<Login setIsAuthenticated={setIsAuthenticated} />}
@@ -27,7 +35,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* ===== Protected pages (CÓ Layout) ===== */}
+                {/* ===== PROTECTED (WITH LAYOUT) ===== */}
                 <Route
                     element={
                         <ProtectedRoute isAuthenticated={isAuthenticated}>
@@ -35,10 +43,18 @@ function App() {
                         </ProtectedRoute>
                     }
                 >
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/students" element={<Students />} />
-                    <Route path="/courses" element={<Courses />} />
-                    <Route path="/alerts" element={<Alerts />} />
+                    {/* ===== TEACHER ===== */}
+                    <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+                    <Route path="/teacher/students" element={<Students />} />
+                    <Route path="/teacher/courses" element={<Courses />} />
+                    <Route path="/teacher/alerts" element={<Alerts />} />
+
+                    {/* ===== STUDENT ===== */}
+                    <Route path="/student/dashboard" element={<StudentDashboard />} />
+                    <Route path="/student/alerts" element={<StudentAlerts />} />
+
+                    {/* ===== DEFAULT ===== */}
+                    <Route path="/" element={<Navigate to="/login" />} />
                 </Route>
             </Routes>
         </Router>

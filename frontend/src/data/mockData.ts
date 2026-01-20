@@ -226,3 +226,29 @@ export const getAlertLevelColor = (level: AlertLevel): string => {
       return '';
   }
 };
+export const mockStudentCourses = [
+  {
+    id: 'CS101',
+    name: 'Introduction to Programming',
+    credits: 3,
+    score: 8.5,
+  },
+  {
+    id: 'CS102',
+    name: 'Data Structures',
+    credits: 4,
+    score: 7.2,
+  },
+  {
+    id: 'MA101',
+    name: 'Calculus',
+    credits: 3,
+    score: 6.0,
+  },
+  {
+    id: 'EN101',
+    name: 'English',
+    credits: 2,
+    score: 5.0,
+  },
+];

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { mockAlerts, getAlertLevelColor } from '../data/mockData';
-import { AlertDTO, AlertLevel, AlertType } from '../types';
+import { mockAlerts, getAlertLevelColor } from '../../data/mockData.ts';
+import { AlertDTO, AlertLevel, AlertType } from '../../types';
 
 /**
  * Alerts page component

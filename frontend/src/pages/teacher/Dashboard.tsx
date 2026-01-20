@@ -18,9 +18,9 @@ import {
   mockStudents,
   getAlertLevelColor,
   getStatusColor,
-} from '../data/mockData';
+} from '../../data/mockData.ts';
 
-import { StudentStatus } from '../types';
+import { StudentStatus } from '../../types';
 
 /* ===== STAT CARD ===== */
 interface StatCardProps {

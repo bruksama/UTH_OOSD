@@ -8,6 +8,8 @@ interface LoginProps {
 function Login({ setIsAuthenticated }: LoginProps) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState<'student' | 'teacher'>('student');
+
     const navigate = useNavigate();
 
     const handleLogin = (e: React.FormEvent) => {
@@ -15,26 +17,38 @@ function Login({ setIsAuthenticated }: LoginProps) {
 
         const user = JSON.parse(localStorage.getItem('user') || 'null');
 
+        if (!user) {
+            alert('Account does not exist');
+            return;
+        }
+
         if (
-            user &&
             username === user.username &&
-            password === user.password
+            password === user.password &&
+            role === user.role
         ) {
+            localStorage.setItem('isAuthenticated', 'true');
             setIsAuthenticated(true);
-            navigate('/');
+
+            // ✅ DẪN TRANG THEO ROLE ĐƯỢC CHỌN
+            if (role === 'teacher') {
+                navigate('/teacher/dashboard');
+            } else {
+                navigate('/student/dashboard');
+            }
         } else {
-            alert('Incorrect account or password');
+            alert('Sai tài khoản / mật khẩu / vai trò');
         }
     };
 
     return (
         <div style={styles.container}>
             <form style={styles.card} onSubmit={handleLogin}>
-                <h2 style={styles.title}>Login</h2>
+                <h2 style={styles.title}>Đăng nhập</h2>
 
                 <input
                     type="text"
-                    placeholder="Username"
+                    placeholder="Tên đăng nhập"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     style={styles.input}
@@ -42,14 +56,37 @@ function Login({ setIsAuthenticated }: LoginProps) {
 
                 <input
                     type="password"
-                    placeholder="Password"
+                    placeholder="Mật khẩu"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     style={styles.input}
                 />
 
+                {/* ✅ CHỌN SINH VIÊN / GIÁO VIÊN */}
+                <div style={styles.roleBox}>
+                    <label>
+                        <input
+                            type="radio"
+                            value="student"
+                            checked={role === 'student'}
+                            onChange={() => setRole('student')}
+                        />
+                        Sinh viên
+                    </label>
+
+                    <label>
+                        <input
+                            type="radio"
+                            value="teacher"
+                            checked={role === 'teacher'}
+                            onChange={() => setRole('teacher')}
+                        />
+                        Giáo viên
+                    </label>
+                </div>
+
                 <button type="submit" style={styles.button}>
-                    Login
+                    Đăng nhập
                 </button>
 
                 <div style={styles.links}>
@@ -57,7 +94,7 @@ function Login({ setIsAuthenticated }: LoginProps) {
                         style={styles.link}
                         onClick={() => navigate('/register')}
                     >
-                        Register
+                        Đăng ký
                     </span>
 
                     <span style={styles.divider}>|</span>
@@ -66,7 +103,7 @@ function Login({ setIsAuthenticated }: LoginProps) {
                         style={styles.link}
                         onClick={() => navigate('/forgot-password')}
                     >
-                        Forgot your password?
+                        Quên mật khẩu?
                     </span>
                 </div>
             </form>
@@ -76,7 +113,7 @@ function Login({ setIsAuthenticated }: LoginProps) {
 
 export default Login;
 
-/* ===== Styles  ===== */
+/* ===== Styles ===== */
 const styles: any = {
     container: {
         height: '100vh',
@@ -86,9 +123,9 @@ const styles: any = {
         background: '#f3f4f6',
     },
     card: {
-        width: 380,
+        width: 400,
         padding: 30,
-        borderRadius: 10,
+        borderRadius: 12,
         background: '#fff',
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     },
@@ -103,6 +140,12 @@ const styles: any = {
         borderRadius: 6,
         border: '1px solid #ddd',
         fontSize: 16,
+    },
+    roleBox: {
+        display: 'flex',
+        justifyContent: 'space-around',
+        marginBottom: 15,
+        fontSize: 15,
     },
     button: {
         width: '100%',

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getStatusColor, getStudentFullName } from '../data/mockData';
-import { fetchStudents } from '../services/student.api';
-import { StudentDTO, StudentStatus } from '../types';
+import { getStatusColor, getStudentFullName } from '../../data/mockData.ts';
+import { fetchStudents } from '../../services/student.api.ts';
+import { StudentDTO, StudentStatus } from '../../types';
 
 /**
  * Students list page component

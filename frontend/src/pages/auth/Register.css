@@ -43,6 +43,13 @@
     font-weight: 500;
 }
 
+.auth-select {
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+}
+
 .auth-link:hover {
     text-decoration: underline;
 }

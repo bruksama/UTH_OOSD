@@ -7,6 +7,7 @@ export default function Register() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirm, setConfirm] = useState('');
+    const [role, setRole] = useState<'student' | 'teacher'>('student');
 
     const handleRegister = () => {
         if (!username || !password || !confirm) {
@@ -21,7 +22,11 @@ export default function Register() {
 
         localStorage.setItem(
             'user',
-            JSON.stringify({ username, password })
+            JSON.stringify({
+                username,
+                password,
+                role,
+            })
         );
 
         alert('Register successful');
@@ -51,6 +56,17 @@ export default function Register() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
             />
+
+            <select
+                value={role}
+                onChange={(e) =>
+                    setRole(e.target.value as 'student' | 'teacher')
+                }
+                className="auth-select"
+            >
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+            </select>
 
             <button onClick={handleRegister}>Register</button>
 

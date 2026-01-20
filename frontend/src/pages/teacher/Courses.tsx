@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { mockCourses } from '../data/mockData';
-import { CourseDTO, GradingType } from '../types';
+import { mockCourses } from '../../data/mockData.ts';
+import { CourseDTO, GradingType } from '../../types';
 
 /**
  * Courses list page component
