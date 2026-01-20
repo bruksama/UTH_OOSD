@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './Register.css';
 
 export default function Register() {
     const navigate = useNavigate();
@@ -53,7 +54,9 @@ export default function Register() {
 
             <button onClick={handleRegister}>Register</button>
 
-            <p onClick={() => navigate('/login')}>Back to login</p>
+            <p className="auth-link" onClick={() => navigate('/login')}>
+                Back to login
+            </p>
         </div>
     );
 }
