@@ -1,20 +1,16 @@
 package com.spts.patterns.strategy;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
+import org.junit.jupiter.api.DisplayName;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for GradingStrategyFactory.
+ * Tests that the factory returns correct strategy implementations.
  * 
- * Tests factory method returns correct strategy implementations
- * and handles invalid inputs appropriately.
- * 
- * @author SPTS Team (MEMBER1)
+ * @author Member2 - Logic Engineer
  */
-@DisplayName("GradingStrategyFactory Tests")
 class GradingStrategyFactoryTest {
 
     private GradingStrategyFactory factory;
@@ -23,8 +19,6 @@ class GradingStrategyFactoryTest {
     void setUp() {
         factory = new GradingStrategyFactory();
     }
-
-    // ==================== Valid Input Tests ====================
 
     @Test
     @DisplayName("Should return Scale10Strategy for SCALE_10")
