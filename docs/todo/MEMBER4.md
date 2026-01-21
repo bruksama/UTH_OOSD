@@ -10,21 +10,40 @@ UX Developer - Frontend React/TypeScript, API Integration, UI Components
   - [x] React Router configured
   - [x] Layout component with navigation
 - [x] Pages CREATED (with mock data)
-  - [x] Dashboard.tsx
-  - [x] Students.tsx
-  - [x] Courses.tsx
-  - [x] Alerts.tsx
+  - [x] teacher/Dashboard.tsx
+  - [x] teacher/Students.tsx
+  - [x] teacher/Courses.tsx
+  - [x] teacher/Alerts.tsx
+  - [x] student/Dashboard.tsx
+  - [x] student/MyAlerts.tsx
+  - [x] auth/Login.tsx, auth/Register.tsx, auth/ForgotPassword.tsx
 - [x] Types COMPLETE
   - [x] All DTOs in types/index.ts
   - [x] Enums match backend
-- [!] Using MOCK DATA (not real API)
-- [ ] API service layer NOT CREATED
-- [ ] Real backend integration NOT DONE
+- [~] API integration PARTIAL
+  - [x] `frontend/src/services/api.ts` exists (axios instance)
+  - [x] `frontend/src/services/course.api.ts` uses real backend `/courses`
+  - [ ] `frontend/src/services/student.api.ts` still returns mock data
+  - [ ] `frontend/src/services/alert.api.ts` is incorrect (currently duplicates student mock fetch)
+  - [ ] Duplicated/overlapping service files: `student.api.ts` + `student.service.ts` (pick one convention)
 
 ---
 
-## TASK 1: Create API Service Layer
+## NEXT TASKS (as of 2026-01-21)
+
+## TASK 1: Normalize Frontend Service Layer
 **Priority: CRITICAL - Foundation for all API calls**
+
+- [ ] Use env-based base URL (do not hardcode)
+  - `api.ts`: use `import.meta.env.VITE_API_URL || 'http://localhost:8080/api'`
+- [ ] Fix `alert.api.ts` to fetch real alerts (rename functions/types appropriately)
+- [ ] Decide and apply ONE naming convention:
+  - Option A: `*.api.ts` exports `fetchX()` helpers returning data
+  - Option B: `*Service.ts` exports a service object (axios calls)
+- [ ] Add missing endpoints needed by pages:
+  - students: list + at-risk
+  - alerts: unread + mark read + resolve
+  - enrollments: by-student + complete/withdraw (if UI supports)
 
 ### 1.1 Create src/services/api.ts
 ```
@@ -334,4 +353,4 @@ If backend is not ready:
 - Toast notifications for actions (optional)
 
 ---
-*Last Updated: 2026-01-17*
+*Last Updated: 2026-01-21*

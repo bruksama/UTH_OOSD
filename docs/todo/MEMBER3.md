@@ -21,6 +21,16 @@ Behavioral Engineer - Observer Pattern, State Pattern, Alert System
 
 ---
 
+## NEXT TASKS (as of 2026-01-21)
+- [ ] Add lightweight verification coverage (optional, if time)
+  - Unit test the state transition thresholds in `StudentStateManager`
+  - Add a small integration smoke test plan for observer notifications (manual or automated)
+- [ ] Confirm alert de-duplication behavior
+  - Ensure low-GPA/probation alerts are not repeatedly created for the same student when grades update frequently
+
+## NOTE
+Everything in tasks 1–4 below is already completed; kept for traceability of the implementation plan.
+
 ## TASK 1: Complete Observer Implementations
 **Priority: CRITICAL**
 
@@ -259,4 +269,4 @@ cd backend && mvn spring-boot:run
 6. backend/src/main/java/com/spts/service/AlertService.java
 ```
 ---
-*Last Updated: 2026-01-19*
+*Last Updated: 2026-01-21*
