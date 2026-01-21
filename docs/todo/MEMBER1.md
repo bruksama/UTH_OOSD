@@ -15,6 +15,16 @@ Foundation Architect - REST API Layer, Exception Handling, Data Initialization
 
 ---
 
+## NEXT TASKS (as of 2026-01-21)
+- [ ] Strategy test suite completion (handoff to MEMBER2; help review/merge)
+  - Goal: add missing `Scale10StrategyTest`, `Scale4StrategyTest`, `PassFailStrategyTest`
+- [ ] Optional: return 400 (not 500) for business-rule violations
+  - Current note in this file: `IllegalStateException` is treated as 500 by generic handler
+  - Option: introduce/standardize `BusinessRuleException` usage and map to 400 in `GlobalExceptionHandler`
+
+## NOTE
+Sections below include the original implementation specs for traceability; tasks 1–3 are already completed and kept as historical reference.
+
 ## TASK 1: Exception Handling Infrastructure
 Priority: CRITICAL - Must complete before controllers
 
@@ -647,4 +657,4 @@ cd backend && mvn test -Dtest=*StrategyTest
 - [ ] Total: ~40 tests pass
 
 ---
-Last Updated: 2026-01-18
+Last Updated: 2026-01-21
