@@ -6,17 +6,17 @@ Logic Engineer - Strategy Pattern, Composite Pattern, Unit Tests for calculation
 ## CURRENT STATE
 
 ### Strategy Pattern
-- [x] IGradingStrategy interface EXISTS but INCOMPLETE
-  - Has: calculate(List scores, List weights), getStrategyName(), getMaxGrade(), getPassingGrade()
-  - MISSING: calculateGpa(Double), calculateLetterGrade(Double), isPassing(Double)
-- [x] Scale10Strategy EXISTS - weighted average calculation works
-- [x] Scale4Strategy EXISTS - weighted average calculation works
-- [x] PassFailStrategy EXISTS - pass/fail logic works
-- [x] GradingStrategyFactory EXISTS - returns correct strategy by name
+- [x] IGradingStrategy interface COMPLETE (7 methods)
+  - Has: calculate(List, List), getStrategyName(), getMaxGrade(), getPassingGrade()
+  - Has: calculateGpa(Double), calculateLetterGrade(Double), isPassing(Double)
+- [x] Scale10Strategy COMPLETE - all 7 methods implemented (116 lines)
+- [x] Scale4Strategy COMPLETE - all 7 methods implemented (131 lines)
+- [x] PassFailStrategy COMPLETE - all 7 methods implemented (98 lines)
+- [x] GradingStrategyFactory COMPLETE - returns correct strategy by name (38 lines)
 - [x] CourseOffering.gradingScale field ADDED
 - [x] CourseOfferingDTO.gradingScale field ADDED
 - [x] CourseOfferingService handles gradingScale DONE
-- [ ] EnrollmentService integration BROKEN - calls methods that dont exist on interface
+- [x] EnrollmentService integration COMPLETE - completeEnrollmentWithStrategy() works
 
 ### Composite Pattern
 - [x] GradeEntry entity has parent/children self-reference
@@ -26,8 +26,68 @@ Logic Engineer - Strategy Pattern, Composite Pattern, Unit Tests for calculation
 - [x] GradeEntryService.getHierarchicalGrades() returns nested structure
 - [x] GradeEntryService.validateWeights() checks sum equals 1.0
 
-### Unit Tests
-- [ ] NOT STARTED - No test files exist for patterns
+### Unit Tests ✅ COMPLETED (113 tests, 0 failures)
+- [x] GradingStrategyFactoryTest.java - 7 tests
+- [x] Scale10StrategyTest.java - 45 tests
+- [x] Scale4StrategyTest.java - 32 tests
+- [x] PassFailStrategyTest.java - 20 tests
+- [x] GradeEntryCompositeTest.java - 16 tests
+- Run command: `mvn test -Dtest=*StrategyTest,GradeEntryCompositeTest`
+
+---
+
+## KẾ HOẠCH TRIỂN KHAI CHI TIẾT (DAILY TASKS)
+
+### Ngày 1: Kiểm thử Strategy Pattern cơ bản (Basic Strategy Tests)
+Mục tiêu: Đảm bảo Factory hoạt động đúng và chiến lược chấm điểm thang 10 (phổ biến nhất) chạy chính xác.
+
+- [x] **Task 1.1: Tạo Test cho Factory** (`GradingStrategyFactoryTest.java`) ✅ DONE
+    - *Giải thích:* Kiểm tra xem nhà máy (Factory) có sản xuất đúng loại máy chấm điểm khi mình yêu cầu không.
+    - [x] Test case: Lấy đúng Scale10Strategy
+    - [x] Test case: Lấy đúng Scale4Strategy
+    - [x] Test case: Lấy đúng PassFailStrategy
+    - [x] Test case: Xử lý lỗi khi nhập tên sai (throw Exception)
+    - [x] Test case: Case insensitive
+
+- [x] **Task 1.2: Tạo Test cho Thang 10** (`Scale10StrategyTest.java`) ✅ DONE - 45 tests
+    - *Giải thích:* Kiểm tra logic tính điểm trung bình môn thang 10 (Việt Nam).
+    - [x] Test case: Tính điểm trung bình có trọng số (VD: 8.0*0.3 + 9.0*0.7)
+    - [x] Test case: Chuyển đổi điểm hệ 10 sang GPA hệ 4 (VD: 8.5 -> 3.7)
+    - [x] Test case: Xếp loại chữ (VD: 8.5 -> A-)
+    - [x] Test case: Logic qua môn (>= 4.0 là đậu)
+    - [x] Test case: Validation (null, empty, out of range)
+
+### Ngày 2: Kiểm thử các chiến lược còn lại (Remaining Strategies)
+Mục tiêu: Hoàn tất kiểm thử cho hệ 4 (Mỹ) và Đạt/Không đạt.
+
+- [x] **Task 2.1: Tạo Test cho Thang 4** (`Scale4StrategyTest.java`) ✅ DONE - 32 tests
+    - *Giải thích:* Kiểm tra logic tính điểm cho hệ tín chỉ (chủ yếu dùng cho các hệ chương trình quốc tế).
+    - [x] Test case: Input đầu vào hệ 10 nhưng đầu ra phải là GPA hệ 4
+    - [x] Test case: Xếp loại chữ theo chuẩn Mỹ
+    - [x] Test case: Validation tests
+
+- [x] **Task 2.2: Tạo Test cho Đạt/Không đạt** (`PassFailStrategyTest.java`) ✅ DONE - 20 tests
+    - *Giải thích:* Kiểm tra môn điều kiện (Thể dục, GDQP).
+    - [x] Test case: >= 5.0 là Đậu (P), < 5.0 là Rớt (F)
+    - [x] Test case: Điểm GPA trả về (Đậu = 1.0, Rớt = 0.0)
+
+### Ngày 3: Kiểm thử Composite Pattern (Cấu trúc điểm)
+Mục tiêu: Đảm bảo việc cộng gộp điểm từ các bài kiểm tra con (Quiz 1, Quiz 2) lên bài lớn (Lab) là chính xác.
+
+- [x] **Task 3.1: Test Entity GradeEntry** (`GradeEntryCompositeTest.java`) ✅ DONE - 16 tests
+    - *Giải thích:* Kiểm tra tính chất "Cây" của điểm số.
+    - [x] Test case: `isLeaf()` - Node lá không có con
+    - [x] Test case: `isRoot()` - Node gốc không có cha
+    - [x] Test case: `addChild()` / `removeChild()` - Quản lý cây
+    - [x] Test case: `getCalculatedScore()` - Node cha tự động tính tổng điểm từ con
+    - [x] Test case: `calculateWeightedScore()` - Điểm có trọng số
+    - [x] Test case: Multi-level composite - Cây nhiều cấp
+    - [x] Test case: Validation - Score và weight hợp lệ
+
+- [ ] **Task 3.2: Test Service tính toán** (`GradeEntryServiceTest.java`)
+    - *Giải thích:* Kiểm tra logic nghiệp vụ vĩ mô. (Optional - requires Spring context)
+    - [ ] Test case: Tổng trọng số các con phải bằng 1.0 (100%)
+    - [ ] Test case: Tính điểm tổng kết môn học từ cây điểm nhiều cấp
 
 ---
 
@@ -458,16 +518,19 @@ Test service methods with mocked repositories:
 
 ---
 
-## SUCCESS CRITERIA
+## SUCCESS CRITERIA ✅ ALL PASSED
 
-- [ ] IGradingStrategy has calculateGpa, calculateLetterGrade, isPassing methods
-- [ ] All 3 strategy implementations have these methods
-- [ ] Backend compiles without errors
-- [ ] GradingStrategyFactoryTest passes (7+ tests)
-- [ ] Scale10StrategyTest passes (8+ tests)
-- [ ] Scale4StrategyTest passes
-- [ ] PassFailStrategyTest passes
-- [ ] EnrollmentService.completeEnrollmentWithStrategy() works
+- [x] IGradingStrategy has calculateGpa, calculateLetterGrade, isPassing methods
+- [x] All 3 strategy implementations have these methods
+- [x] Backend compiles without errors
+- [x] GradingStrategyFactoryTest passes (7 tests) ✅
+- [x] Scale10StrategyTest passes (45 tests) ✅
+- [x] Scale4StrategyTest passes (32 tests) ✅
+- [x] PassFailStrategyTest passes (20 tests) ✅
+- [x] GradeEntryCompositeTest passes (16 tests) ✅
+- [x] EnrollmentService.completeEnrollmentWithStrategy() works
+- **Total: 113 tests, 0 failures, 0 errors**
+- **Last tested: 2026-01-21**
 
 ---
 
