@@ -4,15 +4,16 @@ import { useState } from 'react';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// ===== TEACHER PAGES =====
-import TeacherDashboard from './pages/teacher/Dashboard';
-import Students from './pages/teacher/Students';
-import Courses from './pages/teacher/Courses';
-import Alerts from './pages/teacher/Alerts';
+// ===== ADMIN PAGES =====
+import AdminDashboard from './pages/admin/Dashboard';
+import Students from './pages/admin/Students';
+import Courses from './pages/admin/Courses';
+import Alerts from './pages/admin/Alerts';
 
 // ===== STUDENT PAGES =====
 import StudentDashboard from './pages/student/Dashboard';
 import StudentAlerts from './pages/student/MyAlerts';
+import MyGrades from './pages/student/MyGrades';
 
 // ===== AUTH PAGES =====
 import Login from './pages/auth/Login';
@@ -27,7 +28,8 @@ function App() {
     return (
         <Router>
             <Routes>
-                {/* ===== AUTH (NO LAYOUT) ===== */}
+
+                {/* ===== AUTH ===== */}
                 <Route
                     path="/login"
                     element={<Login setIsAuthenticated={setIsAuthenticated} />}
@@ -35,7 +37,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* ===== PROTECTED (WITH LAYOUT) ===== */}
+                {/* ===== PROTECTED AREA ===== */}
                 <Route
                     element={
                         <ProtectedRoute isAuthenticated={isAuthenticated}>
@@ -43,19 +45,27 @@ function App() {
                         </ProtectedRoute>
                     }
                 >
-                    {/* ===== TEACHER ===== */}
-                    <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-                    <Route path="/teacher/students" element={<Students />} />
-                    <Route path="/teacher/courses" element={<Courses />} />
-                    <Route path="/teacher/alerts" element={<Alerts />} />
+                    {/* ===== ADMIN ===== */}
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                    <Route path="/admin/students" element={<Students />} />
+                    <Route path="/admin/courses" element={<Courses />} />
+                    <Route path="/admin/alerts" element={<Alerts />} />
 
                     {/* ===== STUDENT ===== */}
                     <Route path="/student/dashboard" element={<StudentDashboard />} />
                     <Route path="/student/alerts" element={<StudentAlerts />} />
+                    <Route path="/student/grades" element={<MyGrades />} />
+
+                    {/* ===== FIX TRANG TRẮNG /courses ===== */}
+                    <Route path="/courses" element={<Navigate to="/admin/courses" />} />
 
                     {/* ===== DEFAULT ===== */}
                     <Route path="/" element={<Navigate to="/login" />} />
                 </Route>
+
+                {/* ===== FALLBACK (URL SAI) ===== */}
+                <Route path="*" element={<Navigate to="/login" />} />
+
             </Routes>
         </Router>
     );

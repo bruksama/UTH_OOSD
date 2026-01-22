@@ -127,47 +127,47 @@ export const mockCourses: CourseDTO[] = [
 export const mockAlerts: AlertDTO[] = [
   {
     id: 1,
-    studentId: 2, // ✅ number
+    studentId: 'STU002',
     studentName: 'Tran Thi B',
     level: AlertLevel.HIGH,
     type: AlertType.LOW_GPA,
-    message: 'ýP A has fallen below 2.0 threshold. Academic counseling recommended.',
-    createdAt: '2025-01-10T09:30:00', // ✅ string
+    message: 'Student GPA has fallen below 2.0. Academic counseling recommended.',
+    createdAt: '2025-01-10T09:30:00',
     isRead: false,
     isResolved: false,
   },
   {
     id: 2,
-    studentId: 3, // ✅ number
+    studentId: 'STU003',
     studentName: 'Le Van C',
     level: AlertLevel.CRITICAL,
     type: AlertType.PROBATION,
     message: 'Student has been placed on academic probation. GPA is below 1.5.',
-    createdAt: '2025-01-08T14:15:00', // ✅ string
+    createdAt: '2025-01-08T14:15:00',
     isRead: true,
     isResolved: false,
   },
   {
     id: 3,
-    studentId: 5, // ✅ number
+    studentId: 'STU005',
     studentName: 'Hoang Van E',
     level: AlertLevel.INFO,
     type: AlertType.IMPROVEMENT,
     message: 'GPA has improved from 2.5 to 2.95. Good progress!',
-    createdAt: '2025-01-05T11:00:00', // ✅ string
+    createdAt: '2025-01-05T11:00:00',
     isRead: true,
     isResolved: true,
     resolvedBy: 'admin',
-    resolvedAt: '2025-01-06T10:00:00', // ✅ string
+    resolvedAt: '2025-01-06T10:00:00',
   },
   {
     id: 4,
-    studentId: 2, // ✅ number
+    studentId: 'STU002',
     studentName: 'Tran Thi B',
     level: AlertLevel.WARNING,
     type: AlertType.GPA_DROP,
     message: 'GPA dropped by 0.5 points in the last semester.',
-    createdAt: '2025-01-03T16:45:00', // ✅ string
+    createdAt: '2025-01-03T16:45:00',
     isRead: false,
     isResolved: false,
   },
@@ -185,11 +185,11 @@ export const mockDashboardStats: DashboardStats = {
 
 export const mockGpaTrend: GpaTrendData[] = [
   { semester: 'Sem 1 23', gpa: 2.8 },
-  { semester: 'Sem 2 24', gpa: 2.9 },
+  { semester: 'Sem 2 23', gpa: 2.9 },
   { semester: 'Sem 1 24', gpa: 3.1 },
-  { semester: 'Sem 2 25', gpa: 2.95 },
+  { semester: 'Sem 2 24', gpa: 2.95 },
   { semester: 'Sem 1 25', gpa: 3.2 },
-  { semester: 'Sem 2 26', gpa: 3.45 },
+  { semester: 'Sem 2 25', gpa: 3.45 },
 ];
 
 /* ===================== HELPERS ===================== */
@@ -226,6 +226,9 @@ export const getAlertLevelColor = (level: AlertLevel): string => {
       return '';
   }
 };
+
+/* ===================== STUDENT COURSES ===================== */
+
 export const mockStudentCourses = [
   {
     id: 'CS101',

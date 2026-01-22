@@ -64,7 +64,7 @@ const Dashboard = () => {
     /* ===== COURSES ===== */
     const courses = mockStudentCourses;
 
-    /* ===== GPA (10-POINT SCALE) ===== */
+    /* ===== GPA ===== */
     const totalCredits = courses.reduce(
         (sum, c) => sum + c.credits,
         0
@@ -88,7 +88,7 @@ const Dashboard = () => {
         { name: 'Remaining', value: TOTAL_CREDITS - completedCredits },
     ];
 
-    /* ===== ALERTS (FIX number vs string) ===== */
+    /* ===== ALERTS ===== */
     const myAlerts = mockAlerts.filter(
         a => String(a.studentId) === String(currentStudent.studentId)
     );
@@ -99,7 +99,7 @@ const Dashboard = () => {
             {/* ===== SUMMARY ===== */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard
-                    title="Current GPA (10-point scale)"
+                    title="Current GPA"
                     value={gpa.toFixed(2)}
                 />
                 <StatCard
@@ -175,38 +175,33 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* ===== COURSE RESULTS ===== */}
+            {/* ===== COURSE TABLE (FIX WARNING) ===== */}
             <div className="card">
                 <h3 className="text-lg font-semibold mb-4">
-                    Course Results
+                    My Courses
                 </h3>
 
                 <table className="w-full text-sm">
                     <thead>
-                    <tr className="border-b text-slate-600">
-                        <th className="text-left py-2">Course</th>
-                        <th>Credits</th>
-                        <th>Score</th>
-                        <th>Grade</th>
-                        <th>Status</th>
+                    <tr className="text-left text-slate-500">
+                        <th>Môn</th>
+                        <th>Điểm</th>
+                        <th>Loại</th>
+                        <th>Trạng thái</th>
                     </tr>
                     </thead>
-
                     <tbody>
                     {courses.map(course => (
-                        <tr key={course.id} className="border-b">
-                            <td className="py-2">{course.name}</td>
-                            <td className="text-center">{course.credits}</td>
-                            <td className="text-center">{course.score}</td>
-                            <td className="text-center font-semibold">
-                                {getLetterGrade(course.score)}
-                            </td>
+                        <tr key={course.id} className="border-t">
+                            <td>{course.name}</td>
+                            <td>{course.score}</td>
+                            <td>{getLetterGrade(course.score)}</td>
                             <td
-                                className={`text-center font-medium ${
+                                className={
                                     course.score >= 4
                                         ? 'text-green-600'
                                         : 'text-red-500'
-                                }`}
+                                }
                             >
                                 {getCourseStatus(course.score)}
                             </td>
