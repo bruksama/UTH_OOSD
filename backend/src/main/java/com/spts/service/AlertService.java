@@ -44,6 +44,21 @@ public class AlertService {
         this.studentRepository = studentRepository;
     }
 
+    // ==================== De-duplication Helper ====================
+
+    /**
+     * Check if an unresolved alert of specific type already exists for a student.
+     * Used to prevent duplicate alerts.
+     * 
+     * @param studentId Student database ID
+     * @param type Alert type to check
+     * @return true if an unresolved alert of this type exists
+     */
+    @Transactional(readOnly = true)
+    public boolean hasUnresolvedAlert(Long studentId, AlertType type) {
+        return alertRepository.existsUnresolvedByStudentIdAndType(studentId, type);
+    }
+
     // ==================== CRUD Operations ====================
 
     /**

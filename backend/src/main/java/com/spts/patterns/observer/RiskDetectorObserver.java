@@ -64,10 +64,18 @@ public class RiskDetectorObserver implements IGradeObserver {
     }
     
     /**
-     * Create alert using AlertService with error handling.
+     * Create alert only if no unresolved alert of same type exists.
+     * Prevents duplicate alerts when grades update frequently.
      */
     private void createAlert(Student student, AlertLevel level, AlertType type, String message) {
         try {
+            // De-duplication: Check if unresolved alert already exists
+            if (alertService.hasUnresolvedAlert(student.getId(), type)) {
+                logger.debug("Skipping alert creation - unresolved {} alert already exists for student {}", 
+                        type, student.getStudentId());
+                return;
+            }
+            
             alertService.createAlert(student, level, type, message);
             logger.info("Created {} alert for student {}: {}", level, student.getStudentId(), type);
         } catch (Exception e) {
