@@ -66,4 +66,17 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
      */
     @Query("SELECT COUNT(a) FROM Alert a WHERE a.student.id = :studentId AND a.isRead = false")
     Long countUnreadAlerts(@Param("studentId") Long studentId);
+
+    /**
+     * Check if an unresolved alert of specific type exists for a student.
+     * Used for de-duplication - avoid creating duplicate alerts.
+     * 
+     * @param studentId Student ID
+     * @param type Alert type to check
+     * @return true if unresolved alert exists
+     */
+    @Query("SELECT COUNT(a) > 0 FROM Alert a WHERE a.student.id = :studentId " +
+           "AND a.type = :type AND a.isResolved = false")
+    boolean existsUnresolvedByStudentIdAndType(@Param("studentId") Long studentId, 
+                                                @Param("type") AlertType type);
 }
