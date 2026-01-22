@@ -18,7 +18,7 @@ import {
   mockStudents,
   getAlertLevelColor,
   getStatusColor,
-} from '../../data/mockData.ts';
+} from '../../data/mockData';
 
 import { StudentStatus } from '../../types';
 
@@ -35,14 +35,18 @@ const StatCard = ({ title, value }: StatCardProps) => (
     </div>
 );
 
-const Dashboard = () => {
+/* ================= ADMIN DASHBOARD ================= */
+const AdminDashboard = () => {
   const stats = mockDashboardStats;
   const gpaTrend = mockGpaTrend;
-  const recentAlerts = mockAlerts.filter(a => !a.isResolved).slice(0, 3);
+  const recentAlerts = mockAlerts
+      .filter(a => !a.isResolved)
+      .slice(0, 3);
 
   /* ===== CREDIT PROGRESS ===== */
   const TOTAL_CREDITS = 120;
   const completedCredits = 75;
+
   const creditProgress = [
     { name: 'Completed', value: completedCredits },
     { name: 'Remaining', value: TOTAL_CREDITS - completedCredits },
@@ -64,7 +68,10 @@ const Dashboard = () => {
 
           {/* GPA LINE CHART */}
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">GPA Trend (Average)</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              GPA Trend (Average)
+            </h3>
+
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={gpaTrend}>
@@ -112,7 +119,9 @@ const Dashboard = () => {
                 <p className="text-2xl font-bold">
                   {completedCredits}/{TOTAL_CREDITS}
                 </p>
-                <p className="text-sm text-slate-500">Credits Completed</p>
+                <p className="text-sm text-slate-500">
+                  Credits Completed
+                </p>
               </div>
             </div>
           </div>
@@ -123,7 +132,9 @@ const Dashboard = () => {
 
           {/* ALERTS */}
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Recent Alerts</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              Recent Alerts
+            </h3>
 
             {recentAlerts.map(alert => (
                 <div
@@ -133,8 +144,12 @@ const Dashboard = () => {
               <span className={getAlertLevelColor(alert.level)}>
                 {alert.level}
               </span>
-                  <p className="mt-1 font-medium">{alert.studentName}</p>
-                  <p className="text-sm text-slate-600">{alert.message}</p>
+                  <p className="mt-1 font-medium">
+                    {alert.studentName}
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    {alert.message}
+                  </p>
                 </div>
             ))}
           </div>
@@ -167,4 +182,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default AdminDashboard;

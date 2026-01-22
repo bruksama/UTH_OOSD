@@ -8,7 +8,6 @@ interface LoginProps {
 function Login({ setIsAuthenticated }: LoginProps) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState<'student' | 'teacher'>('student');
 
     const navigate = useNavigate();
 
@@ -22,33 +21,30 @@ function Login({ setIsAuthenticated }: LoginProps) {
             return;
         }
 
-        if (
-            username === user.username &&
-            password === user.password &&
-            role === user.role
-        ) {
+        if (username === user.username && password === user.password) {
             localStorage.setItem('isAuthenticated', 'true');
+            localStorage.setItem('role', user.role);
             setIsAuthenticated(true);
 
-            // ✅ DẪN TRANG THEO ROLE ĐƯỢC CHỌN
-            if (role === 'teacher') {
-                navigate('/teacher/dashboard');
+            // Redirect by role
+            if (user.role === 'admin') {
+                navigate('/admin/dashboard');
             } else {
                 navigate('/student/dashboard');
             }
         } else {
-            alert('Sai tài khoản / mật khẩu / vai trò');
+            alert('Invalid username or password');
         }
     };
 
     return (
         <div style={styles.container}>
             <form style={styles.card} onSubmit={handleLogin}>
-                <h2 style={styles.title}>Đăng nhập</h2>
+                <h2 style={styles.title}>Login</h2>
 
                 <input
                     type="text"
-                    placeholder="Tên đăng nhập"
+                    placeholder="Username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     style={styles.input}
@@ -56,37 +52,14 @@ function Login({ setIsAuthenticated }: LoginProps) {
 
                 <input
                     type="password"
-                    placeholder="Mật khẩu"
+                    placeholder="Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     style={styles.input}
                 />
 
-                {/* ✅ CHỌN SINH VIÊN / GIÁO VIÊN */}
-                <div style={styles.roleBox}>
-                    <label>
-                        <input
-                            type="radio"
-                            value="student"
-                            checked={role === 'student'}
-                            onChange={() => setRole('student')}
-                        />
-                        Sinh viên
-                    </label>
-
-                    <label>
-                        <input
-                            type="radio"
-                            value="teacher"
-                            checked={role === 'teacher'}
-                            onChange={() => setRole('teacher')}
-                        />
-                        Giáo viên
-                    </label>
-                </div>
-
                 <button type="submit" style={styles.button}>
-                    Đăng nhập
+                    Login
                 </button>
 
                 <div style={styles.links}>
@@ -94,7 +67,7 @@ function Login({ setIsAuthenticated }: LoginProps) {
                         style={styles.link}
                         onClick={() => navigate('/register')}
                     >
-                        Đăng ký
+                        Register
                     </span>
 
                     <span style={styles.divider}>|</span>
@@ -103,7 +76,7 @@ function Login({ setIsAuthenticated }: LoginProps) {
                         style={styles.link}
                         onClick={() => navigate('/forgot-password')}
                     >
-                        Quên mật khẩu?
+                        Forgot password?
                     </span>
                 </div>
             </form>
@@ -140,12 +113,6 @@ const styles: any = {
         borderRadius: 6,
         border: '1px solid #ddd',
         fontSize: 16,
-    },
-    roleBox: {
-        display: 'flex',
-        justifyContent: 'space-around',
-        marginBottom: 15,
-        fontSize: 15,
     },
     button: {
         width: '100%',
