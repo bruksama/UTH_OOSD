@@ -1,83 +1,75 @@
-import { useState } from 'react';
-import { mockAlerts, getAlertLevelColor } from '../../data/mockData';
-import { AlertDTO } from '../../types';
+interface Course {
+    id: number;
+    name: string;
+    credits: number;
+    score: number;
+}
 
-/**
- * Student Alerts Page
- * Student can only VIEW their own alerts
- */
 const MyAlerts = () => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-    // giả sử username = studentName
-    const studentAlerts = mockAlerts.filter(
-        (alert) => alert.studentName === user.username
+    const courses: Course[] = JSON.parse(
+        localStorage.getItem('courses') || '[]'
     );
+
+    const totalCredits = courses.reduce(
+        (sum, c) => sum + c.credits,
+        0
+    );
+
+    const totalScore = courses.reduce(
+        (sum, c) => sum + c.score * c.credits,
+        0
+    );
+
+    const gpa =
+        totalCredits === 0 ? 0 : totalScore / totalCredits;
+
+    /* ===== ALERT LOGIC ===== */
+    const alerts: string[] = [];
+
+    if (gpa < 5) {
+        alerts.push(
+            `⚠️ At risk: you need ${(5 - gpa).toFixed(
+                2
+            )} more GPA to reach Average.`
+        );
+    }
+
+    if (gpa < 6.5) {
+        alerts.push(
+            `📈 To reach Good, you need ${(6.5 - gpa).toFixed(
+                2
+            )} more GPA.`
+        );
+    }
+
+    if (gpa < 8) {
+        alerts.push(
+            `🏆 To reach Excellent, you need ${(8 - gpa).toFixed(
+                2
+            )} more GPA.`
+        );
+    }
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900">
-                    My Alerts
-                </h1>
-                <p className="text-slate-600">
-                    You have {studentAlerts.length} alerts
-                </p>
-            </div>
+            <h2 className="text-xl font-semibold">My Alerts</h2>
 
-            {/* Alerts List */}
-            <div className="space-y-4">
-                {studentAlerts.map((alert) => (
-                    <StudentAlertCard key={alert.id} alert={alert} />
-                ))}
-            </div>
-
-            {studentAlerts.length === 0 && (
-                <div className="card text-center py-12 text-slate-500">
-                    No alerts for you 🎉
+            {alerts.length === 0 ? (
+                <div className="card text-green-600 font-medium">
+                    🎉 Excellent performance! Keep it up!
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {alerts.map((alert, index) => (
+                        <div
+                            key={index}
+                            className="card bg-yellow-50 text-yellow-800"
+                        >
+                            {alert}
+                        </div>
+                    ))}
                 </div>
             )}
-        </div>
-    );
-};
-
-interface StudentAlertCardProps {
-    alert: AlertDTO;
-}
-
-const StudentAlertCard = ({ alert }: StudentAlertCardProps) => {
-    return (
-        <div
-            className={`card ${
-                alert.isResolved ? 'opacity-60' : ''
-            }`}
-        >
-            <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-3">
-                    <span className={getAlertLevelColor(alert.level)}>
-                        {alert.level}
-                    </span>
-
-                    {!alert.isRead && (
-                        <span className="badge bg-primary-100 text-primary-700">
-                            New
-                        </span>
-                    )}
-
-                    {alert.isResolved && (
-                        <span className="badge bg-green-100 text-green-700">
-                            Resolved
-                        </span>
-                    )}
-                </div>
-
-                <p className="text-slate-700">{alert.message}</p>
-
-                <div className="text-sm text-slate-500">
-                    {alert.createdAt}
-                </div>
-            </div>
         </div>
     );
 };

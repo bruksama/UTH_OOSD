@@ -1,64 +1,129 @@
-import {
-    mockStudentCourses,
-} from '../../data/mockData';
+import { useEffect, useState } from 'react';
 
-/* ===== HELPERS ===== */
-const getLetterGrade = (score: number) => {
-    if (score >= 8.5) return 'A';
-    if (score >= 7.0) return 'B';
-    if (score >= 5.5) return 'C';
-    if (score >= 4.0) return 'D';
-    return 'F';
-};
-
-const getCourseStatus = (score: number) =>
-    score >= 4 ? 'Passed' : 'Failed';
+interface Course {
+    id: number;
+    name: string;
+    credits: number;
+    score: number;
+    year: number;
+    semester: number;
+}
 
 const MyGrades = () => {
-    const courses = mockStudentCourses;
+    const [courses, setCourses] = useState<Course[]>(() => {
+        return JSON.parse(localStorage.getItem('courses') || '[]');
+    });
+
+    const [name, setName] = useState('');
+    const [credits, setCredits] = useState('');
+    const [score, setScore] = useState('');
+    const [year, setYear] = useState(1);
+    const [semester, setSemester] = useState(1);
+
+    useEffect(() => {
+        localStorage.setItem('courses', JSON.stringify(courses));
+    }, [courses]);
+
+    const addCourse = () => {
+        if (!name || !credits || !score) return;
+
+        setCourses([
+            ...courses,
+            {
+                id: Date.now(),
+                name,
+                credits: +credits,
+                score: +score,
+                year,
+                semester,
+            },
+        ]);
+
+        setName('');
+        setCredits('');
+        setScore('');
+    };
+
+    const deleteCourse = (id: number) => {
+        setCourses(courses.filter(c => c.id !== id));
+    };
 
     return (
         <div className="space-y-6">
 
-            {/* ===== COURSE RESULTS ===== */}
+            {/* INPUT */}
             <div className="card">
-                <h3 className="text-lg font-semibold mb-4">
-                    Course Results
-                </h3>
+                <h3 className="font-semibold mb-3">Add Course</h3>
 
-                <table className="w-full text-sm">
-                    <thead>
-                    <tr className="border-b text-slate-600">
-                        <th className="text-left py-2">Course</th>
-                        <th>Credits</th>
-                        <th>Score</th>
-                        <th>Grade</th>
-                        <th>Status</th>
-                    </tr>
-                    </thead>
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                    <input className="input" placeholder="Course"
+                           value={name} onChange={e => setName(e.target.value)} />
 
-                    <tbody>
-                    {courses.map(course => (
-                        <tr key={course.id} className="border-b">
-                            <td className="py-2">{course.name}</td>
-                            <td className="text-center">{course.credits}</td>
-                            <td className="text-center">{course.score}</td>
-                            <td className="text-center font-semibold">
-                                {getLetterGrade(course.score)}
-                            </td>
-                            <td
-                                className={`text-center font-medium ${
-                                    course.score >= 4
-                                        ? 'text-green-600'
-                                        : 'text-red-500'
-                                }`}
-                            >
-                                {getCourseStatus(course.score)}
-                            </td>
+                    <input className="input" type="number" placeholder="Credits"
+                           value={credits} onChange={e => setCredits(e.target.value)} />
+
+                    <input className="input" type="number" step="0.1" placeholder="Score"
+                           value={score} onChange={e => setScore(e.target.value)} />
+
+                    <select className="input" value={year}
+                            onChange={e => setYear(+e.target.value)}>
+                        <option value={1}>Year 1</option>
+                        <option value={2}>Year 2</option>
+                        <option value={3}>Year 3</option>
+                        <option value={4}>Year 4</option>
+                    </select>
+
+                    <select className="input" value={semester}
+                            onChange={e => setSemester(+e.target.value)}>
+                        <option value={1}>Semester 1</option>
+                        <option value={2}>Semester 2</option>
+                    </select>
+
+                    <button onClick={addCourse}
+                            className="bg-blue-600 text-white rounded">
+                        Add
+                    </button>
+                </div>
+            </div>
+
+            {/* TABLE */}
+            <div className="card">
+                <h3 className="font-semibold mb-3">My Courses</h3>
+
+                {courses.length === 0 ? (
+                    <p className="text-gray-500">No courses yet</p>
+                ) : (
+                    <table className="w-full">
+                        <thead>
+                        <tr className="border-b">
+                            <th>Course</th>
+                            <th>Credits</th>
+                            <th>Score</th>
+                            <th>Year</th>
+                            <th>Sem</th>
+                            <th></th>
                         </tr>
-                    ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                        {courses.map(c => (
+                            <tr key={c.id} className="border-b">
+                                <td>{c.name}</td>
+                                <td className="text-center">{c.credits}</td>
+                                <td className="text-center">{c.score}</td>
+                                <td className="text-center">{c.year}</td>
+                                <td className="text-center">{c.semester}</td>
+                                <td>
+                                    <button
+                                        onClick={() => deleteCourse(c.id)}
+                                        className="text-red-500">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );
