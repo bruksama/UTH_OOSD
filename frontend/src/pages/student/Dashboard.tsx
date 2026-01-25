@@ -42,7 +42,7 @@ const Dashboard = () => {
 
     courses.forEach(c => {
         if (!yearMap[c.year]) {
-            yearMap[c.year] = { credits: 0, points: 0 };
+            yearMap[c.year] = {credits: 0, points: 0};
         }
         yearMap[c.year].credits += c.credits;
         yearMap[c.year].points += c.score * c.credits;
@@ -74,7 +74,7 @@ const Dashboard = () => {
     const TOTAL_CREDITS = 120;
 
     const creditData = [
-        { name: 'Completed', value: totalCredits },
+        {name: 'Completed', value: totalCredits},
         {
             name: 'Remaining',
             value: Math.max(TOTAL_CREDITS - totalCredits, 0),
@@ -137,10 +137,10 @@ const Dashboard = () => {
                         <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={gpaByYear}>
-                                    <XAxis dataKey="year" />
-                                    <YAxis domain={[0, 10]} />
-                                    <Tooltip />
-                                    <Bar dataKey="gpa" fill="#3b82f6" />
+                                    <XAxis dataKey="year"/>
+                                    <YAxis domain={[0, 10]}/>
+                                    <Tooltip/>
+                                    <Bar dataKey="gpa" fill="#3b82f6"/>
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -162,8 +162,8 @@ const Dashboard = () => {
                                     innerRadius={60}
                                     outerRadius={90}
                                 >
-                                    <Cell fill="#22c55e" />
-                                    <Cell fill="#e5e7eb" />
+                                    <Cell fill="#22c55e"/>
+                                    <Cell fill="#e5e7eb"/>
                                 </Pie>
                             </PieChart>
                         </ResponsiveContainer>
@@ -183,5 +183,4 @@ const Dashboard = () => {
         </div>
     );
 };
-
 export default Dashboard;

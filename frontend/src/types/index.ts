@@ -1,58 +1,64 @@
 /**
  * TypeScript type definitions for SPTS
  * Matches Backend DTOs for consistency
- * 
+ *
  * @author SPTS Team
  */
 
-// Enums matching backend
+// =====================
+// ENUMS (Backend-aligned)
+// =====================
+
 export enum StudentStatus {
-  NORMAL = 'NORMAL',
-  AT_RISK = 'AT_RISK',
-  PROBATION = 'PROBATION',
-  GRADUATED = 'GRADUATED',
+  NORMAL = "NORMAL",
+  AT_RISK = "AT_RISK",
+  PROBATION = "PROBATION",
+  GRADUATED = "GRADUATED",
 }
 
 export enum GradingType {
-  SCALE_10 = 'SCALE_10',
-  SCALE_4 = 'SCALE_4',
-  PASS_FAIL = 'PASS_FAIL',
+  SCALE_10 = "SCALE_10",
+  SCALE_4 = "SCALE_4",
+  PASS_FAIL = "PASS_FAIL",
 }
 
 export enum Semester {
-  SPRING = 'SPRING',
-  SUMMER = 'SUMMER',
-  FALL = 'FALL',
-  WINTER = 'WINTER',
+  SPRING = "SPRING",
+  SUMMER = "SUMMER",
+  FALL = "FALL",
+  WINTER = "WINTER",
 }
 
 export enum GradeEntryType {
-  COMPONENT = 'COMPONENT',
-  FINAL = 'FINAL',
+  COMPONENT = "COMPONENT",
+  FINAL = "FINAL",
 }
 
 export enum AlertLevel {
-  INFO = 'INFO',
-  WARNING = 'WARNING',
-  HIGH = 'HIGH',
-  CRITICAL = 'CRITICAL',
+  INFO = "INFO",
+  WARNING = "WARNING",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
 }
 
 export enum AlertType {
-  LOW_GPA = 'LOW_GPA',
-  GPA_DROP = 'GPA_DROP',
-  STATUS_CHANGE = 'STATUS_CHANGE',
-  PROBATION = 'PROBATION',
-  IMPROVEMENT = 'IMPROVEMENT',
+  LOW_GPA = "LOW_GPA",
+  GPA_DROP = "GPA_DROP",
+  STATUS_CHANGE = "STATUS_CHANGE",
+  PROBATION = "PROBATION",
+  IMPROVEMENT = "IMPROVEMENT",
 }
 
 export enum EnrollmentStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  WITHDRAWN = 'WITHDRAWN',
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  WITHDRAWN = "WITHDRAWN",
 }
 
-// DTOs matching backend
+// =====================
+// DTOs (Backend-aligned)
+// =====================
+
 export interface StudentDTO {
   id?: number;
   studentId: string;
@@ -101,7 +107,7 @@ export interface EnrollmentDTO {
   courseCode?: string;
   courseName?: string;
   credits?: number;
-  semester?: string;
+  semester?: Semester;
   academicYear?: number;
   finalScore?: number;
   letterGrade?: string;
@@ -145,7 +151,10 @@ export interface AlertDTO {
   createdAt: string;
 }
 
-// Dashboard statistics
+// =====================
+// Dashboard / Analytics
+// =====================
+
 export interface DashboardStats {
   totalStudents: number;
   atRiskCount: number;
@@ -154,20 +163,21 @@ export interface DashboardStats {
   activeAlerts: number;
 }
 
-// GPA Trend data for charts
 export interface GpaTrendData {
   semester: string;
   gpa: number;
 }
 
-// Credit progress data
 export interface CreditProgressData {
   category: string;
   earned: number;
   remaining: number;
 }
 
-// Student academic summary (calculated from enrollments)
+// =====================
+// Academic Summary
+// =====================
+
 export interface StudentAcademicSummary {
   studentId: number;
   studentName: string;
