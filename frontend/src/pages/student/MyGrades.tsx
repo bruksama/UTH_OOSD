@@ -128,5 +128,4 @@ const MyGrades = () => {
         </div>
     );
 };
-
 export default MyGrades;

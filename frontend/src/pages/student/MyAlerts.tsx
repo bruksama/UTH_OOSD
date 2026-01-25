@@ -49,7 +49,6 @@ const MyAlerts = () => {
             )} more GPA.`
         );
     }
-
     return (
         <div className="space-y-6">
             <h2 className="text-xl font-semibold">My Alerts</h2>
