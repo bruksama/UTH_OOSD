@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { mockAlerts, getAlertLevelColor } from '../../data/mockData.ts';
+import { useState, useEffect } from 'react';
+import { getAlertLevelColor } from '../../utils/helpers';
+import { fetchAlerts } from '../../services/alert.api';
 import { AlertDTO, AlertLevel, AlertType } from '../../types';
 
 /**
@@ -9,16 +10,34 @@ import { AlertDTO, AlertLevel, AlertType } from '../../types';
  * @author SPTS Team
  */
 const Alerts = () => {
+  const [alerts, setAlerts] = useState<AlertDTO[]>([]);
   const [levelFilter, setLevelFilter] = useState<AlertLevel | 'ALL'>('ALL');
   const [showResolved, setShowResolved] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const filteredAlerts = mockAlerts.filter((alert) => {
+  useEffect(() => {
+    fetchAlerts()
+      .then(setAlerts)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredAlerts = alerts.filter((alert) => {
     const matchesLevel = levelFilter === 'ALL' || alert.level === levelFilter;
     const matchesResolved = showResolved || !alert.isResolved;
     return matchesLevel && matchesResolved;
   });
 
-  const unresolvedCount = mockAlerts.filter((a) => !a.isResolved).length;
+
+  const unresolvedCount = alerts.filter((a) => !a.isResolved).length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-slate-500">Loading alerts...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -96,7 +115,7 @@ const Alerts = () => {
 
       {/* Results count */}
       <div className="text-sm text-slate-500">
-        Showing {filteredAlerts.length} of {mockAlerts.length} alerts
+        Showing {filteredAlerts.length} of {alerts.length} alerts
       </div>
     </div>
   );
