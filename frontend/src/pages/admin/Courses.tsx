@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { mockCourses } from '../../data/mockData.ts';
+import { useState, useEffect } from 'react';
+import { fetchCourses } from '../../services/course.api';
 import { CourseDTO, GradingType } from '../../types';
 
 /**
@@ -9,13 +9,22 @@ import { CourseDTO, GradingType } from '../../types';
  * @author SPTS Team
  */
 const Courses = () => {
+  const [courses, setCourses] = useState<CourseDTO[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('ALL');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCourses()
+      .then(setCourses)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   // Get unique departments
-  const departments = [...new Set(mockCourses.map((c) => c.department).filter(Boolean))];
+  const departments = [...new Set(courses.map((c) => c.department).filter(Boolean))];
 
-  const filteredCourses = mockCourses.filter((course) => {
+  const filteredCourses = courses.filter((course) => {
     const matchesSearch =
       course.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.courseCode.toLowerCase().includes(searchTerm.toLowerCase());
@@ -25,6 +34,14 @@ const Courses = () => {
 
     return matchesSearch && matchesDepartment;
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-slate-500">Loading courses...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -88,7 +105,7 @@ const Courses = () => {
 
       {/* Results count */}
       <div className="text-sm text-slate-500">
-        Showing {filteredCourses.length} of {mockCourses.length} courses
+        Showing {filteredCourses.length} of {courses.length} courses
       </div>
     </div>
   );
