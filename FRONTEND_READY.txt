@@ -1,0 +1,135 @@
+================================================================================
+                        FRONTEND FIX COMPLETE ✅
+================================================================================
+
+WHAT WAS FIXED:
+✅ Created proper api.ts with axios configuration
+✅ Fixed all service imports and naming conventions
+✅ Created enrollmentService.ts
+✅ Updated alert.service.ts with markAsRead() and resolve()
+✅ Created services/index.ts barrel export
+✅ Created .env.example file
+✅ Updated ALL pages to use real API (no more mock data):
+   - admin/Students.tsx
+   - admin/Courses.tsx
+   - admin/Alerts.tsx
+   - admin/Dashboard.tsx
+   - student/Dashboard.tsx
+   - student/MyAlerts.tsx
+   - student/MyGrades.tsx
+
+================================================================================
+                         RUN WEB COMMANDS
+================================================================================
+
+🚀 STEP 1: Open first PowerShell terminal and run BACKEND:
+─────────────────────────────────────────────────────────────
+
+cd backend
+mvn spring-boot:run -Dspring.profiles.active=dev
+
+(Backend will start on: http://localhost:8080)
+(You'll see "Started SptsApplication" when ready)
+
+✓ Wait for backend to be fully running before moving to step 2!
+
+================================================================================
+
+🚀 STEP 2: Open SECOND PowerShell terminal and run FRONTEND:
+──────────────────────────────────────────────────────────────
+
+cd frontend
+npm install
+npm run dev
+
+(Frontend will start on: http://localhost:5173)
+(You'll see "Local: http://localhost:5173" when ready)
+
+================================================================================
+
+📱 STEP 3: Open your browser:
+───────────────────────────────
+
+Go to: http://localhost:5173
+
+✓ Try these test scenarios:
+  1. Login to admin dashboard
+  2. Check Students page - should show REAL students from API
+  3. Check Courses page - should show REAL courses from API
+  4. Check Alerts page - should show REAL alerts from API
+  5. Switch to student view
+  6. Check My Grades - should show REAL enrollments
+  7. Check My Alerts - should show REAL student alerts
+  8. Try "Mark as Read" button - should call API
+
+================================================================================
+
+🔍 VERIFY API CALLS:
+────────────────────
+
+In browser DevTools (F12):
+  1. Go to Network tab
+  2. Refresh page
+  3. Look for requests to: http://localhost:8080/api/*
+  4. You should see:
+     - GET /students
+     - GET /courses
+     - GET /alerts
+     - etc.
+
+If you see NO API calls or 404 errors, check:
+  ✓ Backend is running on port 8080
+  ✓ frontend/.env has VITE_API_URL=http://localhost:8080/api
+  ✓ No CORS errors in DevTools console
+
+================================================================================
+
+📝 QUICK SUMMARY:
+─────────────────
+
+Files Created/Fixed:
+  • frontend/src/services/api.ts (NEW - main axios config)
+  • frontend/src/services/studentService.ts (updated)
+  • frontend/src/services/courseService.ts (updated)
+  • frontend/src/services/enrollmentService.ts (NEW)
+  • frontend/src/services/alertService.ts (updated)
+  • frontend/src/services/index.ts (NEW - barrel export)
+  • frontend/.env.example (NEW)
+  • All admin pages updated to use real API
+  • All student pages updated to use real API
+
+Pages Now Using Real API:
+  ✓ admin/Students.tsx
+  ✓ admin/Courses.tsx
+  ✓ admin/Alerts.tsx
+  ✓ admin/Dashboard.tsx
+  ✓ student/Dashboard.tsx
+  ✓ student/MyAlerts.tsx
+  ✓ student/MyGrades.tsx
+
+================================================================================
+
+❓ TROUBLESHOOTING:
+───────────────────
+
+❌ "Cannot find module './api'" 
+   → Check that frontend/src/services/api.ts exists
+
+❌ "Network error: connect ECONNREFUSED 127.0.0.1:8080"
+   → Backend is not running on port 8080, start it first
+
+❌ "CORS error in console"
+   → Backend CORS config may need updating, check backend port 8080
+
+❌ Pages still show loading
+   → Check console (F12) for specific API errors
+
+❌ npm install fails
+   → Try: npm install axios (axios should already be installed)
+
+================================================================================
+
+All done! The frontend is now fully integrated with the real API.
+Start the backend first, then the frontend, and test! 🎉
+
+================================================================================
