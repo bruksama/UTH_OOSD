@@ -1,131 +1,107 @@
 import { useEffect, useState } from 'react';
-
-interface Course {
-    id: number;
-    name: string;
-    credits: number;
-    score: number;
-    year: number;
-    semester: number;
-}
+import { enrollmentService } from '../../services';
+import { EnrollmentDTO } from '../../types';
 
 const MyGrades = () => {
-    const [courses, setCourses] = useState<Course[]>(() => {
-        return JSON.parse(localStorage.getItem('courses') || '[]');
-    });
-
-    const [name, setName] = useState('');
-    const [credits, setCredits] = useState('');
-    const [score, setScore] = useState('');
-    const [year, setYear] = useState(1);
-    const [semester, setSemester] = useState(1);
+    const [enrollments, setEnrollments] = useState<EnrollmentDTO[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        localStorage.setItem('courses', JSON.stringify(courses));
-    }, [courses]);
+        const fetchGrades = async () => {
+            try {
+                const studentId = 1; // Get from auth/context
+                const response = await enrollmentService.getByStudent(studentId);
+                setEnrollments(response.data);
+            } catch (err) {
+                console.error('Error fetching grades:', err);
+                setError('Failed to load grades');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchGrades();
+    }, []);
 
-    const addCourse = () => {
-        if (!name || !credits || !score) return;
-
-        setCourses([
-            ...courses,
-            {
-                id: Date.now(),
-                name,
-                credits: +credits,
-                score: +score,
-                year,
-                semester,
-            },
-        ]);
-
-        setName('');
-        setCredits('');
-        setScore('');
+    const handleWithdraw = async (enrollmentId: number) => {
+        try {
+            await enrollmentService.withdraw(enrollmentId);
+            setEnrollments(enrollments.filter(e => e.id !== enrollmentId));
+        } catch (err) {
+            console.error('Error withdrawing enrollment:', err);
+        }
     };
 
-    const deleteCourse = (id: number) => {
-        setCourses(courses.filter(c => c.id !== id));
-    };
+    if (loading) return <div className="text-center py-8">Loading...</div>;
+    if (error) return <div className="text-red-500 py-8">{error}</div>;
+
+    const completedEnrollments = enrollments.filter(e => e.finalScore);
+    const currentEnrollments = enrollments.filter(e => !e.finalScore && !e.isWithdrawn);
 
     return (
         <div className="space-y-6">
-
-            {/* INPUT */}
+            {/* COMPLETED COURSES */}
             <div className="card">
-                <h3 className="font-semibold mb-3">Add Course</h3>
+                <h3 className="font-semibold mb-3">Completed Courses</h3>
 
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-                    <input className="input" placeholder="Course"
-                           value={name} onChange={e => setName(e.target.value)} />
-
-                    <input className="input" type="number" placeholder="Credits"
-                           value={credits} onChange={e => setCredits(e.target.value)} />
-
-                    <input className="input" type="number" step="0.1" placeholder="Score"
-                           value={score} onChange={e => setScore(e.target.value)} />
-
-                    <select className="input" value={year}
-                            onChange={e => setYear(+e.target.value)}>
-                        <option value={1}>Year 1</option>
-                        <option value={2}>Year 2</option>
-                        <option value={3}>Year 3</option>
-                        <option value={4}>Year 4</option>
-                    </select>
-
-                    <select className="input" value={semester}
-                            onChange={e => setSemester(+e.target.value)}>
-                        <option value={1}>Semester 1</option>
-                        <option value={2}>Semester 2</option>
-                    </select>
-
-                    <button onClick={addCourse}
-                            className="bg-blue-600 text-white rounded">
-                        Add
-                    </button>
-                </div>
+                {completedEnrollments.length === 0 ? (
+                    <p className="text-gray-500">No completed courses yet</p>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b">
+                                    <th className="text-left py-2">Course</th>
+                                    <th className="text-center">Credits</th>
+                                    <th className="text-center">Score</th>
+                                    <th className="text-center">Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {completedEnrollments.map((e) => (
+                                    <tr key={e.id} className="border-b hover:bg-gray-50">
+                                        <td className="py-2">{e.course?.courseName}</td>
+                                        <td className="text-center">{e.course?.credits}</td>
+                                        <td className="text-center">{e.finalScore?.toFixed(2)}</td>
+                                        <td className="text-center font-semibold">{e.letterGrade || 'N/A'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
-            {/* TABLE */}
+            {/* CURRENT ENROLLMENTS */}
             <div className="card">
-                <h3 className="font-semibold mb-3">My Courses</h3>
+                <h3 className="font-semibold mb-3">Current Enrollments</h3>
 
-                {courses.length === 0 ? (
-                    <p className="text-gray-500">No courses yet</p>
+                {currentEnrollments.length === 0 ? (
+                    <p className="text-gray-500">No active enrollments</p>
                 ) : (
-                    <table className="w-full">
-                        <thead>
-                        <tr className="border-b">
-                            <th>Course</th>
-                            <th>Credits</th>
-                            <th>Score</th>
-                            <th>Year</th>
-                            <th>Sem</th>
-                            <th></th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {courses.map(c => (
-                            <tr key={c.id} className="border-b">
-                                <td>{c.name}</td>
-                                <td className="text-center">{c.credits}</td>
-                                <td className="text-center">{c.score}</td>
-                                <td className="text-center">{c.year}</td>
-                                <td className="text-center">{c.semester}</td>
-                                <td>
-                                    <button
-                                        onClick={() => deleteCourse(c.id)}
-                                        className="text-red-500">
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
+                    <div className="space-y-3">
+                        {currentEnrollments.map((e) => (
+                            <div
+                                key={e.id}
+                                className="flex justify-between items-center border rounded p-3 hover:bg-gray-50"
+                            >
+                                <div>
+                                    <p className="font-semibold">{e.course?.courseName}</p>
+                                    <p className="text-sm text-gray-600">{e.course?.courseCode}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleWithdraw(e.id)}
+                                    className="text-red-500 hover:text-red-700 text-sm"
+                                >
+                                    Withdraw
+                                </button>
+                            </div>
                         ))}
-                        </tbody>
-                    </table>
+                    </div>
                 )}
             </div>
         </div>
     );
 };
+
 export default MyGrades;

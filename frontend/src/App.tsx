@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { initializeMockAccounts } from './utils/mockAuth';
 
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -24,6 +25,11 @@ function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(
         localStorage.getItem('isAuthenticated') === 'true'
     );
+
+    useEffect(() => {
+        // Initialize mock test accounts on app startup
+        initializeMockAccounts();
+    }, []);
 
     return (
         <Router>

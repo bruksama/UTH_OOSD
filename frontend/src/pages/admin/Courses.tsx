@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchCourses } from '../../services/course.api';
+import { courseService } from '../../services';
 import { CourseDTO, GradingType } from '../../types';
 
 /**
@@ -15,10 +15,17 @@ const Courses = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCourses()
-      .then(setCourses)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    const loadCourses = async () => {
+      try {
+        const response = await courseService.getAll();
+        setCourses(response.data);
+      } catch (err) {
+        console.error('Error fetching courses:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCourses();
   }, []);
 
   // Get unique departments

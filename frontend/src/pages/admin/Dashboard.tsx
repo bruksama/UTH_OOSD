@@ -13,8 +13,7 @@ import {
 } from 'recharts';
 
 import { getAlertLevelColor, getStatusColor } from '../../utils/helpers';
-import { fetchStudents } from '../../services/student.api';
-import { fetchUnresolvedAlerts } from '../../services/alert.api';
+import { studentService, alertService } from '../../services';
 import { StudentDTO, AlertDTO, StudentStatus, DashboardStats, GpaTrendData } from '../../types';
 
 /* ===== STAT CARD ===== */
@@ -38,12 +37,12 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     Promise.all([
-      fetchStudents(),
-      fetchUnresolvedAlerts()
+      studentService.getAll(),
+      alertService.getAll()
     ])
       .then(([studentsData, alertsData]) => {
-        setStudents(studentsData);
-        setAlerts(alertsData);
+        setStudents(studentsData.data);
+        setAlerts(alertsData.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
