@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAlertLevelColor } from '../../utils/helpers';
-import { fetchAlerts } from '../../services/alert.api';
+import { alertService } from '../../services';
 import { AlertDTO, AlertLevel, AlertType } from '../../types';
 
 /**
@@ -14,12 +14,20 @@ const Alerts = () => {
   const [levelFilter, setLevelFilter] = useState<AlertLevel | 'ALL'>('ALL');
   const [showResolved, setShowResolved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchAlerts()
-      .then(setAlerts)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    const loadAlerts = async () => {
+      try {
+        const response = await alertService.getAll();
+        setAlerts(response.data);
+      } catch (err) {
+        console.error('Error fetching alerts:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAlerts();
   }, []);
 
   const filteredAlerts = alerts.filter((alert) => {
@@ -28,6 +36,29 @@ const Alerts = () => {
     return matchesLevel && matchesResolved;
   });
 
+  const handleMarkAsRead = async (id: number) => {
+    setActionLoading(id);
+    try {
+      await alertService.markAsRead(id);
+      setAlerts(alerts.map(a => a.id === id ? { ...a, isRead: true } : a));
+    } catch (err) {
+      console.error('Error marking alert as read:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResolve = async (id: number) => {
+    setActionLoading(id);
+    try {
+      await alertService.resolve(id, 'ADMIN');
+      setAlerts(alerts.map(a => a.id === id ? { ...a, isResolved: true } : a));
+    } catch (err) {
+      console.error('Error resolving alert:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const unresolvedCount = alerts.filter((a) => !a.isResolved).length;
 
@@ -90,7 +121,60 @@ const Alerts = () => {
       {/* Alerts List */}
       <div className="space-y-4">
         {filteredAlerts.map((alert) => (
-          <AlertCard key={alert.id} alert={alert} />
+          <div
+            key={alert.id}
+            className={`card p-4 border-l-4 ${
+              alert.level === 'CRITICAL'
+                ? 'border-red-500 bg-red-50'
+                : alert.level === 'HIGH'
+                  ? 'border-orange-500 bg-orange-50'
+                  : alert.level === 'WARNING'
+                    ? 'border-yellow-500 bg-yellow-50'
+                    : 'border-blue-500 bg-blue-50'
+            }`}
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex gap-2 items-center">
+                  <h3 className="font-semibold text-slate-900">{alert.title}</h3>
+                  {alert.isResolved && (
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                      Resolved
+                    </span>
+                  )}
+                  {!alert.isRead && (
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      Unread
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-slate-600 mt-1">{alert.message}</p>
+                <p className="text-xs text-slate-500 mt-2">
+                  Student: {alert.student?.firstName} {alert.student?.lastName}
+                </p>
+              </div>
+              <div className="flex gap-2 ml-4">
+                {!alert.isRead && (
+                  <button
+                    onClick={() => handleMarkAsRead(alert.id)}
+                    disabled={actionLoading === alert.id}
+                    className="text-xs px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 transition"
+                  >
+                    {actionLoading === alert.id ? 'Loading...' : 'Mark Read'}
+                  </button>
+                )}
+                {!alert.isResolved && (
+                  <button
+                    onClick={() => handleResolve(alert.id)}
+                    disabled={actionLoading === alert.id}
+                    className="text-xs px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 transition"
+                  >
+                    {actionLoading === alert.id ? 'Loading...' : 'Resolve'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 

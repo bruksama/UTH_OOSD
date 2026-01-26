@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
     BarChart,
     Bar,
@@ -9,97 +10,66 @@ import {
     Pie,
     Cell,
 } from 'recharts';
-
-/* ===== TYPES ===== */
-interface Course {
-    id: number;
-    name: string;
-    credits: number;
-    score: number;
-    year: number;     // 1 - 4
-    semester: number; // 1 - 2
-}
-
-/* ===== HELPERS ===== */
-const getStatus = (gpa: number) => {
-    if (gpa >= 8) return 'Excellent';
-    if (gpa >= 7) return 'Good';
-    if (gpa >= 5.5) return 'Average';
-    return 'At Risk';
-};
+import { enrollmentService } from '../../services';
+import { EnrollmentDTO, StudentDTO } from '../../types';
 
 const Dashboard = () => {
-    /* ===== LOAD DATA FROM LOCALSTORAGE ===== */
-    const courses: Course[] = JSON.parse(
-        localStorage.getItem('courses') || '[]'
-    );
+    const [enrollments, setEnrollments] = useState<EnrollmentDTO[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    /* ===== GPA BY YEAR ===== */
-    const yearMap: Record<
-        number,
-        { credits: number; points: number }
-    > = {};
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Get student ID from auth or context - for now using a placeholder
+                const studentId = 1;
+                const response = await enrollmentService.getByStudent(studentId);
+                setEnrollments(response.data);
+            } catch (err) {
+                console.error('Error fetching enrollments:', err);
+                setError('Failed to load dashboard data');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
-    courses.forEach(c => {
-        if (!yearMap[c.year]) {
-            yearMap[c.year] = {credits: 0, points: 0};
-        }
-        yearMap[c.year].credits += c.credits;
-        yearMap[c.year].points += c.score * c.credits;
-    });
+    // Calculate GPA from enrollments
+    const getStatus = (gpa: number) => {
+        if (gpa >= 8) return 'Excellent';
+        if (gpa >= 7) return 'Good';
+        if (gpa >= 5.5) return 'Average';
+        return 'At Risk';
+    };
 
-    const gpaByYear = Object.keys(yearMap).map(year => ({
-        year: `Year ${year}`,
-        gpa: +(
-            yearMap[+year].points /
-            yearMap[+year].credits
-        ).toFixed(2),
-    }));
-
-    /* ===== OVERALL GPA ===== */
-    const totalCredits = courses.reduce(
-        (sum, c) => sum + c.credits,
-        0
-    );
-
-    const totalPoints = courses.reduce(
-        (sum, c) => sum + c.score * c.credits,
-        0
-    );
-
-    const overallGpa =
-        totalCredits === 0 ? 0 : totalPoints / totalCredits;
-
-    /* ===== CREDIT PIE ===== */
+    const totalCredits = enrollments.reduce((sum, e) => sum + (e.course?.credits || 0), 0);
+    const totalPoints = enrollments.reduce((sum, e) => sum + ((e.finalScore || 0) * (e.course?.credits || 0)), 0);
+    const overallGpa = totalCredits === 0 ? 0 : totalPoints / totalCredits;
+    
     const TOTAL_CREDITS = 120;
-
     const creditData = [
-        {name: 'Completed', value: totalCredits},
-        {
-            name: 'Remaining',
-            value: Math.max(TOTAL_CREDITS - totalCredits, 0),
-        },
+        { name: 'Completed', value: totalCredits },
+        { name: 'Remaining', value: Math.max(TOTAL_CREDITS - totalCredits, 0) },
     ];
 
     const status = getStatus(overallGpa);
 
+    if (loading) return <div className="text-center py-8">Loading...</div>;
+    if (error) return <div className="text-red-500 py-8">{error}</div>;
+
     return (
         <div className="space-y-6">
-
-            {/* ===== SUMMARY ===== */}
+            {/* SUMMARY */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="card text-center">
                     <p className="text-gray-500">Overall GPA</p>
-                    <p className="text-3xl font-bold">
-                        {overallGpa.toFixed(2)}
-                    </p>
+                    <p className="text-3xl font-bold">{overallGpa.toFixed(2)}</p>
                 </div>
 
                 <div className="card text-center">
                     <p className="text-gray-500">Credits Completed</p>
-                    <p className="text-3xl font-bold">
-                        {totalCredits}/{TOTAL_CREDITS}
-                    </p>
+                    <p className="text-3xl font-bold">{totalCredits}/{TOTAL_CREDITS}</p>
                 </div>
 
                 <div className="card text-center">
@@ -120,39 +90,11 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* ===== CHARTS ===== */}
+            {/* CHARTS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                {/* GPA BY YEAR */}
-                <div className="card">
-                    <h3 className="font-semibold mb-4">
-                        GPA by Academic Year
-                    </h3>
-
-                    {gpaByYear.length === 0 ? (
-                        <p className="text-gray-500 text-sm">
-                            No data yet. Please enter courses.
-                        </p>
-                    ) : (
-                        <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={gpaByYear}>
-                                    <XAxis dataKey="year"/>
-                                    <YAxis domain={[0, 10]}/>
-                                    <Tooltip/>
-                                    <Bar dataKey="gpa" fill="#3b82f6"/>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    )}
-                </div>
-
                 {/* CREDIT PROGRESS */}
                 <div className="card">
-                    <h3 className="font-semibold mb-4">
-                        Credit Progress
-                    </h3>
-
+                    <h3 className="font-semibold mb-4">Credit Progress</h3>
                     <div className="h-64 relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -162,25 +104,38 @@ const Dashboard = () => {
                                     innerRadius={60}
                                     outerRadius={90}
                                 >
-                                    <Cell fill="#22c55e"/>
-                                    <Cell fill="#e5e7eb"/>
+                                    <Cell fill="#22c55e" />
+                                    <Cell fill="#e5e7eb" />
                                 </Pie>
                             </PieChart>
                         </ResponsiveContainer>
 
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <p className="text-2xl font-bold">
-                                {totalCredits}/{TOTAL_CREDITS}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                                Credits Completed
-                            </p>
+                            <p className="text-2xl font-bold">{totalCredits}/{TOTAL_CREDITS}</p>
+                            <p className="text-sm text-gray-500">Credits Completed</p>
                         </div>
                     </div>
                 </div>
 
+                {/* ENROLLMENTS LIST */}
+                <div className="card">
+                    <h3 className="font-semibold mb-4">Recent Enrollments</h3>
+                    {enrollments.length === 0 ? (
+                        <p className="text-gray-500 text-sm">No enrollments yet</p>
+                    ) : (
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {enrollments.slice(0, 5).map((e) => (
+                                <div key={e.id} className="flex justify-between text-sm border-b pb-2">
+                                    <span>{e.course?.courseName}</span>
+                                    <span className="font-semibold">{e.finalScore || 'N/A'}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
+
 export default Dashboard;

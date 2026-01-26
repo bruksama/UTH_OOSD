@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authenticateUser } from '../../utils/mockAuth';
 
 interface LoginProps {
     setIsAuthenticated: (value: boolean) => void;
@@ -8,39 +9,48 @@ interface LoginProps {
 function Login({ setIsAuthenticated }: LoginProps) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
     const navigate = useNavigate();
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
 
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        // Authenticate user from test accounts
+        const user = authenticateUser(username, password);
 
         if (!user) {
-            alert('Account does not exist');
+            setError('Invalid username or password');
             return;
         }
 
-        if (username === user.username && password === user.password) {
-            localStorage.setItem('isAuthenticated', 'true');
-            localStorage.setItem('role', user.role);
-            setIsAuthenticated(true);
+        // Store auth info
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem('userRole', user.role);
+        setIsAuthenticated(true);
 
-            // Redirect by role
-            if (user.role === 'admin') {
-                navigate('/admin/dashboard');
-            } else {
-                navigate('/student/dashboard');
-            }
-        } else {
-            alert('Invalid username or password');
+        // Redirect by role
+        if (user.role === 'admin') {
+            navigate('/admin/dashboard');
+        } else if (user.role === 'student') {
+            navigate('/student/dashboard');
+        } else if (user.role === 'teacher') {
+            navigate('/teacher/dashboard');
         }
     };
 
     return (
         <div style={styles.container}>
             <form style={styles.card} onSubmit={handleLogin}>
-                <h2 style={styles.title}>Login</h2>
+                <h2 style={styles.title}>SPTS Login</h2>
+
+                {error && (
+                    <div style={styles.error}>
+                        {error}
+                    </div>
+                )}
 
                 <input
                     type="text"
@@ -48,6 +58,7 @@ function Login({ setIsAuthenticated }: LoginProps) {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     style={styles.input}
+                    required
                 />
 
                 <input
@@ -56,6 +67,7 @@ function Login({ setIsAuthenticated }: LoginProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     style={styles.input}
+                    required
                 />
 
                 <button type="submit" style={styles.button}>
@@ -105,6 +117,18 @@ const styles: any = {
     title: {
         textAlign: 'center',
         marginBottom: 20,
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    error: {
+        padding: 12,
+        marginBottom: 15,
+        borderRadius: 6,
+        backgroundColor: '#fee2e2',
+        color: '#991b1b',
+        fontSize: 14,
+        textAlign: 'center',
+        border: '1px solid #fca5a5',
     },
     input: {
         width: '100%',
@@ -113,28 +137,48 @@ const styles: any = {
         borderRadius: 6,
         border: '1px solid #ddd',
         fontSize: 16,
+        boxSizing: 'border-box',
     },
     button: {
         width: '100%',
         padding: 12,
-        background: '#2563eb',
-        color: '#fff',
-        border: 'none',
+        marginBottom: 15,
         borderRadius: 6,
+        backgroundColor: '#3b82f6',
+        color: '#fff',
         fontSize: 16,
+        fontWeight: 'bold',
         cursor: 'pointer',
+        border: 'none',
+    },
+    demoBox: {
+        padding: 12,
+        marginBottom: 15,
+        borderRadius: 6,
+        backgroundColor: '#dbeafe',
+        border: '1px solid #93c5fd',
+        fontSize: 13,
+    },
+    demoTitle: {
+        fontWeight: 'bold',
+        marginBottom: 8,
+        color: '#1e40af',
+    },
+    demoItem: {
+        marginBottom: 6,
+        color: '#1e40af',
     },
     links: {
-        marginTop: 15,
         textAlign: 'center',
         fontSize: 14,
     },
     link: {
-        color: '#2563eb',
+        color: '#3b82f6',
         cursor: 'pointer',
+        marginRight: 5,
+        marginLeft: 5,
     },
     divider: {
-        margin: '0 8px',
-        color: '#999',
+        color: '#ddd',
     },
 };

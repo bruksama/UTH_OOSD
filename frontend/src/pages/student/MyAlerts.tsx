@@ -1,70 +1,94 @@
-interface Course {
-    id: number;
-    name: string;
-    credits: number;
-    score: number;
-}
+import { useState, useEffect } from 'react';
+import { alertService } from '../../services';
+import { AlertDTO } from '../../types';
 
 const MyAlerts = () => {
-    const courses: Course[] = JSON.parse(
-        localStorage.getItem('courses') || '[]'
-    );
+    const [alerts, setAlerts] = useState<AlertDTO[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const totalCredits = courses.reduce(
-        (sum, c) => sum + c.credits,
-        0
-    );
+    useEffect(() => {
+        const fetchAlerts = async () => {
+            try {
+                const studentId = 1; // Get from auth/context
+                const response = await alertService.getByStudent(studentId);
+                setAlerts(response.data);
+            } catch (err) {
+                console.error('Error fetching alerts:', err);
+                setError('Failed to load alerts');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAlerts();
+    }, []);
 
-    const totalScore = courses.reduce(
-        (sum, c) => sum + c.score * c.credits,
-        0
-    );
+    const handleMarkAsRead = async (id: number) => {
+        try {
+            await alertService.markAsRead(id);
+            setAlerts(alerts.map(a => a.id === id ? { ...a, isRead: true } : a));
+        } catch (err) {
+            console.error('Error marking alert as read:', err);
+        }
+    };
 
-    const gpa =
-        totalCredits === 0 ? 0 : totalScore / totalCredits;
+    const handleResolve = async (id: number) => {
+        try {
+            await alertService.resolve(id, 'STUDENT');
+            setAlerts(alerts.map(a => a.id === id ? { ...a, isResolved: true } : a));
+        } catch (err) {
+            console.error('Error resolving alert:', err);
+        }
+    };
 
-    /* ===== ALERT LOGIC ===== */
-    const alerts: string[] = [];
+    if (loading) return <div className="text-center py-8">Loading...</div>;
+    if (error) return <div className="text-red-500 py-8">{error}</div>;
 
-    if (gpa < 5) {
-        alerts.push(
-            `⚠️ At risk: you need ${(5 - gpa).toFixed(
-                2
-            )} more GPA to reach Average.`
-        );
-    }
+    const unresolvedAlerts = alerts.filter(a => !a.isResolved);
 
-    if (gpa < 6.5) {
-        alerts.push(
-            `📈 To reach Good, you need ${(6.5 - gpa).toFixed(
-                2
-            )} more GPA.`
-        );
-    }
-
-    if (gpa < 8) {
-        alerts.push(
-            `🏆 To reach Excellent, you need ${(8 - gpa).toFixed(
-                2
-            )} more GPA.`
-        );
-    }
     return (
         <div className="space-y-6">
             <h2 className="text-xl font-semibold">My Alerts</h2>
 
-            {alerts.length === 0 ? (
+            {unresolvedAlerts.length === 0 ? (
                 <div className="card text-green-600 font-medium">
-                    🎉 Excellent performance! Keep it up!
+                    🎉 No active alerts! Great job!
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {alerts.map((alert, index) => (
+                    {unresolvedAlerts.map((alert) => (
                         <div
-                            key={index}
-                            className="card bg-yellow-50 text-yellow-800"
+                            key={alert.id}
+                            className={`card p-4 border-l-4 ${
+                                alert.level === 'CRITICAL'
+                                    ? 'border-red-500 bg-red-50'
+                                    : alert.level === 'HIGH'
+                                        ? 'border-orange-500 bg-orange-50'
+                                        : 'border-yellow-500 bg-yellow-50'
+                            }`}
                         >
-                            {alert}
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <p className="font-semibold">{alert.title}</p>
+                                    <p className="text-sm text-gray-600">{alert.message}</p>
+                                </div>
+                                <div className="flex gap-2 ml-4">
+                                    {!alert.isRead && (
+                                        <button
+                                            onClick={() => handleMarkAsRead(alert.id)}
+                                            className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                        >
+                                            Mark Read
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => handleResolve(alert.id)}
+                                        className="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                                    >
+                                        Resolve
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>
