@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
 
-import Layout from './components/Layout';
+import Layout from './components/layout/Layout.tsx';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // ===== ADMIN PAGES =====

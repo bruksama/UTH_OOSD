@@ -1,128 +1,139 @@
 import { useEffect, useState } from 'react';
-import { getStatusColor, getStudentFullName } from '../../utils/helpers';
+import { getStatusColor } from '../../utils/helpers';
 import { fetchStudents } from '../../services/student.api';
 import { StudentDTO, StudentStatus } from '../../types';
 
-/**
- * Students list page component
- * Displays all students with filtering and search capabilities
- *
- * @author SPTS Team
- */
+const formatStatus = (status: StudentStatus) =>
+    status.replace('_', ' ');
+
 const Students = () => {
   const [students, setStudents] = useState<StudentDTO[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StudentStatus | 'ALL'>('ALL');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadStudents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchStudents();
+      setStudents(data);
+    } catch {
+      setError('Failed to load students');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchStudents().then(setStudents);
+    loadStudents();
   }, []);
 
-  const filteredStudents = students.filter((student) => {
-    const matchesSearch =
-      getStudentFullName(student).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredStudents = students.filter((s) => {
+    const matchSearch =
+        `${s.firstName} ${s.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === 'ALL' || student.status === statusFilter;
+    const matchStatus =
+        statusFilter === 'ALL' || s.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    return matchSearch && matchStatus;
   });
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Students</h1>
-          <p className="text-slate-600">Manage and monitor student performance</p>
-        </div>
-        <button className="btn-primary">Add Student</button>
-      </div>
+  if (loading) {
+    return <div className="text-center py-20 text-slate-500">Loading...</div>;
+  }
 
-      {/* Filters */}
-      <div className="card">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <label className="label">Search</label>
-            <input
+  if (error) {
+    return (
+        <div className="text-center py-20">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button className="btn-primary" onClick={loadStudents}>Retry</button>
+        </div>
+    );
+  }
+
+  return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Students</h1>
+            <p className="text-slate-600">Manage student information</p>
+          </div>
+
+          <div className="flex gap-2">
+            <button className="btn-outline" onClick={loadStudents}>Refresh</button>
+            <button className="btn-primary">Add Student</button>
+          </div>
+        </div>
+
+        {/* Filter */}
+        <div className="card flex gap-4">
+          <input
               className="input"
-              placeholder="Search by name, ID, or email..."
+              placeholder="Search name, ID, email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          />
 
-          <div className="sm:w-48">
-            <label className="label">Status</label>
-            <select
-              className="input"
+          <select
+              className="input w-48"
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as StudentStatus | 'ALL')
-              }
-            >
-              <option value="ALL">All Status</option>
-              <option value={StudentStatus.NORMAL}>Normal</option>
-              <option value={StudentStatus.AT_RISK}>At Risk</option>
-              <option value={StudentStatus.PROBATION}>Probation</option>
-              <option value={StudentStatus.GRADUATED}>Graduated</option>
-            </select>
-          </div>
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+          >
+            <option value="ALL">All Status</option>
+            {Object.values(StudentStatus).map((s) => (
+                <option key={s} value={s}>{formatStatus(s)}</option>
+            ))}
+          </select>
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+        {/* Table */}
+        <div className="card p-0 overflow-hidden">
           <table className="w-full">
-            <thead className="bg-slate-50 border-b">
-              <tr>
-                <th className="px-6 py-4 text-left">Student</th>
-                <th className="px-6 py-4 text-left">Student ID</th>
-                <th className="px-6 py-4 text-left">Email</th>
-                <th className="px-6 py-4 text-center">GPA</th>
-                <th className="px-6 py-4 text-center">Credits</th>
-                <th className="px-6 py-4 text-center">Status</th>
-              </tr>
+            <thead className="bg-slate-100 text-slate-600">
+            <tr>
+              <th className="px-6 py-3 text-left">Name</th>
+              <th className="px-6 py-3">ID</th>
+              <th className="px-6 py-3">Email</th>
+              <th className="px-6 py-3 text-center">GPA</th>
+              <th className="px-6 py-3 text-center">Credits</th>
+              <th className="px-6 py-3 text-center">Status</th>
+            </tr>
             </thead>
+
             <tbody className="divide-y">
-              {filteredStudents.map((student) => (
-                <tr key={student.studentId} className="hover:bg-slate-50">
-                  <td className="px-6 py-4">
-                    {student.firstName} {student.lastName}
-                  </td>
-                  <td className="px-6 py-4">{student.studentId}</td>
-                  <td className="px-6 py-4">{student.email}</td>
+            {filteredStudents.map((s) => (
+                <tr key={s.studentId} className="hover:bg-slate-50">
+                  <td className="px-6 py-4">{s.firstName} {s.lastName}</td>
+                  <td className="px-6 py-4">{s.studentId}</td>
+                  <td className="px-6 py-4">{s.email}</td>
+                  <td className="px-6 py-4 text-center">{s.gpa?.toFixed(2) ?? '—'}</td>
+                  <td className="px-6 py-4 text-center">{s.totalCredits}</td>
                   <td className="px-6 py-4 text-center">
-                    {student.gpa?.toFixed(2) ?? 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {student.totalCredits}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={getStatusColor(student.status)}>
-                      {student.status}
-                    </span>
+                  <span className={getStatusColor(s.status)}>
+                    {formatStatus(s.status)}
+                  </span>
                   </td>
                 </tr>
-              ))}
+            ))}
             </tbody>
           </table>
+
+          {filteredStudents.length === 0 && (
+              <div className="text-center py-10 text-slate-500">
+                No students found
+              </div>
+          )}
         </div>
 
-        {filteredStudents.length === 0 && (
-          <div className="text-center py-12 text-slate-500">
-            No students found.
-          </div>
-        )}
+        <div className="text-sm text-slate-500">
+          Showing {filteredStudents.length} / {students.length} students
+        </div>
       </div>
-
-      <div className="text-sm text-slate-500">
-        Showing {filteredStudents.length} of {students.length} students
-      </div>
-    </div>
   );
 };
 

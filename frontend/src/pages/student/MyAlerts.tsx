@@ -6,9 +6,13 @@ interface Course {
 }
 
 const MyAlerts = () => {
-    const courses: Course[] = JSON.parse(
-        localStorage.getItem('courses') || '[]'
-    );
+    const courses: Course[] = (() => {
+        try {
+            return JSON.parse(localStorage.getItem('courses') || '[]');
+        } catch {
+            return [];
+        }
+    })();
 
     const totalCredits = courses.reduce(
         (sum, c) => sum + c.credits,
@@ -23,38 +27,38 @@ const MyAlerts = () => {
     const gpa =
         totalCredits === 0 ? 0 : totalScore / totalCredits;
 
-    /* ===== ALERT LOGIC ===== */
-    const alerts: string[] = [];
+    /* ===== ALERT LOGIC (FIX) ===== */
+    const alerts: { text: string; className: string }[] = [];
 
     if (gpa < 5) {
-        alerts.push(
-            `⚠️ At risk: you need ${(5 - gpa).toFixed(
+        alerts.push({
+            text: `⚠️ At risk: you need ${(5 - gpa).toFixed(
                 2
-            )} more GPA to reach Average.`
-        );
+            )} more GPA to reach Average.`,
+            className: 'bg-red-50 text-red-700',
+        });
+    } else if (gpa < 6.5) {
+        alerts.push({
+            text: `📈 To reach Good, you need ${(6.5 - gpa).toFixed(
+                2
+            )} more GPA.`,
+            className: 'bg-yellow-50 text-yellow-800',
+        });
+    } else if (gpa < 8) {
+        alerts.push({
+            text: `🏆 To reach Excellent, you need ${(8 - gpa).toFixed(
+                2
+            )} more GPA.`,
+            className: 'bg-blue-50 text-blue-800',
+        });
     }
 
-    if (gpa < 6.5) {
-        alerts.push(
-            `📈 To reach Good, you need ${(6.5 - gpa).toFixed(
-                2
-            )} more GPA.`
-        );
-    }
-
-    if (gpa < 8) {
-        alerts.push(
-            `🏆 To reach Excellent, you need ${(8 - gpa).toFixed(
-                2
-            )} more GPA.`
-        );
-    }
     return (
         <div className="space-y-6">
             <h2 className="text-xl font-semibold">My Alerts</h2>
 
             {alerts.length === 0 ? (
-                <div className="card text-green-600 font-medium">
+                <div className="card bg-green-50 text-green-700 font-medium">
                     🎉 Excellent performance! Keep it up!
                 </div>
             ) : (
@@ -62,9 +66,9 @@ const MyAlerts = () => {
                     {alerts.map((alert, index) => (
                         <div
                             key={index}
-                            className="card bg-yellow-50 text-yellow-800"
+                            className={`card ${alert.className}`}
                         >
-                            {alert}
+                            {alert.text}
                         </div>
                     ))}
                 </div>

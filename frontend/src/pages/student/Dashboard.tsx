@@ -1,3 +1,4 @@
+import React from 'react';
 import {
     BarChart,
     Bar,
@@ -21,40 +22,61 @@ interface Course {
 }
 
 /* ===== HELPERS ===== */
-const getStatus = (gpa: number) => {
+const getStatus = (gpa: number): string => {
     if (gpa >= 8) return 'Excellent';
     if (gpa >= 7) return 'Good';
     if (gpa >= 5.5) return 'Average';
     return 'At Risk';
 };
 
-const Dashboard = () => {
-    /* ===== LOAD DATA FROM LOCALSTORAGE ===== */
-    const courses: Course[] = JSON.parse(
-        localStorage.getItem('courses') || '[]'
-    );
+const getStatusColor = (status: string): string => {
+    switch (status) {
+        case 'Excellent':
+            return 'text-green-600';
+        case 'Good':
+            return 'text-blue-600';
+        case 'Average':
+            return 'text-yellow-600';
+        default:
+            return 'text-red-600';
+    }
+};
+
+const Dashboard: React.FC = () => {
+    /* ===== LOAD DATA SAFELY ===== */
+    let courses: Course[] = [];
+
+    try {
+        const raw = localStorage.getItem('courses');
+        courses = raw ? JSON.parse(raw) : [];
+    } catch {
+        courses = [];
+    }
 
     /* ===== GPA BY YEAR ===== */
-    const yearMap: Record<
-        number,
-        { credits: number; points: number }
-    > = {};
+    const yearMap: Record<number, { credits: number; points: number }> = {};
 
-    courses.forEach(c => {
-        if (!yearMap[c.year]) {
-            yearMap[c.year] = {credits: 0, points: 0};
+    courses.forEach(course => {
+        if (!yearMap[course.year]) {
+            yearMap[course.year] = { credits: 0, points: 0 };
         }
-        yearMap[c.year].credits += c.credits;
-        yearMap[c.year].points += c.score * c.credits;
+
+        yearMap[course.year].credits += course.credits;
+        yearMap[course.year].points += course.score * course.credits;
     });
 
-    const gpaByYear = Object.keys(yearMap).map(year => ({
-        year: `Year ${year}`,
-        gpa: +(
-            yearMap[+year].points /
-            yearMap[+year].credits
-        ).toFixed(2),
-    }));
+    const gpaByYear = Object.keys(yearMap).map(year => {
+        const y = Number(year);
+        const data = yearMap[y];
+
+        return {
+            year: `Year ${y}`,
+            gpa:
+                data.credits === 0
+                    ? 0
+                    : Number((data.points / data.credits).toFixed(2)),
+        };
+    });
 
     /* ===== OVERALL GPA ===== */
     const totalCredits = courses.reduce(
@@ -74,7 +96,7 @@ const Dashboard = () => {
     const TOTAL_CREDITS = 120;
 
     const creditData = [
-        {name: 'Completed', value: totalCredits},
+        { name: 'Completed', value: totalCredits },
         {
             name: 'Remaining',
             value: Math.max(TOTAL_CREDITS - totalCredits, 0),
@@ -105,15 +127,9 @@ const Dashboard = () => {
                 <div className="card text-center">
                     <p className="text-gray-500">Academic Status</p>
                     <p
-                        className={`text-xl font-semibold ${
-                            status === 'Excellent'
-                                ? 'text-green-600'
-                                : status === 'Good'
-                                    ? 'text-blue-600'
-                                    : status === 'Average'
-                                        ? 'text-yellow-600'
-                                        : 'text-red-600'
-                        }`}
+                        className={`text-xl font-semibold ${getStatusColor(
+                            status
+                        )}`}
                     >
                         {status}
                     </p>
@@ -137,10 +153,10 @@ const Dashboard = () => {
                         <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={gpaByYear}>
-                                    <XAxis dataKey="year"/>
-                                    <YAxis domain={[0, 10]}/>
-                                    <Tooltip/>
-                                    <Bar dataKey="gpa" fill="#3b82f6"/>
+                                    <XAxis dataKey="year" />
+                                    <YAxis domain={[0, 10]} />
+                                    <Tooltip />
+                                    <Bar dataKey="gpa" fill="#3b82f6" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -162,8 +178,8 @@ const Dashboard = () => {
                                     innerRadius={60}
                                     outerRadius={90}
                                 >
-                                    <Cell fill="#22c55e"/>
-                                    <Cell fill="#e5e7eb"/>
+                                    <Cell fill="#22c55e" />
+                                    <Cell fill="#e5e7eb" />
                                 </Pie>
                             </PieChart>
                         </ResponsiveContainer>
@@ -183,4 +199,5 @@ const Dashboard = () => {
         </div>
     );
 };
+
 export default Dashboard;
