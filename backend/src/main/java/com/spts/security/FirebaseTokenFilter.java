@@ -32,13 +32,16 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
 
     private final FirebaseAuth firebaseAuth;
     private final FirebaseConfig firebaseConfig;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Autowired
     public FirebaseTokenFilter(
             @Autowired(required = false) FirebaseAuth firebaseAuth,
-            FirebaseConfig firebaseConfig) {
+            FirebaseConfig firebaseConfig,
+            CustomUserDetailsService customUserDetailsService) {
         this.firebaseAuth = firebaseAuth;
         this.firebaseConfig = firebaseConfig;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     @Override
@@ -63,11 +66,18 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
                 String uid = decodedToken.getUid();
                 String email = decodedToken.getEmail();
 
+                logger.debug("Firebase token verified for uid: {}, email: {}", uid, email);
+
+                // Load user from database with actual role
+                org.springframework.security.core.userdetails.UserDetails userDetails = customUserDetailsService.loadUserByFirebaseToken(decodedToken);
+
+                logger.debug("User loaded with authorities: {}", userDetails.getAuthorities());
+
                 // Create authentication token with Firebase UID as principal
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        uid,
+                        userDetails.getUsername(),
                         null,
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                        userDetails.getAuthorities()
                 );
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -80,6 +90,9 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
 
             } catch (FirebaseAuthException e) {
                 logger.warn("Invalid Firebase token: {}", e.getMessage());
+                // Don't set authentication - request will be rejected by security config
+            } catch (Exception e) {
+                logger.error("Error loading user from database: {}", e.getMessage(), e);
                 // Don't set authentication - request will be rejected by security config
             }
         }
