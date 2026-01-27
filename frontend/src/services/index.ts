@@ -3,3 +3,5 @@ export { studentService } from './student.service';
 export { courseService } from './course.service';
 export { enrollmentService } from './enrollmentService';
 export { alertService } from './alert.service';
+export { courseOfferingService } from './courseOffering.service';
+
