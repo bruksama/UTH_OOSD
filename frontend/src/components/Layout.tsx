@@ -1,4 +1,5 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Main layout component with navigation sidebar
@@ -7,9 +8,10 @@ import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  // Get user role from localStorage
-  const userRole = localStorage.getItem('userRole') || 'student';
+  // Get user role from auth context
+  const userRole = user?.role || 'student';
 
   // Admin navigation items
   const adminNavItems = [
@@ -59,10 +61,17 @@ const Layout = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch {
+      // Error is handled by AuthContext
+    }
   };
+
+  // Get display name from user
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -121,14 +130,7 @@ const Layout = () => {
                 {userRole}
               </span>
               <span className="text-sm text-slate-600">
-                {(() => {
-                  try {
-                    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                    return user.firstName ? `${user.firstName} ${user.lastName}` : user.username || 'User';
-                  } catch {
-                    return 'User';
-                  }
-                })()}
+                {displayName}
               </span>
             </div>
 

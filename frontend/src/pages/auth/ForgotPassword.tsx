@@ -1,131 +1,90 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { resetPassword } from '../../services/auth.service';
+import { getFirebaseErrorMessage } from '../../utils/firebaseErrors';
 
 export default function ForgotPassword() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const [username, setUsername] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-    const handleReset = () => {
-        if (!username || !newPassword || !confirmPassword) {
-            alert('Please fill in all fields');
-            return;
-        }
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
 
-        if (newPassword !== confirmPassword) {
-            alert('Passwords do not match');
-            return;
-        }
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
 
-        // ✅ LẤY USER TỪ localStorage
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    setIsLoading(true);
 
-        if (!storedUser.username) {
-            alert('No user found. Please register first');
-            return;
-        }
+    try {
+      await resetPassword(email);
+      setSuccess('Password reset email sent! Check your inbox for instructions.');
+      setEmail('');
+    } catch (err: any) {
+      const message = getFirebaseErrorMessage(err.code);
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        if (storedUser.username !== username) {
-            alert('Username not found');
-            return;
-        }
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <form
+        onSubmit={handleReset}
+        className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg"
+      >
+        <h2 className="text-2xl font-bold text-center mb-2">Reset Password</h2>
+        <p className="text-slate-600 text-center text-sm mb-6">
+          Enter your email address and we'll send you a link to reset your password.
+        </p>
 
-        // ✅ CẬP NHẬT MẬT KHẨU
-        localStorage.setItem(
-            'user',
-            JSON.stringify({ username, password: newPassword })
-        );
+        {error && (
+          <div className="p-3 mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm text-center">
+            {error}
+          </div>
+        )}
 
-        alert('Password reset successful');
-        navigate('/login');
-    };
+        {success && (
+          <div className="p-3 mb-4 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm text-center">
+            {success}
+          </div>
+        )}
 
-    return (
-        <div style={styles.container}>
-            <div style={styles.card}>
-                <h2 style={styles.title}>Reset Password</h2>
+        <div className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            required
+            disabled={isLoading}
+          />
 
-                <input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    style={styles.input}
-                />
-
-                <input
-                    type="password"
-                    placeholder="New password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    style={styles.input}
-                />
-
-                <input
-                    type="password"
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    style={styles.input}
-                />
-
-                <button onClick={handleReset} style={styles.button}>
-                    Confirm
-                </button>
-
-                <p style={styles.back} onClick={() => navigate('/login')}>
-                    Back to login
-                </p>
-            </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? 'Sending...' : 'Send Reset Link'}
+          </button>
         </div>
-    );
-}
 
-/* ===== Styles (GIỮ NGUYÊN) ===== */
-const styles: any = {
-    container: {
-        height: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: '#f3f4f6',
-    },
-    card: {
-        width: 380,
-        padding: 30,
-        borderRadius: 10,
-        background: '#fff',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-    },
-    title: {
-        textAlign: 'center',
-        marginBottom: 20,
-    },
-    input: {
-        width: '100%',
-        padding: 12,
-        marginBottom: 15,
-        borderRadius: 6,
-        border: '1px solid #ddd',
-        fontSize: 16,
-    },
-    button: {
-        width: '100%',
-        padding: 12,
-        background: '#2563eb',
-        color: '#fff',
-        border: 'none',
-        borderRadius: 6,
-        fontSize: 16,
-        cursor: 'pointer',
-    },
-    back: {
-        marginTop: 15,
-        textAlign: 'center',
-        color: '#2563eb',
-        cursor: 'pointer',
-        fontSize: 14,
-    },
-};
+        <p
+          className="mt-6 text-center text-sm text-primary-600 hover:underline cursor-pointer"
+          onClick={() => navigate('/login')}
+        >
+          Back to login
+        </p>
+      </form>
+    </div>
+  );
+}

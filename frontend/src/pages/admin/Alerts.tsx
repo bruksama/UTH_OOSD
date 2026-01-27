@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getAlertLevelColor } from '../../utils/helpers';
 import { alertService } from '../../services';
-import { AlertDTO, AlertLevel, AlertType } from '../../types';
+import { AlertDTO, AlertLevel } from '../../types';
 
 /**
  * Alerts page component
@@ -202,85 +201,6 @@ const Alerts = () => {
       </div>
     </div>
   );
-};
-
-// Alert Card Component
-interface AlertCardProps {
-  alert: AlertDTO;
-}
-
-const AlertCard = ({ alert }: AlertCardProps) => {
-  return (
-    <div
-      className={`card ${alert.isResolved ? 'opacity-60' : ''} 
-                  ${!alert.isRead ? 'border-l-4 border-l-primary-500' : ''}`}
-    >
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <span className={getAlertLevelColor(alert.level)}>
-              {alert.level}
-            </span>
-            <span className="badge bg-slate-100 text-slate-600">
-              {formatAlertType(alert.type)}
-            </span>
-            {alert.isResolved && (
-              <span className="badge bg-green-100 text-green-700">Resolved</span>
-            )}
-            {!alert.isRead && (
-              <span className="badge bg-primary-100 text-primary-700">New</span>
-            )}
-          </div>
-
-          <h3 className="font-semibold text-slate-900 mb-1">{alert.studentName}</h3>
-          <p className="text-slate-600">{alert.message}</p>
-
-          <div className="flex items-center gap-4 mt-3 text-sm text-slate-500">
-            alert.createdAt
-            {alert.isResolved && alert.resolvedBy && (
-              <span>Resolved by: {alert.resolvedBy}</span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          {!alert.isResolved && (
-            <>
-              <button className="btn-secondary text-sm">
-                View Student
-              </button>
-              <button className="btn-primary text-sm">
-                Resolve
-              </button>
-            </>
-          )}
-          {alert.isResolved && (
-            <button className="btn-secondary text-sm">
-              View Details
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Helper function
-const formatAlertType = (type: AlertType): string => {
-  switch (type) {
-    case AlertType.LOW_GPA:
-      return 'Low GPA';
-    case AlertType.GPA_DROP:
-      return 'GPA Drop';
-    case AlertType.STATUS_CHANGE:
-      return 'Status Change';
-    case AlertType.PROBATION:
-      return 'Probation';
-    case AlertType.IMPROVEMENT:
-      return 'Improvement';
-    default:
-      return type;
-  }
 };
 
 export default Alerts;

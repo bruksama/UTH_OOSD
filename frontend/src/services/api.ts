@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from '../config/firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
@@ -9,12 +10,36 @@ const api = axios.create({
   },
 });
 
-// Response interceptor for error handling
+// Request interceptor - attach Firebase ID token
+api.interceptors.request.use(
+  async (config) => {
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor - handle 401 errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Log error or show toast notification
-    console.error('API Error:', error.response?.data || error.message);
+  async (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid - sign out user
+      await auth.signOut();
+      window.location.href = '/login';
+    }
+
+    // Only log errors in development
+    if (import.meta.env.DEV) {
+      console.error('API Error:', error.response?.data || error.message);
+    }
+
     return Promise.reject(error);
   }
 );

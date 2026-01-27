@@ -27,7 +27,6 @@ const Students = () => {
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<StudentDTO | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -96,8 +95,7 @@ const Students = () => {
 
   const handleDelete = async () => {
     if (!studentToDelete) return;
-    
-    setDeleting(true);
+
     try {
       await studentService.delete(studentToDelete.id!);
       setStudents(students.filter(s => s.id !== studentToDelete.id));
@@ -106,8 +104,6 @@ const Students = () => {
     } catch (err) {
       console.error('Error deleting student:', err);
       alert('Failed to delete student');
-    } finally {
-      setDeleting(false);
     }
   };
 

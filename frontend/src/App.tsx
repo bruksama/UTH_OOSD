@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { initializeMockAccounts } from './utils/mockAuth';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -21,60 +21,80 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 
-function App() {
-    const [isAuthenticated, setIsAuthenticated] = useState(
-        localStorage.getItem('isAuthenticated') === 'true'
-    );
+// Component for smart default redirect based on user role
+function DefaultRedirect() {
+  const { user, isAuthenticated, isLoading } = useAuth();
 
-    useEffect(() => {
-        // Initialize mock test accounts on app startup
-        initializeMockAccounts();
-    }, []);
-
+  if (isLoading) {
     return (
-        <Router>
-            <Routes>
-
-                {/* ===== AUTH ===== */}
-                <Route
-                    path="/login"
-                    element={<Login setIsAuthenticated={setIsAuthenticated} />}
-                />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-
-                {/* ===== PROTECTED AREA ===== */}
-                <Route
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <Layout />
-                        </ProtectedRoute>
-                    }
-                >
-                    {/* ===== ADMIN ===== */}
-                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                    <Route path="/admin/students" element={<Students />} />
-                    <Route path="/admin/courses" element={<Courses />} />
-                    <Route path="/admin/alerts" element={<Alerts />} />
-
-                    {/* ===== STUDENT ===== */}
-                    <Route path="/student/dashboard" element={<StudentDashboard />} />
-                    <Route path="/student/alerts" element={<StudentAlerts />} />
-                    <Route path="/student/grades" element={<MyGrades />} />
-
-                    {/* ===== FIX TRANG TRẮNG /courses ===== */}
-                    <Route path="/courses" element={<Navigate to="/admin/courses" />} />
-
-                    {/* ===== DEFAULT ===== */}
-                    <Route path="/" element={<Navigate to="/login" />} />
-                </Route>
-
-                {/* ===== FALLBACK (URL SAI) ===== */}
-                <Route path="*" element={<Navigate to="/login" />} />
-
-            </Routes>
-        </Router>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
     );
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/student/dashboard'} replace />;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* ===== AUTH ===== */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+
+      {/* ===== ADMIN ROUTES ===== */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/students" element={<Students />} />
+        <Route path="/admin/courses" element={<Courses />} />
+        <Route path="/admin/alerts" element={<Alerts />} />
+      </Route>
+
+      {/* ===== STUDENT ROUTES ===== */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/alerts" element={<StudentAlerts />} />
+        <Route path="/student/grades" element={<MyGrades />} />
+      </Route>
+
+      {/* ===== LEGACY REDIRECT ===== */}
+      <Route path="/courses" element={<Navigate to="/admin/courses" replace />} />
+
+      {/* ===== DEFAULT & FALLBACK ===== */}
+      <Route path="/" element={<DefaultRedirect />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
+  );
 }
 
 export default App;

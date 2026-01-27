@@ -70,6 +70,9 @@ export interface StudentDTO {
   gpa?: number;
   totalCredits?: number;
   status: StudentStatus;
+  phoneNumber?: string;
+  major?: string;
+  address?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -186,4 +189,36 @@ export interface StudentAcademicSummary {
   totalCreditsAttempted: number;
   creditCompletionRate: number;
   enrollments: EnrollmentDTO[];
+}
+
+// =====================
+// AUTH TYPES (Firebase)
+// =====================
+
+export type UserRole = 'admin' | 'student';
+
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  role: UserRole;
+  studentId?: number;
+}
+
+export interface AuthState {
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  confirmPassword: string;
 }
