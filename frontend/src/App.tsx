@@ -16,6 +16,7 @@ import StudentDashboard from './pages/student/Dashboard';
 import StudentAlerts from './pages/student/MyAlerts';
 import MyGrades from './pages/student/MyGrades';
 import MyCourses from './pages/student/MyCourses';
+import StudentProfile from './pages/student/StudentProfile';
 
 // ===== AUTH PAGES =====
 import Login from './pages/auth/Login';
@@ -75,6 +76,7 @@ function AppRoutes() {
         <Route path="/student/courses" element={<MyCourses />} />
         <Route path="/student/grades" element={<MyGrades />} />
         <Route path="/student/alerts" element={<StudentAlerts />} />
+        <Route path="/student/profile" element={<StudentProfile />} />
       </Route>
 
       {/* ===== LEGACY REDIRECT ===== */}
