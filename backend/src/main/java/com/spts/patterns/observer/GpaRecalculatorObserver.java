@@ -34,10 +34,14 @@ public class GpaRecalculatorObserver implements IGradeObserver {
                 student.getStudentId(), enrollment.getId());
         
         // Log grade entry details
-        logger.debug("Grade entry updated: name={}, score={}, weight={}", 
-                gradeEntry.getName(),
-                gradeEntry.getScore(),
-                gradeEntry.getWeight());
+        if (gradeEntry != null) {
+            logger.debug("Grade entry updated: name={}, score={}, weight={}", 
+                    gradeEntry.getName(),
+                    gradeEntry.getScore(),
+                    gradeEntry.getWeight());
+        } else {
+            logger.debug("Enrollment final grade updated without specific entry");
+        }
 
         // Log course information
         if (enrollment.getCourseOffering() != null && enrollment.getCourseOffering().getCourse() != null) {
