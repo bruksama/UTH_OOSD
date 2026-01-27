@@ -5,10 +5,13 @@ import {
     Pie,
     Cell,
 } from 'recharts';
+import { Link } from 'react-router-dom';
 import { enrollmentService } from '../../services';
 import { EnrollmentDTO } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Dashboard = () => {
+    const { user } = useAuth();
     const [enrollments, setEnrollments] = useState<EnrollmentDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -16,23 +19,33 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Get student ID from current logged in user
-                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                const studentId = currentUser.studentId || 1;
-                const response = await enrollmentService.getByStudent(studentId);
-                setEnrollments(response.data);
+                // Get student ID from auth context (priority) or localStorage (fallback)
+                let studentId = user?.studentId;
+                if (!studentId) {
+                    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                    studentId = currentUser.studentId;
+                }
+
+                if (studentId) {
+                    const response = await enrollmentService.getByStudent(studentId);
+                    setEnrollments(response.data);
+                } else {
+                    setEnrollments([]);
+                }
             } catch (err) {
                 console.error('Error fetching enrollments:', err);
-                setError('Failed to load dashboard data');
+                // Don't show error for new students, just empty state
+                setEnrollments([]);
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, []);
+    }, [user]);
 
     // Calculate GPA from enrollments
-    const getStatus = (gpa: number) => {
+    const getStatus = (gpa: number, credits: number) => {
+        if (credits === 0) return 'Normal'; // New students start as Normal
         if (gpa >= 8) return 'Excellent';
         if (gpa >= 7) return 'Good';
         if (gpa >= 5.5) return 'Average';
@@ -49,16 +62,16 @@ const Dashboard = () => {
 
     const overallGpa = completedCredits === 0 ? 0 : totalPoints / completedCredits;
 
-
     const TOTAL_CREDITS = 120;
     const creditData = [
         { name: 'Completed', value: completedCredits },
         { name: 'Remaining', value: Math.max(TOTAL_CREDITS - completedCredits, 0) },
     ];
 
-    const status = getStatus(overallGpa);
+    const status = getStatus(overallGpa, completedCredits);
 
     if (loading) return <div className="text-center py-8">Loading...</div>;
+    // Error not shown to user to keep UI clean, fallback to empty state was handled.
     if (error) return <div className="text-red-500 py-8">{error}</div>;
 
     return (
@@ -84,7 +97,9 @@ const Dashboard = () => {
                                 ? 'text-blue-600'
                                 : status === 'Average'
                                     ? 'text-yellow-600'
-                                    : 'text-red-600'
+                                    : status === 'Normal'
+                                        ? 'text-slate-600'
+                                        : 'text-red-600'
                             }`}
                     >
                         {status}
@@ -121,7 +136,12 @@ const Dashboard = () => {
 
                 {/* ENROLLMENTS LIST */}
                 <div className="card">
-                    <h3 className="font-semibold mb-4">Recent Enrollments</h3>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-semibold">Recent Enrollments</h3>
+                        <Link to="/student/grades" className="text-sm text-primary-600 hover:text-primary-700 font-medium hover:underline">
+                            View All
+                        </Link>
+                    </div>
                     {enrollments.length === 0 ? (
                         <p className="text-gray-500 text-sm">No enrollments yet</p>
                     ) : (

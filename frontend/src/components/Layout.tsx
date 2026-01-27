@@ -133,21 +133,30 @@ const Layout = () => {
         </nav>
 
         {/* User Profile Snippet at Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 m-4 bg-slate-50 rounded-2xl border border-slate-100">
+        <Link
+          to={userRole === 'student' ? '/student/profile' : '#'}
+          className="absolute bottom-0 left-0 right-0 p-4 m-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-white hover:shadow-md hover:border-slate-200 transition-all cursor-pointer group"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border-2 border-white shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border-2 border-white shadow-sm group-hover:scale-105 transition-transform">
               {displayName.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">
+              <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-primary-700 transition-colors">
                 {displayName}
               </p>
               <p className="text-xs text-slate-500 capitalize">
                 {userRole}
               </p>
             </div>
+            {/* Edit Icon hint (only for students) */}
+            {userRole === 'student' && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </div>
+            )}
           </div>
-        </div>
+        </Link>
       </aside>
 
       <main className="flex-1 ml-72 min-h-screen">
@@ -156,7 +165,9 @@ const Layout = () => {
             <h2 className="text-xl font-bold text-slate-800">
               {navItems.find((item) => isActive(item.path))?.label || 'Dashboard'}
             </h2>
-            <p className="text-sm text-slate-500 mt-0.5">Welcome back, here's what's happening.</p>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Welcome back, <span className="font-medium text-slate-700">{displayName}</span>! Here's what's happening.
+            </p>
           </div>
 
           <div className="flex items-center gap-4">
