@@ -73,7 +73,6 @@ function Login({ setIsAuthenticated }: LoginProps) {
                 <button type="submit" style={styles.button}>
                     Login
                 </button>
-
                 <div style={styles.links}>
                     <span
                         style={styles.link}

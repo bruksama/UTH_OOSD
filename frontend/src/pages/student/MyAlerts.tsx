@@ -10,7 +10,9 @@ const MyAlerts = () => {
     useEffect(() => {
         const fetchAlerts = async () => {
             try {
-                const studentId = 1; // Get from auth/context
+                // Get student ID from current logged in user
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                const studentId = currentUser.studentId || 1;
                 const response = await alertService.getByStudent(studentId);
                 setAlerts(response.data);
             } catch (err) {
@@ -59,30 +61,29 @@ const MyAlerts = () => {
                     {unresolvedAlerts.map((alert) => (
                         <div
                             key={alert.id}
-                            className={`card p-4 border-l-4 ${
-                                alert.level === 'CRITICAL'
+                            className={`card p-4 border-l-4 ${alert.level === 'CRITICAL'
                                     ? 'border-red-500 bg-red-50'
                                     : alert.level === 'HIGH'
                                         ? 'border-orange-500 bg-orange-50'
                                         : 'border-yellow-500 bg-yellow-50'
-                            }`}
+                                }`}
                         >
                             <div className="flex justify-between items-start">
                                 <div className="flex-1">
-                                    <p className="font-semibold">{alert.title}</p>
+                                    <p className="font-semibold">{alert.type.replace('_', ' ')}</p>
                                     <p className="text-sm text-gray-600">{alert.message}</p>
                                 </div>
                                 <div className="flex gap-2 ml-4">
                                     {!alert.isRead && (
                                         <button
-                                            onClick={() => handleMarkAsRead(alert.id)}
+                                            onClick={() => handleMarkAsRead(alert.id!)}
                                             className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
                                         >
                                             Mark Read
                                         </button>
                                     )}
                                     <button
-                                        onClick={() => handleResolve(alert.id)}
+                                        onClick={() => handleResolve(alert.id!)}
                                         className="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
                                     >
                                         Resolve
