@@ -74,27 +74,41 @@ const Layout = () => {
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'User';
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 text-white">
-        <div className="flex items-center justify-center h-16 border-b border-slate-800">
-          <h1 className="text-xl font-bold tracking-tight">
-            <span className="text-primary-400">SPTS</span>
-          </h1>
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Sidebar */}
+      <aside className="fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-100 shadow-sm z-30 transition-all duration-300">
+        <div className="flex items-center justify-start h-20 px-8 border-b border-slate-50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30">
+              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              SPTS <span className="text-slate-400 font-medium text-sm ml-1">v2.0</span>
+            </h1>
+          </div>
         </div>
 
-        <nav className="mt-6 px-3">
-          <ul className="space-y-1">
+        <nav className="mt-8 px-4">
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 px-4">
+            Menu
+          </div>
+          <ul className="space-y-1.5">
             {navItems.map((item) => (
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${isActive(item.path)
-                    ? 'bg-primary-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  className={`flex items-center px-4 py-3.5 rounded-xl transition-all duration-200 group font-medium ${isActive(item.path)
+                    ? 'bg-primary-50 text-primary-700 shadow-sm'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                 >
                   <svg
-                    className="w-5 h-5 mr-3"
+                    className={`w-5 h-5 mr-3.5 transition-colors ${isActive(item.path)
+                      ? 'text-primary-600'
+                      : 'text-slate-400 group-hover:text-slate-600'
+                      }`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -112,38 +126,48 @@ const Layout = () => {
             ))}
           </ul>
         </nav>
+
+        {/* User Profile Snippet at Bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 m-4 bg-slate-50 rounded-2xl border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border-2 border-white shadow-sm">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900 truncate">
+                {displayName}
+              </p>
+              <p className="text-xs text-slate-500 capitalize">
+                {userRole}
+              </p>
+            </div>
+          </div>
+        </div>
       </aside>
 
-      <main className="ml-64 min-h-screen">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
-          <h2 className="text-lg font-semibold text-slate-800">
-            {navItems.find((item) => isActive(item.path))?.label || 'Dashboard'}
-          </h2>
+      <main className="flex-1 ml-72 min-h-screen">
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-20 flex items-center justify-between px-8 transition-all">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">
+              {navItems.find((item) => isActive(item.path))?.label || 'Dashboard'}
+            </h2>
+            <p className="text-sm text-slate-500 mt-0.5">Welcome back, here's what's happening.</p>
+          </div>
 
           <div className="flex items-center gap-4">
-            {/* User Info Badge */}
-            <div className="flex items-center gap-2">
-              <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${userRole === 'admin'
-                  ? 'bg-purple-100 text-purple-700'
-                  : 'bg-blue-100 text-blue-700'
-                }`}>
-                {userRole}
-              </span>
-              <span className="text-sm text-slate-600">
-                {displayName}
-              </span>
-            </div>
-
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              className="group flex items-center gap-2 px-4 py-2 rounded-xl text-slate-600 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
             >
-              Logout
+              <span className="text-sm font-medium">Sign Out</span>
+              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
           </div>
         </header>
 
-        <div className="p-6">
+        <div className="p-8 max-w-7xl mx-auto">
           <Outlet />
         </div>
       </main>

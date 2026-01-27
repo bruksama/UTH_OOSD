@@ -7,37 +7,37 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Custom color palette for SPTS
+        // Custom color palette for SPTS - "Academic Clarity" Theme
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
-          950: '#082f49',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',  // Indigo-500
+          600: '#4f46e5',  // Indigo-600 (Main Brand)
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
+          950: '#1e1b4b',
         },
-        // Status colors
+        // Status colors - Refined for better accessibility
         status: {
-          normal: '#10b981',     // Green
-          atRisk: '#f59e0b',     // Yellow/Orange
-          probation: '#ef4444', // Red
-          graduated: '#6366f1', // Indigo
+          normal: '#059669',     // Emerald-600
+          atRisk: '#d97706',     // Amber-600
+          probation: '#dc2626',  // Red-600
+          graduated: '#7c3aed',  // Violet-600
         },
         // Alert level colors
         alert: {
-          info: '#3b82f6',      // Blue
-          warning: '#f59e0b',   // Yellow
-          high: '#f97316',      // Orange
-          critical: '#ef4444', // Red
+          info: '#3b82f6',      // Blue-500
+          warning: '#f59e0b',   // Amber-500
+          high: '#f97316',      // Orange-500
+          critical: '#ef4444',  // Red-500
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
     },
