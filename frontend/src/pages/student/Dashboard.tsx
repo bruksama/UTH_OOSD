@@ -1,17 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    Tooltip,
     ResponsiveContainer,
     PieChart,
     Pie,
     Cell,
 } from 'recharts';
 import { enrollmentService } from '../../services';
-import { EnrollmentDTO, StudentDTO } from '../../types';
+import { EnrollmentDTO } from '../../types';
 
 const Dashboard = () => {
     const [enrollments, setEnrollments] = useState<EnrollmentDTO[]>([]);
@@ -21,8 +16,9 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Get student ID from auth or context - for now using a placeholder
-                const studentId = 1;
+                // Get student ID from current logged in user
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                const studentId = currentUser.studentId || 1;
                 const response = await enrollmentService.getByStudent(studentId);
                 setEnrollments(response.data);
             } catch (err) {
@@ -43,10 +39,10 @@ const Dashboard = () => {
         return 'At Risk';
     };
 
-    const totalCredits = enrollments.reduce((sum, e) => sum + (e.course?.credits || 0), 0);
-    const totalPoints = enrollments.reduce((sum, e) => sum + ((e.finalScore || 0) * (e.course?.credits || 0)), 0);
+    const totalCredits = enrollments.reduce((sum, e) => sum + (e.credits || 0), 0);
+    const totalPoints = enrollments.reduce((sum, e) => sum + ((e.finalScore || 0) * (e.credits || 0)), 0);
     const overallGpa = totalCredits === 0 ? 0 : totalPoints / totalCredits;
-    
+
     const TOTAL_CREDITS = 120;
     const creditData = [
         { name: 'Completed', value: totalCredits },
@@ -75,15 +71,14 @@ const Dashboard = () => {
                 <div className="card text-center">
                     <p className="text-gray-500">Academic Status</p>
                     <p
-                        className={`text-xl font-semibold ${
-                            status === 'Excellent'
-                                ? 'text-green-600'
-                                : status === 'Good'
-                                    ? 'text-blue-600'
-                                    : status === 'Average'
-                                        ? 'text-yellow-600'
-                                        : 'text-red-600'
-                        }`}
+                        className={`text-xl font-semibold ${status === 'Excellent'
+                            ? 'text-green-600'
+                            : status === 'Good'
+                                ? 'text-blue-600'
+                                : status === 'Average'
+                                    ? 'text-yellow-600'
+                                    : 'text-red-600'
+                            }`}
                     >
                         {status}
                     </p>
@@ -126,7 +121,7 @@ const Dashboard = () => {
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                             {enrollments.slice(0, 5).map((e) => (
                                 <div key={e.id} className="flex justify-between text-sm border-b pb-2">
-                                    <span>{e.course?.courseName}</span>
+                                    <span>{e.courseName}</span>
                                     <span className="font-semibold">{e.finalScore || 'N/A'}</span>
                                 </div>
                             ))}

@@ -10,7 +10,9 @@ const MyGrades = () => {
     useEffect(() => {
         const fetchGrades = async () => {
             try {
-                const studentId = 1; // Get from auth/context
+                // Get student ID from current logged in user
+                const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                const studentId = currentUser.studentId || 1;
                 const response = await enrollmentService.getByStudent(studentId);
                 setEnrollments(response.data);
             } catch (err) {
@@ -36,7 +38,7 @@ const MyGrades = () => {
     if (error) return <div className="text-red-500 py-8">{error}</div>;
 
     const completedEnrollments = enrollments.filter(e => e.finalScore);
-    const currentEnrollments = enrollments.filter(e => !e.finalScore && !e.isWithdrawn);
+    const currentEnrollments = enrollments.filter(e => !e.finalScore && e.status === 'IN_PROGRESS');
 
     return (
         <div className="space-y-6">
@@ -60,8 +62,8 @@ const MyGrades = () => {
                             <tbody>
                                 {completedEnrollments.map((e) => (
                                     <tr key={e.id} className="border-b hover:bg-gray-50">
-                                        <td className="py-2">{e.course?.courseName}</td>
-                                        <td className="text-center">{e.course?.credits}</td>
+                                        <td className="py-2">{e.courseName}</td>
+                                        <td className="text-center">{e.credits}</td>
                                         <td className="text-center">{e.finalScore?.toFixed(2)}</td>
                                         <td className="text-center font-semibold">{e.letterGrade || 'N/A'}</td>
                                     </tr>
@@ -86,11 +88,11 @@ const MyGrades = () => {
                                 className="flex justify-between items-center border rounded p-3 hover:bg-gray-50"
                             >
                                 <div>
-                                    <p className="font-semibold">{e.course?.courseName}</p>
-                                    <p className="text-sm text-gray-600">{e.course?.courseCode}</p>
+                                    <p className="font-semibold">{e.courseName}</p>
+                                    <p className="text-sm text-gray-600">{e.courseCode}</p>
                                 </div>
                                 <button
-                                    onClick={() => handleWithdraw(e.id)}
+                                    onClick={() => handleWithdraw(e.id!)}
                                     className="text-red-500 hover:text-red-700 text-sm"
                                 >
                                     Withdraw

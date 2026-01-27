@@ -1,7 +1,14 @@
 /**
  * Initialize mock test accounts in localStorage
  * This runs once on app startup to populate test data
+ * 
+ * SPTS has 2 roles:
+ * - Admin: Manages students, courses, alerts
+ * - Student: Views their own grades and alerts
  */
+
+const ACCOUNTS_VERSION = 2; // Increment this when accounts change
+
 export const initializeMockAccounts = () => {
   const testAccounts = [
     {
@@ -19,25 +26,18 @@ export const initializeMockAccounts = () => {
       password: 'student123',
       role: 'student',
       email: 'student@spts.edu',
-      firstName: 'John',
-      lastName: 'Doe',
-    },
-    {
-      id: 3,
-      username: 'teacher',
-      password: 'teacher123',
-      role: 'teacher',
-      email: 'teacher@spts.edu',
-      firstName: 'Jane',
-      lastName: 'Smith',
+      firstName: 'Nguyen',
+      lastName: 'Van A',
+      studentId: 1, // Maps to student id in database
     },
   ];
 
-  // Check if accounts already exist
-  const existingAccounts = localStorage.getItem('testAccounts');
-  if (!existingAccounts) {
+  // Check version to force update if accounts changed
+  const storedVersion = localStorage.getItem('testAccountsVersion');
+  if (storedVersion !== String(ACCOUNTS_VERSION)) {
     localStorage.setItem('testAccounts', JSON.stringify(testAccounts));
-    console.log('✅ Test accounts initialized');
+    localStorage.setItem('testAccountsVersion', String(ACCOUNTS_VERSION));
+    console.log('✅ Test accounts updated to version', ACCOUNTS_VERSION);
   }
 };
 
