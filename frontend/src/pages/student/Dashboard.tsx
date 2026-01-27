@@ -39,14 +39,21 @@ const Dashboard = () => {
         return 'At Risk';
     };
 
-    const totalCredits = enrollments.reduce((sum, e) => sum + (e.credits || 0), 0);
-    const totalPoints = enrollments.reduce((sum, e) => sum + ((e.finalScore || 0) * (e.credits || 0)), 0);
-    const overallGpa = totalCredits === 0 ? 0 : totalPoints / totalCredits;
+    // Calculate GPA ONLY from completed courses (with valid scores)
+    const gradedEnrollments = enrollments.filter(e => e.finalScore !== null && e.finalScore !== undefined);
+
+    // Total completed credits (for GPA calculation)
+    const completedCredits = gradedEnrollments.reduce((sum, e) => sum + (e.credits || 0), 0);
+    // Weighted sum of scores
+    const totalPoints = gradedEnrollments.reduce((sum, e) => sum + ((e.finalScore || 0) * (e.credits || 0)), 0);
+
+    const overallGpa = completedCredits === 0 ? 0 : totalPoints / completedCredits;
+
 
     const TOTAL_CREDITS = 120;
     const creditData = [
-        { name: 'Completed', value: totalCredits },
-        { name: 'Remaining', value: Math.max(TOTAL_CREDITS - totalCredits, 0) },
+        { name: 'Completed', value: completedCredits },
+        { name: 'Remaining', value: Math.max(TOTAL_CREDITS - completedCredits, 0) },
     ];
 
     const status = getStatus(overallGpa);
@@ -65,7 +72,7 @@ const Dashboard = () => {
 
                 <div className="card text-center">
                     <p className="text-gray-500">Credits Completed</p>
-                    <p className="text-3xl font-bold">{totalCredits}/{TOTAL_CREDITS}</p>
+                    <p className="text-3xl font-bold">{completedCredits}/{TOTAL_CREDITS}</p>
                 </div>
 
                 <div className="card text-center">
@@ -106,7 +113,7 @@ const Dashboard = () => {
                         </ResponsiveContainer>
 
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <p className="text-2xl font-bold">{totalCredits}/{TOTAL_CREDITS}</p>
+                            <p className="text-2xl font-bold">{completedCredits}/{TOTAL_CREDITS}</p>
                             <p className="text-sm text-gray-500">Credits Completed</p>
                         </div>
                     </div>
@@ -122,7 +129,7 @@ const Dashboard = () => {
                             {enrollments.slice(0, 5).map((e) => (
                                 <div key={e.id} className="flex justify-between text-sm border-b pb-2">
                                     <span>{e.courseName}</span>
-                                    <span className="font-semibold">{e.finalScore || 'N/A'}</span>
+                                    <span className="font-semibold">{e.finalScore !== null && e.finalScore !== undefined ? e.finalScore : 'N/A'}</span>
                                 </div>
                             ))}
                         </div>
