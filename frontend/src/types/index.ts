@@ -187,3 +187,5 @@ export interface StudentAcademicSummary {
   creditCompletionRate: number;
   enrollments: EnrollmentDTO[];
 }
+
+

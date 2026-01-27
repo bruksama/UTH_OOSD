@@ -11,7 +11,7 @@ const MyGrades = () => {
         const fetchGrades = async () => {
             try {
                 const studentId = 1; // Get from auth/context
-                const response = await enrollmentService.getByStudent(studentId);
+                const response = await enrollmentService.getByStudent(studentId as number);
                 setEnrollments(response.data);
             } catch (err) {
                 console.error('Error fetching grades:', err);
@@ -36,7 +36,7 @@ const MyGrades = () => {
     if (error) return <div className="text-red-500 py-8">{error}</div>;
 
     const completedEnrollments = enrollments.filter(e => e.finalScore);
-    const currentEnrollments = enrollments.filter(e => !e.finalScore && !e.isWithdrawn);
+    const currentEnrollments = enrollments.filter(e => !e.finalScore && e.status !== 'WITHDRAWN');
 
     return (
         <div className="space-y-6">
@@ -50,22 +50,22 @@ const MyGrades = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-2">Course</th>
-                                    <th className="text-center">Credits</th>
-                                    <th className="text-center">Score</th>
-                                    <th className="text-center">Grade</th>
-                                </tr>
+                            <tr className="border-b">
+                                <th className="text-left py-2">Course</th>
+                                <th className="text-center">Credits</th>
+                                <th className="text-center">Score</th>
+                                <th className="text-center">Grade</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                {completedEnrollments.map((e) => (
-                                    <tr key={e.id} className="border-b hover:bg-gray-50">
-                                        <td className="py-2">{e.course?.courseName}</td>
-                                        <td className="text-center">{e.course?.credits}</td>
-                                        <td className="text-center">{e.finalScore?.toFixed(2)}</td>
-                                        <td className="text-center font-semibold">{e.letterGrade || 'N/A'}</td>
-                                    </tr>
-                                ))}
+                            {completedEnrollments.map((e) => (
+                                <tr key={e.id} className="border-b hover:bg-gray-50">
+                                    <td className="py-2">{e.courseName}</td>
+                                    <td className="text-center">{e.credits}</td>
+                                    <td className="text-center">{e.finalScore?.toFixed(2)}</td>
+                                    <td className="text-center font-semibold">{e.letterGrade || 'N/A'}</td>
+                                </tr>
+                            ))}
                             </tbody>
                         </table>
                     </div>
@@ -86,11 +86,11 @@ const MyGrades = () => {
                                 className="flex justify-between items-center border rounded p-3 hover:bg-gray-50"
                             >
                                 <div>
-                                    <p className="font-semibold">{e.course?.courseName}</p>
-                                    <p className="text-sm text-gray-600">{e.course?.courseCode}</p>
+                                    <p className="font-semibold">{e.courseName}</p>
+                                    <p className="text-sm text-gray-600">{e.courseCode}</p>
                                 </div>
                                 <button
-                                    onClick={() => handleWithdraw(e.id)}
+                                    onClick={() => handleWithdraw(e.id!)}
                                     className="text-red-500 hover:text-red-700 text-sm"
                                 >
                                     Withdraw
@@ -105,3 +105,5 @@ const MyGrades = () => {
 };
 
 export default MyGrades;
+
+

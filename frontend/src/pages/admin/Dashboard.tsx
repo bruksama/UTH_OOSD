@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -14,7 +14,7 @@ import {
 
 import { getAlertLevelColor, getStatusColor } from '../../utils/helpers';
 import { studentService, alertService } from '../../services';
-import { StudentDTO, AlertDTO, StudentStatus, DashboardStats, GpaTrendData } from '../../types';
+import { StudentDTO, AlertDTO, StudentStatus, DashboardStats } from '../../types';
 
 /* ===== STAT CARD ===== */
 interface StatCardProps {
@@ -61,12 +61,13 @@ const AdminDashboard = () => {
 
   const recentAlerts = alerts.slice(0, 3);
 
-  // Mock GPA trend for now (could be fetched from backend later)
-  const gpaTrend: GpaTrendData[] = [
-    { semester: 'Fall 2023', gpa: 2.8 },
-    { semester: 'Spring 2024', gpa: 2.9 },
-    { semester: 'Fall 2024', gpa: 3.1 },
-    { semester: 'Spring 2025', gpa: 3.0 },
+  // Calculate GPA distribution from real student data
+  const gpaDistribution = [
+    { range: '3.5-4.0', count: students.filter(s => (s.gpa || 0) >= 3.5).length },
+    { range: '3.0-3.5', count: students.filter(s => (s.gpa || 0) >= 3.0 && (s.gpa || 0) < 3.5).length },
+    { range: '2.5-3.0', count: students.filter(s => (s.gpa || 0) >= 2.5 && (s.gpa || 0) < 3.0).length },
+    { range: '2.0-2.5', count: students.filter(s => (s.gpa || 0) >= 2.0 && (s.gpa || 0) < 2.5).length },
+    { range: '<2.0', count: students.filter(s => (s.gpa || 0) < 2.0).length },
   ];
 
   /* ===== CREDIT PROGRESS ===== */
@@ -102,26 +103,25 @@ const AdminDashboard = () => {
       {/* ===== CHARTS ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* GPA LINE CHART */}
+        {/* GPA DISTRIBUTION BAR CHART */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4">
-            GPA Trend (Average)
+            GPA Distribution
           </h3>
 
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={gpaTrend}>
+              <BarChart data={gpaDistribution}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="semester" />
-                <YAxis domain={[0, 4]} />
+                <XAxis dataKey="range" />
+                <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="gpa"
-                  stroke="#0ea5e9"
-                  strokeWidth={3}
+                <Bar
+                  dataKey="count"
+                  fill="#0ea5e9"
+                  radius={[4, 4, 0, 0]}
                 />
-              </LineChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

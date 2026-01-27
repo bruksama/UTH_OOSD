@@ -33,12 +33,9 @@ export const initializeMockAccounts = () => {
     },
   ];
 
-  // Check if accounts already exist
-  const existingAccounts = localStorage.getItem('testAccounts');
-  if (!existingAccounts) {
-    localStorage.setItem('testAccounts', JSON.stringify(testAccounts));
-    console.log('✅ Test accounts initialized');
-  }
+  // Always initialize test accounts (overwrite if corrupted)
+  localStorage.setItem('testAccounts', JSON.stringify(testAccounts));
+  console.log('✅ Test accounts initialized');
 };
 
 /**
@@ -55,7 +52,9 @@ export const getTestAccounts = () => {
 export const authenticateUser = (username: string, password: string) => {
   const accounts = getTestAccounts();
   const user = accounts.find(
-    (acc: any) => acc.username === username && acc.password === password
+      (acc: any) => acc.username === username && acc.password === password
   );
   return user || null;
 };
+
+
