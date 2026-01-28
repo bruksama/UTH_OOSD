@@ -86,6 +86,10 @@ public class GradeEntry {
     @NotNull(message = "Entry type is required")
     private GradeEntryType entryType = GradeEntryType.COMPONENT;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = true, columnDefinition = "varchar(255) default 'APPROVED'")
+    private ApprovalStatus status = ApprovalStatus.APPROVED;
+
     @Column(name = "recorded_by", length = 100)
     private String recordedBy;
 
@@ -197,6 +201,14 @@ public class GradeEntry {
 
     public void setEntryType(GradeEntryType entryType) {
         this.entryType = entryType;
+    }
+
+    public ApprovalStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ApprovalStatus status) {
+        this.status = status;
     }
 
     public String getRecordedBy() {

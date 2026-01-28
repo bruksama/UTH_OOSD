@@ -29,6 +29,8 @@ public class CourseDTO {
 
     private String department;
     private GradingType gradingType;
+    private com.spts.entity.ApprovalStatus status;
+    private String creatorEmail;
 
     // Constructors
     public CourseDTO() {
@@ -95,5 +97,21 @@ public class CourseDTO {
 
     public void setGradingType(GradingType gradingType) {
         this.gradingType = gradingType;
+    }
+
+    public com.spts.entity.ApprovalStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(com.spts.entity.ApprovalStatus status) {
+        this.status = status;
+    }
+
+    public String getCreatorEmail() {
+        return creatorEmail;
+    }
+
+    public void setCreatorEmail(String creatorEmail) {
+        this.creatorEmail = creatorEmail;
     }
 }
