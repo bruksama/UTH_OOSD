@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getStatusColor, getStudentFullName } from '../../utils/helpers';
+import { getStudentFullName, getStatusDisplay } from '../../utils/helpers';
 import { studentService } from '../../services';
 import { StudentDTO, StudentStatus } from '../../types';
 import StudentModal from '../../components/StudentModal';
@@ -17,13 +17,13 @@ const Students = () => {
   const [statusFilter, setStatusFilter] = useState<StudentStatus | 'ALL'>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedStudent, setSelectedStudent] = useState<StudentDTO | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<StudentDTO | null>(null);
@@ -185,9 +185,10 @@ const Students = () => {
                     {student.totalCredits}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className={getStatusColor(student.status)}>
-                      {student.status}
-                    </span>
+                    {(() => {
+                      const { label, color } = getStatusDisplay(student);
+                      return <span className={color}>{label}</span>;
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex gap-2 justify-center">

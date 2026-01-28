@@ -12,7 +12,7 @@ import {
   Cell,
 } from 'recharts';
 
-import { getAlertLevelColor, getStatusColor } from '../../utils/helpers';
+import { getAlertLevelColor, getStatusColor, getStatusDisplay } from '../../utils/helpers';
 import { studentService, alertService, courseService } from '../../services';
 import { StudentDTO, AlertDTO, StudentStatus, DashboardStats, CourseDTO, ApprovalStatus } from '../../types';
 
@@ -52,18 +52,22 @@ const AdminDashboard = () => {
   }, []);
 
   // Calculate stats from real data
+  // Calculate stats from real data
   const stats: DashboardStats = {
     totalStudents: students.length,
     atRiskCount: students.filter(s => s.status === StudentStatus.AT_RISK).length,
-    probationCount: students.filter(s => s.status === StudentStatus.PROBATION).length,
+    probationCount: students.filter(s => s.status === StudentStatus.PROBATION).length, // Kept for internal logic if needed
     averageGpa: students.length > 0
       ? students.reduce((sum, s) => sum + (s.gpa || 0), 0) / students.length
       : 0,
-    activeAlerts: alerts.length,
+    activeAlerts: alerts.filter(a => !a.isResolved).length, // Only count unresolved alerts
     pendingCourses: courses.filter(c => c.status === ApprovalStatus.PENDING).length,
   };
 
-  const recentAlerts = alerts.slice(0, 3);
+  // Get 3 most recent alerts (sort by created date desc)
+  const recentAlerts = [...alerts]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3);
 
   // Calculate GPA distribution from real student data
   const gpaDistribution = [
@@ -74,16 +78,40 @@ const AdminDashboard = () => {
     { range: '<2.0', count: students.filter(s => (s.gpa || 0) < 2.0).length },
   ];
 
-  /* ===== CREDIT PROGRESS ===== */
-  const TOTAL_CREDITS = 120;
-  const completedCredits = students.length > 0
-    ? Math.round(students.reduce((sum, s) => sum + (s.totalCredits || 0), 0) / students.length)
-    : 0;
+  /* ===== STUDENT STATUS DISTRIBUTION ===== */
+  // Group students by their detailed status (including Academic Classification)
+  const statusCounts = students.reduce((acc, student) => {
+    const { label } = getStatusDisplay(student);
+    if (!acc[label]) {
+      acc[label] = { count: 0, label };
+    }
+    acc[label].count++;
+    return acc;
+  }, {} as Record<string, { count: number, label: string }>);
 
-  const creditProgress = [
-    { name: 'Completed', value: completedCredits },
-    { name: 'Remaining', value: TOTAL_CREDITS - completedCredits },
-  ];
+  // Map labels to Chart Colors
+  const getChartColor = (label: string): string => {
+    switch (label) {
+      case 'Excellent': return '#a855f7'; // Purple
+      case 'Very Good': return '#10b981'; // Emerald
+      case 'Good': return '#3b82f6';      // Blue
+      case 'Average': return '#eab308';   // Yellow
+      case 'Weak': return '#f43f5e';      // Rose
+      case 'Graduated': return '#06b6d4'; // Cyan
+      case 'Probation': return '#f97316'; // Orange
+      case 'At Risk': return '#dc2626';   // Red
+      default: return '#94a3b8';          // Slate (New Student)
+    }
+  };
+
+  const statusDistribution = Object.values(statusCounts)
+    .map(item => ({
+      name: item.label,
+      value: item.count,
+      color: getChartColor(item.label)
+    }))
+    .sort((a, b) => b.value - a.value); // Sort by count desc
+
 
   if (loading) {
     return (
@@ -130,37 +158,39 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* CREDIT DONUT */}
+        {/* STATUS DISTRIBUTION DONUT */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4">
-            Credit Progress (120 Credits)
+            Student Status Distribution
           </h3>
 
           <div className="h-64 relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={creditProgress}
+                  data={statusDistribution}
                   dataKey="value"
+                  nameKey="name"
                   cx="50%"
                   cy="50%"
                   innerRadius={70}
                   outerRadius={95}
-                  startAngle={90}
-                  endAngle={-270}
+                  paddingAngle={5}
                 >
-                  <Cell fill="#22c55e" />
-                  <Cell fill="#e5e7eb" />
+                  {statusDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
                 </Pie>
+                <Tooltip />
               </PieChart>
             </ResponsiveContainer>
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <p className="text-2xl font-bold">
-                {completedCredits}/{TOTAL_CREDITS}
+                {students.length}
               </p>
               <p className="text-sm text-slate-500">
-                Credits Completed
+                Total Students
               </p>
             </div>
           </div>
