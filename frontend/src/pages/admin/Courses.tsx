@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { courseService } from '../../services';
-import { CourseDTO, GradingType } from '../../types';
+import { CourseDTO, GradingType, ApprovalStatus } from '../../types';
+import CourseProposalModal from '../../components/CourseProposalModal';
 
 /**
  * Courses list page component
@@ -12,21 +13,72 @@ const Courses = () => {
   const [courses, setCourses] = useState<CourseDTO[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<ApprovalStatus | 'ALL'>('ALL');
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadCourses = async () => {
+    try {
+      setLoading(true);
+      const response = await courseService.getAll();
+      setCourses(response.data);
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadCourses = async () => {
-      try {
-        const response = await courseService.getAll();
-        setCourses(response.data);
-      } catch (err) {
-        console.error('Error fetching courses:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadCourses();
   }, []);
+
+  const handleApprove = async (id: number) => {
+    try {
+      await courseService.approve(id);
+      loadCourses();
+    } catch (err) {
+      console.error('Error approving course:', err);
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    try {
+      await courseService.reject(id);
+      loadCourses();
+    } catch (err) {
+      console.error('Error rejecting course:', err);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this course? This will also delete its offerings if no students are enrolled.')) return;
+    try {
+      await courseService.delete(id);
+      loadCourses();
+    } catch (err: any) {
+      console.error('Error deleting course:', err);
+      alert(err.response?.data?.message || 'Failed to delete course. It may have active enrollments.');
+    }
+  };
+
+  const handleCreateCourse = async (data: CourseDTO) => {
+    try {
+      setIsSubmitting(true);
+      // Admin created courses are APPROVED by default
+      await courseService.create({
+        ...data,
+        status: ApprovalStatus.APPROVED
+      });
+      setIsModalOpen(false);
+      loadCourses();
+    } catch (err) {
+      console.error('Error creating course:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Get unique departments
   const departments = [...new Set(courses.map((c) => c.department).filter(Boolean))];
@@ -39,7 +91,9 @@ const Courses = () => {
     const matchesDepartment =
       departmentFilter === 'ALL' || course.department === departmentFilter;
 
-    return matchesSearch && matchesDepartment;
+    const matchesStatus = statusFilter === 'ALL' || course.status === statusFilter;
+
+    return matchesSearch && matchesDepartment && matchesStatus;
   });
 
   if (loading) {
@@ -58,7 +112,10 @@ const Courses = () => {
           <h1 className="text-2xl font-bold text-slate-900">Courses</h1>
           <p className="text-slate-600">Manage course catalog and offerings</p>
         </div>
-        <button className="btn-primary">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="btn-primary"
+        >
           Add Course
         </button>
       </div>
@@ -94,13 +151,34 @@ const Courses = () => {
               ))}
             </select>
           </div>
+
+          {/* Status Filter */}
+          <div className="sm:w-48">
+            <label className="label">Status</label>
+            <select
+              className="input"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+            >
+              <option value="ALL">All Status</option>
+              <option value={ApprovalStatus.APPROVED}>Active (Approved)</option>
+              <option value={ApprovalStatus.PENDING}>Pending Approval</option>
+              <option value={ApprovalStatus.REJECTED}>Rejected</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Courses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCourses.map((course) => (
-          <CourseCard key={course.id} course={course} />
+          <CourseCard
+            key={course.id}
+            course={course}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onDelete={handleDelete}
+          />
         ))}
       </div>
 
@@ -114,6 +192,14 @@ const Courses = () => {
       <div className="text-sm text-slate-500">
         Showing {filteredCourses.length} of {courses.length} courses
       </div>
+
+      <CourseProposalModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateCourse}
+        isLoading={isSubmitting}
+        existingDepartments={departments as string[]}
+      />
     </div>
   );
 };
@@ -121,18 +207,44 @@ const Courses = () => {
 // Course Card Component
 interface CourseCardProps {
   course: CourseDTO;
+  onApprove: (id: number) => void;
+  onReject: (id: number) => void;
+  onDelete: (id: number) => void;
 }
 
-const CourseCard = ({ course }: CourseCardProps) => {
+const CourseCard = ({ course, onApprove, onReject, onDelete }: CourseCardProps) => {
+  const isPending = course.status === ApprovalStatus.PENDING;
+  const isRejected = course.status === ApprovalStatus.REJECTED;
+
   return (
-    <div className="card hover:shadow-md transition-shadow">
+    <div className={`card hover:shadow-md transition-shadow ${isPending ? 'border-amber-200 bg-amber-50/10' :
+      isRejected ? 'border-red-200 bg-red-50/10' : ''
+      }`}>
       <div className="flex justify-between items-start mb-3">
-        <span className="font-mono text-sm text-primary-600 font-medium">
-          {course.courseCode}
-        </span>
-        <span className="badge bg-slate-100 text-slate-600">
-          {course.credits} credits
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm text-primary-600 font-medium">
+            {course.courseCode}
+          </span>
+          {isPending && (
+            <span className="bg-amber-100 text-amber-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">
+              Pending Proposal
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="badge bg-slate-100 text-slate-600">
+            {course.credits} credits
+          </span>
+          <button
+            onClick={() => course.id && onDelete(course.id)}
+            className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            title="Delete Course"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <h3 className="text-lg font-semibold text-slate-900 mb-2">
@@ -168,11 +280,33 @@ const CourseCard = ({ course }: CourseCardProps) => {
         </span>
       </div>
 
-      <div className="mt-4">
-        <button className="w-full btn-secondary text-sm">
-          View Offerings
-        </button>
+      <div className="mt-4 flex gap-2">
+        {isPending ? (
+          <>
+            <button
+              onClick={() => course.id && onApprove(course.id)}
+              className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition"
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => course.id && onReject(course.id)}
+              className="flex-1 bg-red-50 text-red-600 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition"
+            >
+              Reject
+            </button>
+          </>
+        ) : (
+          <button className="w-full btn-secondary text-sm">
+            View Offerings
+          </button>
+        )}
       </div>
+      {course.creatorEmail && (
+        <p className="mt-2 text-[10px] text-slate-400 italic">
+          Proposed by: {course.creatorEmail}
+        </p>
+      )}
     </div>
   );
 };
