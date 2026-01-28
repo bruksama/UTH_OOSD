@@ -55,6 +55,12 @@ export enum EnrollmentStatus {
   WITHDRAWN = "WITHDRAWN",
 }
 
+export enum ApprovalStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
 // =====================
 // DTOs (Backend-aligned)
 // =====================
@@ -70,9 +76,6 @@ export interface StudentDTO {
   gpa?: number;
   totalCredits?: number;
   status: StudentStatus;
-  phoneNumber?: string;
-  major?: string;
-  address?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -85,6 +88,8 @@ export interface CourseDTO {
   credits: number;
   department?: string;
   gradingType: GradingType;
+  status?: ApprovalStatus;
+  creatorEmail?: string;
 }
 
 export interface CourseOfferingDTO {
@@ -164,6 +169,7 @@ export interface DashboardStats {
   probationCount: number;
   averageGpa: number;
   activeAlerts: number;
+  pendingCourses?: number;
 }
 
 export interface GpaTrendData {

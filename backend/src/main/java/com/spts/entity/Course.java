@@ -54,6 +54,13 @@ public class Course {
     @Column(name = "grading_type", nullable = false)
     private GradingType gradingType = GradingType.SCALE_10;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = true, columnDefinition = "varchar(255) default 'APPROVED'")
+    private ApprovalStatus status = ApprovalStatus.APPROVED;
+
+    @Column(name = "creator_email")
+    private String creatorEmail;
+
     /**
      * One-to-Many relationship with CourseOffering (Occurrence)
      * A Course can have multiple offerings across different semesters
@@ -134,6 +141,22 @@ public class Course {
 
     public void setOfferings(List<CourseOffering> offerings) {
         this.offerings = offerings;
+    }
+
+    public ApprovalStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ApprovalStatus status) {
+        this.status = status;
+    }
+
+    public String getCreatorEmail() {
+        return creatorEmail;
+    }
+
+    public void setCreatorEmail(String creatorEmail) {
+        this.creatorEmail = creatorEmail;
     }
 
     public void addOffering(CourseOffering offering) {
