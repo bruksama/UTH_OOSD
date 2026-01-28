@@ -35,6 +35,17 @@ const MyCourses = () => {
         fetchCourses();
     }, []);
 
+    const handleDeleteCourse = async (id: number) => {
+        if (!confirm('Are you sure you want to delete your course proposal?')) return;
+        try {
+            await courseService.delete(id, user?.email || '', user?.role || 'student');
+            await fetchCourses();
+        } catch (err) {
+            console.error('Error deleting course:', err);
+            alert('Failed to delete course.');
+        }
+    };
+
     const handleProposeCourse = async (data: CourseDTO) => {
         try {
             setIsSubmitting(true);
@@ -121,13 +132,22 @@ const MyCourses = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredCourses.map((course) => (
-                    <div key={course.id} className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow p-6 flex flex-col h-full">
-                        <div className="flex justify-between items-start mb-4">
-                            <span className="bg-primary-50 text-primary-700 px-3 py-1 rounded-lg text-sm font-bold font-mono">
-                                {course.courseCode}
-                            </span>
-                            <span className="text-slate-500 text-sm font-medium">
-                                {course.credits} Credits
+                    <div key={course.id} className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow p-6 flex flex-col h-full relative group">
+                        {course.creatorEmail === user?.email && course.status !== ApprovalStatus.APPROVED && (
+                            <button
+                                onClick={() => course.id && handleDeleteCourse(course.id)}
+                                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                title="Delete Proposal"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        )}
+
+                        <div className="mb-4">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-primary-600 bg-primary-50 px-2 py-0.5 rounded">
+                                {course.department || 'General'}
                             </span>
                         </div>
 
@@ -138,8 +158,8 @@ const MyCourses = () => {
                         </p>
 
                         <div className="pt-4 border-t border-slate-100 mt-auto flex justify-between items-center text-sm">
-                            <span className="text-slate-500">
-                                Dept: <span className="font-medium text-slate-700">{course.department || 'General'}</span>
+                            <span className="text-slate-500 font-medium">
+                                {course.credits} Credits
                             </span>
                             {course.status !== ApprovalStatus.APPROVED && (
                                 <span className={`px-2 py-0.5 rounded text-xs font-bold ${course.status === ApprovalStatus.PENDING ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'

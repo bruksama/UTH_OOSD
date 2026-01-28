@@ -154,57 +154,48 @@ const CourseProposalModal = ({
                         {errors.courseName && <p className="text-red-500 text-xs mt-1">{errors.courseName}</p>}
                     </div>
 
-                    <div>
-                        <label className="label">Category / Department *</label>
-                        {!isAddingNewDept ? (
-                            <div className="space-y-2">
-                                <select
-                                    name="department"
-                                    value={formData.department || ''}
-                                    onChange={handleChange}
-                                    className={`input ${errors.department ? 'border-red-500' : ''}`}
-                                >
-                                    <option value="" disabled>Select a category</option>
-                                    {existingDepartments.map(dept => (
-                                        <option key={dept} value={dept}>{dept}</option>
-                                    ))}
-                                    <option value="__ADD_NEW__">+ Add New Category...</option>
-                                </select>
-                            </div>
-                        ) : (
-                            <div className="flex gap-2">
-                                <div className="flex-1">
-                                    <input
-                                        type="text"
-                                        value={newDeptName}
-                                        onChange={(e) => setNewDeptName(e.target.value)}
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="col-span-2">
+                            <label className="label">Category / Department *</label>
+                            {!isAddingNewDept ? (
+                                <div className="space-y-2">
+                                    <select
+                                        name="department"
+                                        value={formData.department || ''}
+                                        onChange={handleChange}
                                         className={`input ${errors.department ? 'border-red-500' : ''}`}
-                                        placeholder="Enter new category name..."
-                                        autoFocus
-                                    />
+                                    >
+                                        <option value="" disabled>Select a category</option>
+                                        {existingDepartments.map(dept => (
+                                            <option key={dept} value={dept}>{dept}</option>
+                                        ))}
+                                        <option value="__ADD_NEW__">+ Add New Category...</option>
+                                    </select>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAddingNewDept(false)}
-                                    className="px-3 text-slate-500 hover:text-slate-700 text-sm font-medium"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        )}
-                        {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="label">Course ID (Auto-generated)</label>
-                            <input
-                                name="courseCode"
-                                value={formData.courseCode || ''}
-                                readOnly
-                                className="input bg-slate-50 text-slate-500 cursor-not-allowed font-mono"
-                            />
+                            ) : (
+                                <div className="flex gap-2">
+                                    <div className="flex-1">
+                                        <input
+                                            type="text"
+                                            value={newDeptName}
+                                            onChange={(e) => setNewDeptName(e.target.value)}
+                                            className={`input ${errors.department ? 'border-red-500' : ''}`}
+                                            placeholder="Enter new category name..."
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAddingNewDept(false)}
+                                        className="px-3 text-slate-500 hover:text-slate-700 text-sm font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            )}
+                            {errors.department && <p className="text-red-500 text-xs mt-1">{errors.department}</p>}
                         </div>
+
                         <div>
                             <label className="label">Credits *</label>
                             <input
@@ -219,6 +210,18 @@ const CourseProposalModal = ({
                             {errors.credits && <p className="text-red-500 text-xs mt-1">{errors.credits}</p>}
                         </div>
                     </div>
+
+                    {user?.role === 'admin' && (
+                        <div>
+                            <label className="label">Course ID (Auto-generated)</label>
+                            <input
+                                name="courseCode"
+                                value={formData.courseCode || ''}
+                                readOnly
+                                className="input bg-slate-50 text-slate-500 cursor-not-allowed font-mono"
+                            />
+                        </div>
+                    )}
 
                     <div>
                         <label className="label">Description</label>
