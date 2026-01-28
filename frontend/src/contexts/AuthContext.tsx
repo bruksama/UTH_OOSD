@@ -16,6 +16,7 @@ interface AuthContextType extends AuthState {
   loginWithGoogle: () => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (data: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -148,6 +149,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const updateUser = (data: Partial<AuthUser>) => {
+    if (user) {
+      setUser({ ...user, ...data });
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -157,6 +164,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     loginWithGoogle,
     register,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
