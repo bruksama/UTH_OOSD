@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { courseService } from '../../services';
-import { CourseDTO } from '../../types';
+import { CourseDTO, ApprovalStatus } from '../../types';
+import CourseProposalModal from '../../components/CourseProposalModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * MyCourses - Course Catalog
@@ -9,29 +11,55 @@ import { CourseDTO } from '../../types';
  * Enrollments are managed in the "My Grades" page.
  */
 const MyCourses = () => {
+    const { user } = useAuth();
     const [courses, setCourses] = useState<CourseDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDepartment, setSelectedDepartment] = useState('All');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const fetchCourses = async () => {
+        try {
+            setLoading(true);
+            const response = await courseService.getAll();
+            setCourses(response.data);
+        } catch (err) {
+            console.error('Error fetching courses:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchCourses = async () => {
-            try {
-                const response = await courseService.getAll();
-                setCourses(response.data);
-            } catch (err) {
-                console.error('Error fetching courses:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchCourses();
     }, []);
 
-    // Extract unique departments
-    const departments = ['All', ...Array.from(new Set(courses.map(c => c.department || 'General')))];
+    const handleProposeCourse = async (data: CourseDTO) => {
+        try {
+            setIsSubmitting(true);
+            await courseService.create(data);
+            await fetchCourses();
+            setIsModalOpen(false);
+        } catch (err) {
+            console.error('Error proposing course:', err);
+            alert('Failed to propose course. Probably course code already exists.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Extract unique departments for filtering
+    const allDepartments = ['All', ...Array.from(new Set(courses.map(c => c.department || 'General')))];
+
+    // Extract departments for the proposal modal (excluding 'All')
+    const uniqueDepartments = Array.from(new Set(courses.map(c => c.department).filter(Boolean))) as string[];
 
     const filteredCourses = courses.filter(c => {
+        // Show if approved OR if created by current user
+        const isVisible = c.status === ApprovalStatus.APPROVED || c.creatorEmail === user?.email;
+        if (!isVisible) return false;
+
         const matchesSearch = c.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.courseCode.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesDept = selectedDepartment === 'All' || (c.department || 'General') === selectedDepartment;
@@ -46,10 +74,19 @@ const MyCourses = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Course Catalog</h1>
-                    <p className="text-slate-500">Browse all available courses offered by the university</p>
+                    <p className="text-slate-500">Browse and request new courses for all departments.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="btn-primary flex items-center justify-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Propose Course
+                    </button>
                     {/* Department Filter */}
                     <div className="relative w-full sm:w-48">
                         <select
@@ -57,7 +94,7 @@ const MyCourses = () => {
                             value={selectedDepartment}
                             onChange={(e) => setSelectedDepartment(e.target.value)}
                         >
-                            {departments.map(dept => (
+                            {allDepartments.map(dept => (
                                 <option key={dept} value={dept}>{dept}</option>
                             ))}
                         </select>
@@ -104,6 +141,12 @@ const MyCourses = () => {
                             <span className="text-slate-500">
                                 Dept: <span className="font-medium text-slate-700">{course.department || 'General'}</span>
                             </span>
+                            {course.status !== ApprovalStatus.APPROVED && (
+                                <span className={`px-2 py-0.5 rounded text-xs font-bold ${course.status === ApprovalStatus.PENDING ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                                    }`}>
+                                    {course.status}
+                                </span>
+                            )}
                         </div>
                     </div>
                 ))}
@@ -114,6 +157,14 @@ const MyCourses = () => {
                     <p className="text-slate-500">No courses found matching "{searchTerm}"</p>
                 </div>
             )}
+
+            <CourseProposalModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleProposeCourse}
+                isLoading={isSubmitting}
+                existingDepartments={uniqueDepartments}
+            />
         </div>
     );
 };
