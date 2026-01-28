@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { enrollmentService, courseOfferingService, gradeEntryService } from '../../services';
 import { EnrollmentDTO, CourseOfferingDTO, EnrollmentStatus, GradeEntryDTO, GradeEntryType } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { getEnrollmentStatusDisplay, getLetterGradeColor } from '../../utils/helpers';
 
 const MyGrades = () => {
     const { user } = useAuth();
@@ -583,15 +584,7 @@ const MyGrades = () => {
                                             {typeof e.finalScore === 'number' ? (
                                                 <div className="flex flex-col items-center gap-1">
                                                     {/* Letter Grade Badge */}
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm border ${(e.finalScore || 0) >= 8.5 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                        (e.finalScore || 0) >= 8.0 ? 'bg-teal-50 text-teal-700 border-teal-200' :
-                                                            (e.finalScore || 0) >= 7.0 ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                                (e.finalScore || 0) >= 6.5 ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                                                    (e.finalScore || 0) >= 5.5 ? 'bg-violet-50 text-violet-700 border-violet-200' :
-                                                                        (e.finalScore || 0) >= 5.0 ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                                            (e.finalScore || 0) >= 4.0 ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                                                                                'bg-red-50 text-red-700 border-red-200'
-                                                        }`}>
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm border ${getLetterGradeColor(e.finalScore)}`}>
                                                         {e.letterGrade}
                                                     </div>
 
@@ -612,12 +605,10 @@ const MyGrades = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${typeof e.finalScore === 'number' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                e.status === 'WITHDRAWN' ? 'bg-red-50 text-red-700 border-red-200' :
-                                                    'bg-amber-50 text-amber-700 border-amber-200'
-                                                }`}>
-                                                {typeof e.finalScore === 'number' ? 'Completed' : e.status === 'WITHDRAWN' ? 'Withdrawn' : 'In Progress'}
-                                            </span>
+                                            {(() => {
+                                                const { label, color } = getEnrollmentStatusDisplay(e);
+                                                return <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${color}`}>{label}</span>;
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center gap-2">

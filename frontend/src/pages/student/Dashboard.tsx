@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { enrollmentService } from '../../services';
 import { EnrollmentDTO } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-// import { convertTo4Scale } from '../../utils/helpers';
+import { getAcademicClassification, getClassificationColor } from '../../utils/helpers';
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -44,16 +44,6 @@ const Dashboard = () => {
         fetchData();
     }, [user]);
 
-    // Calculate GPA from enrollments (Scale 4 Thresholds)
-    const getStatus = (gpa: number, credits: number) => {
-        if (credits === 0) return 'Normal';
-        if (gpa >= 3.6) return 'Excellent';     // Xuất sắc
-        if (gpa >= 3.2) return 'Very Good';     // Giỏi
-        if (gpa >= 2.5) return 'Good';          // Khá
-        if (gpa >= 2.0) return 'Average';       // Trung bình
-        return 'At Risk';                       // Yếu/Kém
-    };
-
     // Calculate GPA ONLY from completed courses (with valid scores)
     const gradedEnrollments = enrollments.filter(e => e.finalScore !== null && e.finalScore !== undefined);
 
@@ -70,7 +60,8 @@ const Dashboard = () => {
         { name: 'Remaining', value: Math.max(TOTAL_CREDITS - completedCredits, 0) },
     ];
 
-    const status = getStatus(overallGpa, completedCredits);
+    const statusInfo = getAcademicClassification(overallGpa, completedCredits);
+    const classificationColor = getClassificationColor(statusInfo);
 
     if (loading) return <div className="text-center py-8">Loading...</div>;
     // Error not shown to user to keep UI clean, fallback to empty state was handled.
@@ -78,6 +69,57 @@ const Dashboard = () => {
 
     return (
         <div className="space-y-6">
+            {/* ALERTS - Automatic Early Warning System */}
+            {(() => {
+                // Warning logic based on Academic Regulations
+                if (completedCredits > 0) {
+                    if (overallGpa < 1.0) {
+                        return (
+                            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-sm">
+                                <div className="flex items-start">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <h3 className="text-sm font-bold text-red-800 uppercase tracking-wide">
+                                            Critical Academic Alert
+                                        </h3>
+                                        <p className="text-sm text-red-700 mt-1">
+                                            Your GPA is <strong>{overallGpa.toFixed(2)}</strong>, which is below 1.0.
+                                            You are at immediate risk of forced withdrawal (Xuất toán). Please contact your Academic Advisor immediately.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    } else if (overallGpa < 2.0) {
+                        return (
+                            <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-lg shadow-sm">
+                                <div className="flex items-start">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <h3 className="text-sm font-bold text-amber-800 uppercase tracking-wide">
+                                            Academic Warning
+                                        </h3>
+                                        <p className="text-sm text-amber-700 mt-1">
+                                            Your GPA is <strong>{overallGpa.toFixed(2)}</strong>. Falling below 2.0 places you on Academic Probation.
+                                            You need to improve your grades in the upcoming semesters to avoid further restrictions.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+                }
+                return null;
+            })()}
+
             {/* SUMMARY */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="card text-center">
@@ -92,21 +134,10 @@ const Dashboard = () => {
 
                 <div className="card text-center">
                     <p className="text-gray-500">Academic Status</p>
-                    <p
-                        className={`text-xl font-semibold ${status === 'Excellent'
-                            ? 'text-green-600'
-                            : status === 'Very Good'
-                                ? 'text-emerald-600'
-                                : status === 'Good'
-                                    ? 'text-blue-600'
-                                    : status === 'Average'
-                                        ? 'text-yellow-600'
-                                        : status === 'Normal'
-                                            ? 'text-slate-600'
-                                            : 'text-red-600'
-                            }`}
-                    >
-                        {status}
+                    <p className="flex justify-center mt-2">
+                        <span className={`${classificationColor} text-lg px-4 py-1`}>
+                            {statusInfo}
+                        </span>
                     </p>
                 </div>
             </div>

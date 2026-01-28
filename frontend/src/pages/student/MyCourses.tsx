@@ -3,6 +3,7 @@ import { courseService, courseOfferingService, enrollmentService } from '../../s
 import { CourseDTO, ApprovalStatus, CourseOfferingDTO, EnrollmentDTO, EnrollmentStatus } from '../../types';
 import CourseProposalModal from '../../components/CourseProposalModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { getApprovalStatusDisplay } from '../../utils/helpers';
 
 /**
  * MyCourses - Course Catalog
@@ -224,11 +225,14 @@ const MyCourses = () => {
 
                             {/* Actions Area */}
                             <div>
-                                {course.status === ApprovalStatus.PENDING && (
-                                    <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs font-bold">
-                                        Pending
-                                    </span>
-                                )}
+                                {course.status === ApprovalStatus.PENDING && (() => {
+                                    const { label, color } = getApprovalStatusDisplay(ApprovalStatus.PENDING);
+                                    return (
+                                        <span className={`${color} px-2 py-0.5 rounded text-xs font-bold`}>
+                                            {label}
+                                        </span>
+                                    );
+                                })()}
 
                                 {course.status === ApprovalStatus.APPROVED && !course.isEnrolled && course.hasOffering && (
                                     <button

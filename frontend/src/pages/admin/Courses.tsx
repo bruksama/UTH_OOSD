@@ -3,6 +3,7 @@ import { courseService } from '../../services';
 import { CourseDTO, ApprovalStatus } from '../../types';
 import CourseProposalModal from '../../components/CourseProposalModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { getApprovalStatusDisplay } from '../../utils/helpers';
 
 /**
  * Courses list page component
@@ -229,11 +230,14 @@ const CourseCard = ({ course, onApprove, onReject, onDelete }: CourseCardProps) 
           <span className="font-mono text-sm text-primary-600 font-medium">
             {course.courseCode}
           </span>
-          {isPending && (
-            <span className="bg-amber-100 text-amber-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">
-              Pending Proposal
-            </span>
-          )}
+          {isPending && (() => {
+            const { label, color } = getApprovalStatusDisplay(ApprovalStatus.PENDING);
+            return (
+              <span className={`${color} text-[10px] uppercase font-bold px-2 py-0.5 rounded-full`}>
+                {label} Proposal
+              </span>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-2">
           <span className="badge bg-slate-100 text-slate-600">
