@@ -42,10 +42,12 @@ public class CourseOfferingController {
     // ==================== CRUD Operations ====================
 
     @GetMapping
-    @Operation(summary = "Get all offerings", description = "Retrieves a list of all course offerings")
+    @Operation(summary = "Get all offerings", description = "Retrieves a list of course offerings (filtered by user if provided)")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved list of offerings")
-    public ResponseEntity<List<CourseOfferingDTO>> getAllOfferings() {
-        return ResponseEntity.ok(courseOfferingService.getAllOfferings());
+    public ResponseEntity<List<CourseOfferingDTO>> getAllOfferings(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false, defaultValue = "student") String role) {
+        return ResponseEntity.ok(courseOfferingService.getAllOfferingsFiltered(email, role));
     }
 
     @GetMapping("/{id}")

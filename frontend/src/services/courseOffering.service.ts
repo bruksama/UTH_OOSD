@@ -2,7 +2,8 @@ import api from './api';
 import { CourseOfferingDTO, Semester } from '../types';
 
 export const courseOfferingService = {
-    getAll: () => api.get<CourseOfferingDTO[]>('/offerings'),
+    getAll: (email?: string, role?: string) =>
+        api.get<CourseOfferingDTO[]>('/offerings', { params: { email, role } }),
 
     getById: (id: number) => api.get<CourseOfferingDTO>(`/offerings/${id}`),
 

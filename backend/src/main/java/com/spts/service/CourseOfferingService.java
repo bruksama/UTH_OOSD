@@ -53,9 +53,34 @@ public class CourseOfferingService {
      */
     @Transactional(readOnly = true)
     public List<CourseOfferingDTO> getAllOfferings() {
+        return getAllOfferingsFiltered(null, "admin"); // Default to admin for internal use
+    }
+
+    /**
+     * Get offerings filtered by visibility rules:
+     * - Admin: Sees all
+     * - Creator: Sees their own (even if PENDING/REJECTED)
+     * - Student: Sees APPROVED only
+     */
+    @Transactional(readOnly = true)
+    public List<CourseOfferingDTO> getAllOfferingsFiltered(String userEmail, String role) {
         List<CourseOffering> offerings = courseOfferingRepository.findAll();
-        System.out.println("Fetching all offerings. Found: " + offerings.size());
+        
         return offerings.stream()
+                .filter(o -> {
+                    com.spts.entity.Course course = o.getCourse();
+                    
+                    // 1. Admin sees everything
+                    if ("admin".equalsIgnoreCase(role)) return true;
+                    
+                    // 2. Creator sees their own courses regardless of status
+                    if (userEmail != null && userEmail.equalsIgnoreCase(course.getCreatorEmail())) {
+                        return true;
+                    }
+                    
+                    // 3. Others only see APPROVED courses
+                    return course.getStatus() == com.spts.entity.ApprovalStatus.APPROVED;
+                })
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -384,6 +409,7 @@ public class CourseOfferingService {
         dto.setCourseCode(offering.getCourse().getCourseCode());
         dto.setCourseName(offering.getCourse().getCourseName());
         dto.setCredits(offering.getCourse().getCredits());
+        dto.setDepartment(offering.getCourse().getDepartment());
         dto.setSemester(offering.getSemester());
         dto.setAcademicYear(offering.getAcademicYear());
         dto.setInstructor(offering.getInstructor());
