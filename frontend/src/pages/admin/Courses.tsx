@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { courseService } from '../../services';
-import { CourseDTO, GradingType, ApprovalStatus } from '../../types';
+import { CourseDTO, ApprovalStatus } from '../../types';
 import CourseProposalModal from '../../components/CourseProposalModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * Courses list page component
@@ -10,6 +11,7 @@ import CourseProposalModal from '../../components/CourseProposalModal';
  * @author SPTS Team
  */
 const Courses = () => {
+  const { user } = useAuth();
   const [courses, setCourses] = useState<CourseDTO[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('ALL');
@@ -55,7 +57,7 @@ const Courses = () => {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this course? This will also delete its offerings if no students are enrolled.')) return;
     try {
-      await courseService.delete(id);
+      await courseService.delete(id, user?.email || '', user?.role || 'admin');
       loadCourses();
     } catch (err: any) {
       console.error('Error deleting course:', err);
@@ -91,7 +93,9 @@ const Courses = () => {
     const matchesDepartment =
       departmentFilter === 'ALL' || course.department === departmentFilter;
 
-    const matchesStatus = statusFilter === 'ALL' || course.status === statusFilter;
+    const matchesStatus = statusFilter === 'ALL'
+      ? course.status !== ApprovalStatus.REJECTED // Hide REJECTED by default in 'ALL' view
+      : course.status === statusFilter;
 
     return matchesSearch && matchesDepartment && matchesStatus;
   });
@@ -274,10 +278,6 @@ const CourseCard = ({ course, onApprove, onReject, onDelete }: CourseCardProps) 
           </svg>
           <span className="text-sm text-slate-500">{course.department}</span>
         </div>
-
-        <span className={`badge ${getGradingTypeStyle(course.gradingType)}`}>
-          {formatGradingType(course.gradingType)}
-        </span>
       </div>
 
       <div className="mt-4 flex gap-2">
@@ -309,33 +309,6 @@ const CourseCard = ({ course, onApprove, onReject, onDelete }: CourseCardProps) 
       )}
     </div>
   );
-};
-
-// Helper functions
-const formatGradingType = (type: GradingType): string => {
-  switch (type) {
-    case GradingType.SCALE_10:
-      return 'Scale 10';
-    case GradingType.SCALE_4:
-      return 'Scale 4';
-    case GradingType.PASS_FAIL:
-      return 'Pass/Fail';
-    default:
-      return type;
-  }
-};
-
-const getGradingTypeStyle = (type: GradingType): string => {
-  switch (type) {
-    case GradingType.SCALE_10:
-      return 'bg-blue-100 text-blue-700';
-    case GradingType.SCALE_4:
-      return 'bg-purple-100 text-purple-700';
-    case GradingType.PASS_FAIL:
-      return 'bg-green-100 text-green-700';
-    default:
-      return 'bg-slate-100 text-slate-700';
-  }
 };
 
 export default Courses;
