@@ -4,4 +4,5 @@ export { courseService } from './course.service';
 export { enrollmentService } from './enrollmentService';
 export { alertService } from './alert.service';
 export { courseOfferingService } from './courseOffering.service';
+export { gradeEntryService } from './gradeEntry.service';
 

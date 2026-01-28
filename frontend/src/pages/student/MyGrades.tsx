@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { enrollmentService, courseOfferingService } from '../../services';
-import { EnrollmentDTO, CourseOfferingDTO, EnrollmentStatus } from '../../types';
+import { enrollmentService, courseOfferingService, gradeEntryService } from '../../services';
+import { EnrollmentDTO, CourseOfferingDTO, EnrollmentStatus, GradeEntryDTO, GradeEntryType } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 
 const MyGrades = () => {
@@ -18,16 +18,22 @@ const MyGrades = () => {
     const [showGradeModal, setShowGradeModal] = useState(false);
     const [selectedOfferingId, setSelectedOfferingId] = useState<number | ''>('');
     const [selectedEnrollment, setSelectedEnrollment] = useState<EnrollmentDTO | null>(null);
-    const [gradeInput, setGradeInput] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [modalDeptFilter, setModalDeptFilter] = useState('All');
+
+    // Recursive Grade Entry States
+    const [gradeHierarchy, setGradeHierarchy] = useState<GradeEntryDTO[]>([]);
+    const [loadingGrades, setLoadingGrades] = useState(false);
+    const [addingChildTo, setAddingChildTo] = useState<number | null>(null); // Parent ID or null for root
+    const [newEntryName, setNewEntryName] = useState('');
+    const [newEntryWeight, setNewEntryWeight] = useState('');
 
     useEffect(() => {
         loadData();
     }, [user?.studentId]);
 
-    const loadData = async () => {
-        setLoading(true);
+    const loadData = async (silent = false) => {
+        if (!silent) setLoading(true);
         setError(null);
         try {
             // Get student ID (try auth context first, then local storage fallback)
@@ -51,6 +57,12 @@ const MyGrades = () => {
             if (studentId) {
                 const enrollmentsRes = await enrollmentService.getByStudent(studentId);
                 setEnrollments(enrollmentsRes.data);
+
+                // If a modal is open, ensure the selectedEnrollment is updated too to reflect new final scores
+                if (selectedEnrollment) {
+                    const upToDate = enrollmentsRes.data.find(e => e.id === selectedEnrollment.id);
+                    if (upToDate) setSelectedEnrollment(upToDate);
+                }
             } else {
                 setEnrollments([]);
             }
@@ -58,7 +70,7 @@ const MyGrades = () => {
             console.error('Error loading data:', err);
             setError('Failed to load data');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -127,34 +139,6 @@ const MyGrades = () => {
         }
     };
 
-    const handleUpdateGrade = async () => {
-        if (!selectedEnrollment?.id) return;
-
-        // Replace comma with dot for validation
-        const normalizedInput = gradeInput.replace(',', '.');
-        const score = parseFloat(normalizedInput);
-
-        if (isNaN(score) || score < 0 || score > 10) {
-            alert('Grade must be a number between 0 and 10');
-            return;
-        }
-
-        setSubmitting(true);
-        try {
-            await enrollmentService.completeWithStrategy(selectedEnrollment.id, score);
-            setShowGradeModal(false);
-            setSelectedEnrollment(null);
-            setGradeInput('');
-            await loadData();
-        } catch (err: any) {
-            console.error('Error updating grade:', err);
-            // Show detailed error from backend if available
-            const errorMsg = err.response?.text || err.response?.data?.message || err.message || 'Failed to update grade';
-            alert(`Error: ${errorMsg}`);
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     const handleWithdraw = async (id: number) => {
         if (!confirm('Are you sure you want to withdraw from this course?')) return;
@@ -167,10 +151,281 @@ const MyGrades = () => {
         }
     };
 
+    // Calculate remaining weight for the current context (Root or Parent)
+    const getRemainingWeight = () => {
+        let siblings: GradeEntryDTO[] = [];
+        if (addingChildTo) {
+            // Find parent
+            const findParent = (entries: GradeEntryDTO[]): GradeEntryDTO | undefined => {
+                for (const entry of entries) {
+                    if (entry.id === addingChildTo) return entry;
+                    if (entry.children) {
+                        const found = findParent(entry.children);
+                        if (found) return found;
+                    }
+                }
+                return undefined;
+            };
+            const parent = findParent(gradeHierarchy);
+            siblings = parent?.children || [];
+        } else {
+            siblings = gradeHierarchy;
+        }
+
+        const currentTotal = siblings.reduce((sum, e) => sum + (e.weight || 0), 0);
+        return Math.max(0, 1 - currentTotal); // scale 0-1
+    };
+
+    // Auto-set weight when opening form or changing context
+    useEffect(() => {
+        const remaining = getRemainingWeight();
+        if (remaining > 0) {
+            setNewEntryWeight((remaining * 100).toFixed(0));
+        } else {
+            setNewEntryWeight('0');
+        }
+    }, [addingChildTo, gradeHierarchy]);
+
+    const loadGradeHierarchy = async (courseId?: number) => {
+        if (!selectedEnrollment?.id && !courseId) return;
+        const id = courseId || selectedEnrollment?.id;
+
+        try {
+            setLoadingGrades(true);
+            const res = await gradeEntryService.getHierarchy(id!);
+            setGradeHierarchy(res.data);
+        } catch (err) {
+            console.error('Failed to load grades', err);
+        } finally {
+            setLoadingGrades(false);
+        }
+    };
+
+    const handleAddEntry = async () => {
+        if (!selectedEnrollment?.id || !newEntryName || !newEntryWeight) return;
+
+        try {
+            const weight = parseFloat(newEntryWeight) / 100; // Convert 20 to 0.2
+
+            const payload: GradeEntryDTO = {
+                enrollmentId: selectedEnrollment.id,
+                name: newEntryName,
+                weight: weight,
+                entryType: GradeEntryType.COMPONENT
+            };
+
+            if (addingChildTo) {
+                await gradeEntryService.addChild(addingChildTo, payload);
+            } else {
+                await gradeEntryService.create(payload);
+            }
+
+            // Reset and reload
+            setNewEntryName('');
+            setNewEntryWeight('');
+            setAddingChildTo(null);
+            await loadGradeHierarchy(selectedEnrollment.id);
+            await loadData(true); // Silent refresh
+        } catch (err) {
+            console.error('Failed to add entry', err);
+            alert('Failed to add grade entry');
+        }
+    };
+
+    const handleDeleteEntry = async (id: number) => {
+        if (!confirm('Are you sure? This will delete all sub-entries as well.')) return;
+        try {
+            await gradeEntryService.delete(id);
+            if (selectedEnrollment?.id) {
+                await loadGradeHierarchy(selectedEnrollment.id);
+                await loadData(true); // Silent refresh
+            }
+        } catch (err) {
+            console.error('Failed to delete', err);
+        }
+    };
+
+    const handleScoreUpdate = async (id: number, score: number) => {
+        try {
+            await gradeEntryService.updateScore(id, score);
+            // We need to reload to get recalculated parent scores
+            if (selectedEnrollment?.id) {
+                await loadGradeHierarchy(selectedEnrollment.id);
+                await loadData(true); // Silent refresh
+            }
+        } catch (err) {
+            console.error('Failed to update score', err);
+        }
+    };
+
     const openGradeModal = (enrollment: EnrollmentDTO) => {
         setSelectedEnrollment(enrollment);
-        setGradeInput(enrollment.finalScore?.toString() || '');
+        setGradeHierarchy([]); // Clear previous
+
+        // Reset input forms to prevent data persisting between different courses
+        setNewEntryName('');
+        setNewEntryWeight('');
+        setAddingChildTo(null);
+
         setShowGradeModal(true);
+        // Load hierarchy immediately
+        if (enrollment.id) {
+            // We use a timeout to allow state to settle or direct call
+            // But verify we can pass ID directly
+            gradeEntryService.getHierarchy(enrollment.id).then(res => {
+                setGradeHierarchy(res.data);
+            });
+        }
+    };
+
+    // Recursive renderer for grade entries
+    const renderGradeEntry = (entry: GradeEntryDTO, level: number = 0) => {
+        const isLeaf = !entry.children || entry.children.length === 0;
+        const isRoot = level === 0;
+
+        // Colors for score badges
+        const getScoreColor = (score: number | null | undefined) => {
+            if (score === null || score === undefined) return 'bg-slate-100 text-slate-400 border-slate-200';
+            if (score >= 8.5) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            if (score >= 7.0) return 'bg-blue-50 text-blue-700 border-blue-200';
+            if (score >= 5.0) return 'bg-amber-50 text-amber-700 border-amber-200';
+            return 'bg-red-50 text-red-700 border-red-200';
+        };
+
+        const scoreValue = isLeaf ? entry.score : entry.calculatedScore;
+        const scoreColor = getScoreColor(scoreValue);
+
+        return (
+            <div key={entry.id} className={`relative ${isRoot ? 'mb-4' : 'mt-1'}`}>
+                {/* Connector Lines for Tree Structure */}
+                {level > 0 && (
+                    <div
+                        className="absolute left-0 top-0 bottom-0 w-px bg-slate-200"
+                        style={{ left: `20px`, top: '-20px', height: 'calc(100% + 10px)' }}
+                    />
+                )}
+                {/* Connector Elbow */}
+                {level > 0 && (
+                    <div
+                        className="absolute h-px bg-slate-200 w-6"
+                        style={{
+                            left: `20px`,
+                            top: '28px' // Vertical center of the row approx
+                        }}
+                    />
+                )}
+
+                <div
+                    className={`
+                        group relative flex items-center justify-between p-4 transition-all duration-200
+                        ${isRoot
+                            ? 'bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-indigo-200'
+                            : 'ml-12 rounded-lg bg-slate-50/50 hover:bg-slate-50 border border-transparent hover:border-slate-200'
+                        }
+                    `}
+                >
+                    {/* Left: Info */}
+                    <div className="flex items-center gap-4 flex-1">
+                        {/* Weight Badge */}
+                        <div className={`
+                            w-14 h-14 rounded-2xl flex flex-col items-center justify-center shadow-md transition-transform group-hover:scale-110 border-2
+                            ${isRoot
+                                ? 'bg-gradient-to-br from-indigo-600 to-violet-600 border-indigo-400/30 text-white shadow-indigo-200'
+                                : 'bg-white text-slate-600 border-slate-200'
+                            }
+                        `}>
+                            <span className={`text-lg font-black leading-none ${isRoot ? 'drop-shadow-sm' : ''}`}>
+                                {(entry.weight * 100).toFixed(0)}
+                            </span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isRoot ? 'text-indigo-100' : 'text-slate-400'}`}>
+                                Weight
+                            </span>
+                        </div>
+
+                        <div>
+                            <h4 className={`font-bold ${isRoot ? 'text-slate-800 text-base' : 'text-slate-700 text-sm'}`}>
+                                {entry.name}
+                            </h4>
+                            {/* Visual Weight Bar */}
+                            <div className="w-32 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-500 ${isRoot ? 'bg-indigo-500' : 'bg-slate-400'}`}
+                                    style={{ width: `${entry.weight * 100}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: Score & Actions */}
+                    <div className="flex items-center gap-8">
+                        {/* Score Input/Display */}
+                        <div className="text-right min-w-[80px]">
+                            {isLeaf ? (
+                                <div className="relative group/input">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        step="0.01"
+                                        className={`
+                                            w-20 text-center font-bold text-xl bg-transparent border-b-2 outline-none transition-all
+                                            ${scoreValue !== null && scoreValue !== undefined ? 'text-slate-800 border-transparent group-hover/input:border-slate-200' : 'text-slate-300 border-slate-200 focus:border-indigo-500'}
+                                            focus:text-indigo-600
+                                        `}
+                                        defaultValue={entry.score ?? ''}
+                                        placeholder="-"
+                                        onBlur={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            if (!isNaN(val) && val >= 0 && val <= 10) {
+                                                handleScoreUpdate(entry.id!, val);
+                                            } else if (e.target.value === '') {
+                                                // Optional: handle clear?
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') e.currentTarget.blur();
+                                        }}
+                                    />
+                                    <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1 text-center">Score</span>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-end">
+                                    <div className={`text-lg font-bold px-3 py-1 rounded-lg border ${scoreColor}`}>
+                                        {entry.calculatedScore !== null ? entry.calculatedScore?.toFixed(2) : '--'}
+                                    </div>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1 mr-1">Avg</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                            <button
+                                onClick={() => setAddingChildTo(entry.id!)}
+                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                                title="Add Sub-component"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                            </button>
+                            <button
+                                onClick={() => handleDeleteEntry(entry.id!)}
+                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                                title="Delete"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Children */}
+                {entry.children && entry.children.length > 0 && (
+                    <div className="border-l-2 border-slate-100 ml-6 pl-0 pb-2">
+                        {entry.children.map(child => renderGradeEntry(child, level + 1))}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     if (loading) return <div className="text-center py-10"><div className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full mx-auto"></div></div>;
@@ -296,7 +551,7 @@ const MyGrades = () => {
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500 font-semibold">
                             <tr>
-                                <th className="px-6 py-4 text-left tracking-wider">Tên môn học</th>
+                                <th className="px-6 py-4 text-left tracking-wider">Subject Name</th>
                                 <th className="px-6 py-4 text-center tracking-wider">Credits</th>
                                 <th className="px-6 py-4 text-center tracking-wider">Score</th>
                                 <th className="px-6 py-4 text-center tracking-wider">Status</th>
@@ -325,7 +580,7 @@ const MyGrades = () => {
                                             {e.credits}
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            {e.finalScore !== null ? (
+                                            {typeof e.finalScore === 'number' ? (
                                                 <div className="flex flex-col items-center gap-1">
                                                     {/* Letter Grade Badge */}
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm border ${(e.finalScore || 0) >= 8.5 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
@@ -357,11 +612,11 @@ const MyGrades = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${e.finalScore ? 'bg-green-50 text-green-700 border-green-200' :
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${typeof e.finalScore === 'number' ? 'bg-green-50 text-green-700 border-green-200' :
                                                 e.status === 'WITHDRAWN' ? 'bg-red-50 text-red-700 border-red-200' :
                                                     'bg-amber-50 text-amber-700 border-amber-200'
                                                 }`}>
-                                                {e.finalScore ? 'Completed' : e.status === 'WITHDRAWN' ? 'Withdrawn' : 'In Progress'}
+                                                {typeof e.finalScore === 'number' ? 'Completed' : e.status === 'WITHDRAWN' ? 'Withdrawn' : 'In Progress'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
@@ -375,7 +630,7 @@ const MyGrades = () => {
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
                                                 </button>
-                                                {!e.finalScore && e.status !== 'WITHDRAWN' && (
+                                                {typeof e.finalScore !== 'number' && e.status !== 'WITHDRAWN' && (
                                                     <button
                                                         onClick={() => handleWithdraw(e.id!)}
                                                         className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
@@ -472,12 +727,16 @@ const MyGrades = () => {
                 </div>
             )}
 
-            {/* EDIT GRADE MODAL */}
+            {/* GRADE CALCULATOR MODAL */}
             {showGradeModal && selectedEnrollment && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-slate-900">Update Grade</h2>
+                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+                        {/* Header */}
+                        <div className="flex justify-between items-center p-6 border-b border-slate-100">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900">Grade Calculator</h2>
+                                <p className="text-sm text-slate-500">{selectedEnrollment.courseName} • {selectedEnrollment.credits} credits</p>
+                            </div>
                             <button onClick={() => setShowGradeModal(false)} className="text-slate-400 hover:text-slate-600">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -485,44 +744,156 @@ const MyGrades = () => {
                             </button>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                <p className="font-bold text-slate-900">{selectedEnrollment.courseName}</p>
-                                <p className="text-sm text-slate-500 mt-1">
-                                    {selectedEnrollment.credits} tín chỉ
-                                </p>
-                            </div>
+                        {/* Scrolling Body */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+                            {loadingGrades ? (
+                                <div className="text-center py-10 text-slate-500">Loading grades...</div>
+                            ) : gradeHierarchy.length === 0 ? (
+                                <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl">
+                                    <p className="text-slate-500 mb-2">No grade components defined yet.</p>
+                                    <p className="text-xs text-slate-400">Add a component below to start predicting your grade.</p>
+                                </div>
+                            ) : (
+                                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                                    {/* Header Row */}
+                                    <div className="flex justify-between px-4 py-2 bg-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        <span>Component</span>
+                                        <div className="flex gap-4">
+                                            <span className="w-24 text-right">Score / 10</span>
+                                            <span className="w-16">Actions</span>
+                                        </div>
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">Final Score (0 - 10)</label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    max="10"
-                                    className="w-full border border-slate-300 rounded-xl p-3 text-lg font-bold text-center focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="8.5"
-                                    value={gradeInput}
-                                    onChange={(e) => setGradeInput(e.target.value)}
-                                    autoFocus
-                                />
-                            </div>
+                                    {gradeHierarchy.map(entry => renderGradeEntry(entry))}
+                                </div>
+                            )}
                         </div>
 
-                        <div className="flex gap-3 mt-8">
-                            <button
-                                className="flex-1 py-2.5 border border-slate-300 rounded-xl hover:bg-slate-50 font-medium text-slate-700"
-                                onClick={() => setShowGradeModal(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium shadow-lg shadow-blue-200 disabled:opacity-50"
-                                onClick={handleUpdateGrade}
-                                disabled={gradeInput === '' || submitting}
-                            >
-                                {submitting ? 'Saving...' : 'Save Grade'}
-                            </button>
+                        {/* Footer: Add Entry & Total */}
+                        <div className="p-6 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl space-y-5 backdrop-blur-sm">
+                            <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                                    {addingChildTo ? (
+                                        <>
+                                            <span className="text-indigo-600">↳ Adding sub-component</span>
+                                            <span className="text-slate-400 font-normal">to ID: {addingChildTo}</span>
+                                            <button
+                                                onClick={() => setAddingChildTo(null)}
+                                                className="text-xs text-red-500 hover:text-red-700 ml-2"
+                                            >
+                                                (Cancel)
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                            </svg>
+                                            Add Root Component
+                                        </>
+                                    )}
+                                </h4>
+
+                                {getRemainingWeight() > 0 && (
+                                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+                                        {(getRemainingWeight() * 100).toFixed(0)}% weight remaining
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Add Entry Form Row */}
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Component Name (e.g., Midterm)"
+                                        className="block w-full pl-10 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm shadow-sm placeholder-slate-400
+                                                 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
+                                                 transition-all duration-200"
+                                        value={newEntryName}
+                                        onChange={(e) => setNewEntryName(e.target.value)}
+                                        list="grade-component-suggestions"
+                                    />
+                                </div>
+
+                                <datalist id="grade-component-suggestions">
+                                    <option value="Process Grade" />
+                                    <option value="Midterm Exam" />
+                                    <option value="Final Exam" />
+                                    <option value="Essay" />
+                                    <option value="Group Report" />
+                                    <option value="Project" />
+                                </datalist>
+
+                                <div className="relative w-32 group">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg className="h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        placeholder="Weight"
+                                        min="0"
+                                        max={Math.max(0, getRemainingWeight() * 100).toFixed(0)}
+                                        step="5"
+                                        className="block w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm shadow-sm placeholder-slate-400
+                                                 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
+                                                 transition-all duration-200"
+                                        value={newEntryWeight}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === '') {
+                                                setNewEntryWeight('');
+                                                return;
+                                            }
+                                            const num = parseFloat(val);
+                                            if (isNaN(num)) return;
+                                            const max = getRemainingWeight() * 100;
+                                            if (num > max + 0.1) return;
+                                            setNewEntryWeight(val);
+                                        }}
+                                    />
+                                    <span className="absolute right-3 top-2.5 text-slate-400 text-xs font-bold pointer-events-none">%</span>
+                                </div>
+                                <button
+                                    onClick={handleAddEntry}
+                                    disabled={!newEntryName || !newEntryWeight}
+                                    className="p-3 bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-xl shadow-lg shadow-indigo-200 
+                                             hover:shadow-xl hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all duration-200 ml-2"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                </button>
+                            </div>
+
+                            {/* Summary & Estimate */}
+                            <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-slate-200/60 gap-4">
+                                <p className="text-xs text-slate-500 italic flex items-center gap-1.5">
+                                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Weights must sum to 100% for accurate calculation.
+                                </p>
+                                <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl border border-slate-100 shadow-sm">
+                                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Estimated Grade</span>
+                                    <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+                                        {(() => {
+                                            const total = gradeHierarchy.reduce((sum, entry) => {
+                                                const score = (entry.children && entry.children.length > 0)
+                                                    ? entry.calculatedScore
+                                                    : entry.score;
+                                                return sum + ((score || 0) * (entry.weight || 0));
+                                            }, 0);
+                                            return total.toFixed(2);
+                                        })()}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

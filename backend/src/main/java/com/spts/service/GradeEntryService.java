@@ -129,6 +129,9 @@ public class GradeEntryService {
 
         GradeEntry savedEntry = gradeEntryRepository.save(gradeEntry);
 
+        // Update enrollment final grade
+        updateEnrollmentGrade(enrollment.getId());
+
         // Notify observers about grade creation (Observer Pattern - Member 3)
         notifyGradeObservers(savedEntry);
 
@@ -160,6 +163,9 @@ public class GradeEntryService {
         }
 
         GradeEntry savedEntry = gradeEntryRepository.save(gradeEntry);
+        
+        // Update enrollment final grade
+        updateEnrollmentGrade(savedEntry.getEnrollment().getId());
 
         // Notify observers about grade update (Observer Pattern - Member 3)
         notifyGradeObservers(savedEntry);
@@ -175,10 +181,14 @@ public class GradeEntryService {
      * @throws RuntimeException if entry not found
      */
     public void deleteGradeEntry(Long id) {
-        if (!gradeEntryRepository.existsById(id)) {
-            throw new ResourceNotFoundException("GradeEntry", "id", id);
-        }
+        GradeEntry entry = gradeEntryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("GradeEntry", "id", id));
+        
+        Long enrollmentId = entry.getEnrollment().getId();
         gradeEntryRepository.deleteById(id);
+        
+        // Update enrollment final grade
+        updateEnrollmentGrade(enrollmentId);
     }
 
     // ==================== Composite Pattern Operations ====================
@@ -209,6 +219,9 @@ public class GradeEntryService {
         child.setNotes(dto.getNotes());
 
         GradeEntry savedChild = gradeEntryRepository.save(child);
+        
+        // Update enrollment final grade
+        updateEnrollmentGrade(parent.getEnrollment().getId());
 
         return convertToDTO(savedChild);
     }
@@ -428,6 +441,9 @@ public class GradeEntryService {
         gradeEntry.setRecordedAt(LocalDateTime.now());
 
         GradeEntry savedEntry = gradeEntryRepository.save(gradeEntry);
+        
+        // Update enrollment final grade
+        updateEnrollmentGrade(savedEntry.getEnrollment().getId());
 
         // Notify observers about score update (Observer Pattern - Member 3)
         notifyGradeObservers(savedEntry);
@@ -444,6 +460,40 @@ public class GradeEntryService {
     @Transactional(readOnly = true)
     public Long countEntriesByEnrollment(Long enrollmentId) {
         return gradeEntryRepository.countByEnrollmentId(enrollmentId);
+    }
+
+    /**
+     * Recalculate and update the Enrollment's final grade based on root grade entries.
+     * Should be called after any modification to grade entries.
+     * 
+     * @param enrollmentId The enrollment ID to update
+     */
+    private void updateEnrollmentGrade(Long enrollmentId) {
+        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Enrollment", "id", enrollmentId));
+
+        List<GradeEntry> allEntries = gradeEntryRepository.findByEnrollmentId(enrollmentId);
+        List<GradeEntry> rootEntries = allEntries.stream()
+                .filter(GradeEntry::isRoot)
+                .collect(Collectors.toList());
+
+        double totalWeightedScore = 0.0;
+        
+        for (GradeEntry entry : rootEntries) {
+            Double score = entry.getCalculatedScore();
+            if (score != null) {
+                totalWeightedScore += score * entry.getWeight();
+            }
+        }
+        
+        // Round to 2 decimal places
+        double finalScore = Math.round(totalWeightedScore * 100.0) / 100.0;
+        
+        // Only update if changed
+        if (enrollment.getFinalScore() == null || Math.abs(enrollment.getFinalScore() - finalScore) > 0.001) {
+            enrollment.setFinalScore(finalScore);
+            enrollmentRepository.save(enrollment);
+        }
     }
 
     // ==================== DTO Conversion Helpers ====================
