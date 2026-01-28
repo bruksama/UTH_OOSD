@@ -112,8 +112,9 @@ public class CourseService {
 
         Course savedCourse = courseRepository.save(course);
         
-        // If newly created course is already APPROVED (e.g. by Admin), create an offering
-        if (savedCourse.getStatus() == com.spts.entity.ApprovalStatus.APPROVED) {
+        // If course is APPROVED or PENDING, create an offering so creator can enroll
+        if (savedCourse.getStatus() == com.spts.entity.ApprovalStatus.APPROVED || 
+            savedCourse.getStatus() == com.spts.entity.ApprovalStatus.PENDING) {
             courseOfferingService.createDefaultOffering(savedCourse);
         }
 
@@ -190,17 +191,33 @@ public class CourseService {
      * @throws RuntimeException if course not found or has offerings
      */
     public void deleteCourse(Long id) {
-        // 1. Existence check (Dependency Inversion/Safety)
+        deleteCourseWithAuth(id, null, "admin");
+    }
+
+    public void deleteCourseWithAuth(Long id, String userEmail, String role) {
+        // 1. Existence check
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
 
-        // 2. SRP: Delegate related data cleanup to the appropriate service
-        // This will throw an error if any offering has active enrollments
+        // 2. Authorization check
+        boolean isAdmin = "admin".equalsIgnoreCase(role);
+        boolean isCreator = userEmail != null && userEmail.equalsIgnoreCase(course.getCreatorEmail());
+        
+        if (!isAdmin && !isCreator) {
+            throw new IllegalStateException("You are not authorized to delete this course.");
+        }
+        
+        // Students can only delete their own PENDING or REJECTED courses
+        if (!isAdmin && course.getStatus() == com.spts.entity.ApprovalStatus.APPROVED) {
+            throw new IllegalStateException("Only administrators can delete approved courses.");
+        }
+
+        // 3. Delegate related data cleanup
         courseOfferingService.deleteOfferingsByCourseId(id);
 
-        // 3. Delete from DB (The actual database deletion)
+        // 4. Delete from DB
         courseRepository.delete(course);
-        System.out.println("Permanently deleted course from DB: " + course.getCourseCode());
+        System.out.println("Authorized deletion of course: " + course.getCourseCode() + " by " + (isAdmin ? "admin" : userEmail));
     }
 
     // ==================== Course Offerings (Abstraction-Occurrence) ====================

@@ -103,8 +103,10 @@ public class CourseController {
         @ApiResponse(responseCode = "404", description = "Course not found")
     })
     public ResponseEntity<Void> deleteCourse(
-            @Parameter(description = "Course database ID") @PathVariable Long id) {
-        courseService.deleteCourse(id);
+            @Parameter(description = "Course database ID") @PathVariable Long id,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false, defaultValue = "student") String role) {
+        courseService.deleteCourseWithAuth(id, email, role);
         return ResponseEntity.noContent().build();
     }
 
