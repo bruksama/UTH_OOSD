@@ -51,6 +51,7 @@ public class GradeEntryDTO {
     private String recordedBy;
     private LocalDateTime recordedAt;
     private String notes;
+    private com.spts.entity.ApprovalStatus status;
 
     // Additional display fields
     private String courseCode;
@@ -156,6 +157,14 @@ public class GradeEntryDTO {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public com.spts.entity.ApprovalStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(com.spts.entity.ApprovalStatus status) {
+        this.status = status;
     }
 
     public String getCourseCode() {

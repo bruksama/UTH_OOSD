@@ -463,6 +463,7 @@ public class GradeEntryService {
         dto.setRecordedBy(gradeEntry.getRecordedBy());
         dto.setRecordedAt(gradeEntry.getRecordedAt());
         dto.setNotes(gradeEntry.getNotes());
+        dto.setStatus(gradeEntry.getStatus());
 
         // Set parent ID if exists
         if (gradeEntry.getParent() != null) {
