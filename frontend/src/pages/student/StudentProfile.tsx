@@ -70,7 +70,11 @@ const StudentProfile = () => {
     // Calculate Academic Stats
     const gradedEnrollments = enrollments.filter(e => e.finalScore !== null);
     const totalCredits = gradedEnrollments.reduce((sum, e) => sum + (e.credits || 0), 0);
-    const gpa = student.gpa || 0;
+
+    // Calculate GPA Scale 4 dynamically (using values from Backend)
+    const weightedSum = gradedEnrollments.reduce((sum, e) => sum + ((e.gpaValue || 0) * (e.credits || 0)), 0);
+    // Use calculated GPA from current list for consistency, fallback to stored GPA
+    const gpa = totalCredits > 0 ? (weightedSum / totalCredits) : (student.gpa || 0);
 
     // Calculate academic year progress (Example: 72/120 credits)
     const MAX_CREDITS = 120;
@@ -97,10 +101,23 @@ const StudentProfile = () => {
                             className="w-full h-full object-cover"
                         />
                     </div>
-                    <div className={`absolute bottom-2 right-[-8px] px-3 py-1 rounded-full text-xs font-bold border-2 border-white shadow-sm ${student.status === 'NORMAL' ? 'bg-green-100 text-green-700' :
-                            student.status === 'AT_RISK' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                        {student.status?.replace('_', ' ')}
+                    {/* Classification Badge - Dynamic based on GPA */}
+                    <div className={`absolute bottom-2 right-[-8px] px-3 py-1 rounded-full text-xs font-bold border-2 border-white shadow-sm ${(() => {
+                        const val = gpa || 0;
+                        if (val >= 3.6) return 'bg-purple-100 text-purple-700';
+                        if (val >= 3.2) return 'bg-emerald-100 text-emerald-700';
+                        if (val >= 2.5) return 'bg-blue-100 text-blue-700';
+                        if (val >= 2.0) return 'bg-amber-100 text-amber-700';
+                        return 'bg-red-100 text-red-700';
+                    })()}`}>
+                        {(() => {
+                            const val = gpa || 0;
+                            if (val >= 3.6) return 'Excellent';
+                            if (val >= 3.2) return 'Very Good';
+                            if (val >= 2.5) return 'Good';
+                            if (val >= 2.0) return 'Average';
+                            return 'Weak';
+                        })()}
                     </div>
                 </div>
 
@@ -232,7 +249,21 @@ const StudentProfile = () => {
                         <div className="grid grid-cols-2 gap-4 mb-6">
                             <div className="p-4 bg-slate-50 rounded-xl text-center">
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Current Semester</p>
-                                <p className="text-2xl font-bold text-blue-600 mt-1">5th</p>
+                                <p className="text-2xl font-bold text-blue-600 mt-1">
+                                    {(() => {
+                                        if (!student.enrollmentDate) return '1st';
+                                        const start = new Date(student.enrollmentDate);
+                                        const now = new Date();
+                                        const yearsDiff = now.getFullYear() - start.getFullYear();
+                                        const monthsDiff = now.getMonth() - start.getMonth();
+                                        const totalMonths = (yearsDiff * 12) + monthsDiff;
+                                        const sem = Math.max(1, Math.floor(totalMonths / 6) + 1);
+                                        // Ordinal suffix
+                                        const s = ["th", "st", "nd", "rd"];
+                                        const v = sem % 100;
+                                        return sem + (s[(v - 20) % 10] || s[v] || s[0]);
+                                    })()}
+                                </p>
                             </div>
                             <div className="p-4 bg-slate-50 rounded-xl text-center">
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Cumulative GPA</p>

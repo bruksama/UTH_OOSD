@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { enrollmentService } from '../../services';
 import { EnrollmentDTO } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+// import { convertTo4Scale } from '../../utils/helpers';
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -43,13 +44,14 @@ const Dashboard = () => {
         fetchData();
     }, [user]);
 
-    // Calculate GPA from enrollments
+    // Calculate GPA from enrollments (Scale 4 Thresholds)
     const getStatus = (gpa: number, credits: number) => {
-        if (credits === 0) return 'Normal'; // New students start as Normal
-        if (gpa >= 8) return 'Excellent';
-        if (gpa >= 7) return 'Good';
-        if (gpa >= 5.5) return 'Average';
-        return 'At Risk';
+        if (credits === 0) return 'Normal';
+        if (gpa >= 3.6) return 'Excellent';     // Xuất sắc
+        if (gpa >= 3.2) return 'Very Good';     // Giỏi
+        if (gpa >= 2.5) return 'Good';          // Khá
+        if (gpa >= 2.0) return 'Average';       // Trung bình
+        return 'At Risk';                       // Yếu/Kém
     };
 
     // Calculate GPA ONLY from completed courses (with valid scores)
@@ -57,8 +59,8 @@ const Dashboard = () => {
 
     // Total completed credits (for GPA calculation)
     const completedCredits = gradedEnrollments.reduce((sum, e) => sum + (e.credits || 0), 0);
-    // Weighted sum of scores
-    const totalPoints = gradedEnrollments.reduce((sum, e) => sum + ((e.finalScore || 0) * (e.credits || 0)), 0);
+    // Weighted sum using gpaValue provided by Backend
+    const totalPoints = gradedEnrollments.reduce((sum, e) => sum + ((e.gpaValue || 0) * (e.credits || 0)), 0);
 
     const overallGpa = completedCredits === 0 ? 0 : totalPoints / completedCredits;
 
@@ -93,13 +95,15 @@ const Dashboard = () => {
                     <p
                         className={`text-xl font-semibold ${status === 'Excellent'
                             ? 'text-green-600'
-                            : status === 'Good'
-                                ? 'text-blue-600'
-                                : status === 'Average'
-                                    ? 'text-yellow-600'
-                                    : status === 'Normal'
-                                        ? 'text-slate-600'
-                                        : 'text-red-600'
+                            : status === 'Very Good'
+                                ? 'text-emerald-600'
+                                : status === 'Good'
+                                    ? 'text-blue-600'
+                                    : status === 'Average'
+                                        ? 'text-yellow-600'
+                                        : status === 'Normal'
+                                            ? 'text-slate-600'
+                                            : 'text-red-600'
                             }`}
                     >
                         {status}
