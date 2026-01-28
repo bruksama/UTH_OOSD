@@ -10,6 +10,9 @@ const MyGrades = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Feature Loop: Interactive Scale Toggle
+    const [isScale4Primary, setIsScale4Primary] = useState(true);
+
     // Modal states
     const [showAddModal, setShowAddModal] = useState(false);
     const [showGradeModal, setShowGradeModal] = useState(false);
@@ -62,10 +65,14 @@ const MyGrades = () => {
     const completedEnrollments = enrollments.filter(e => e.finalScore !== null && e.finalScore !== undefined);
     const totalCredits = enrollments.reduce((sum, e) => sum + (e.credits || 0), 0);
 
-    // Calculate GPA based on completed courses
+    // Calculate GPA Scale 4
     const completedCredits = completedEnrollments.reduce((sum, e) => sum + (e.credits || 0), 0);
-    const weightedSum = completedEnrollments.reduce((sum, e) => sum + ((e.finalScore || 0) * (e.credits || 0)), 0);
+    const weightedSum = completedEnrollments.reduce((sum, e) => sum + ((e.gpaValue || 0) * (e.credits || 0)), 0);
     const gpa = completedCredits > 0 ? (weightedSum / completedCredits) : 0;
+
+    // Calculate GPA Scale 10
+    const weightedSum10 = completedEnrollments.reduce((sum, e) => sum + ((e.finalScore || 0) * (e.credits || 0)), 0);
+    const gpa10 = completedCredits > 0 ? (weightedSum10 / completedCredits) : 0;
 
     const enrolledCount = enrollments.length;
 
@@ -199,15 +206,59 @@ const MyGrades = () => {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
-                    <div className="p-3 bg-green-50 text-green-600 rounded-lg">
+                {/* Interactive GPA Card */}
+                <div
+                    onClick={() => setIsScale4Primary(!isScale4Primary)}
+                    className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 relative overflow-hidden group cursor-pointer hover:shadow-md transition-all select-none"
+                    title="Click to toggle GPA Scale"
+                >
+                    {/* Background Icon Decoration */}
+                    <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+                        <svg className="w-32 h-32 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                    </div>
+
+                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg z-10 transition-transform group-hover:scale-110 duration-300">
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                     </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500">Current GPA (10.0)</p>
-                        <p className="text-2xl font-bold text-slate-900">{gpa.toFixed(2)}</p>
+
+                    <div className="z-10 flex-1">
+                        <div className="flex justify-between items-start">
+                            <p className="text-sm font-medium text-slate-500 mb-1">Cumulative GPA</p>
+                            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                                Switch Scale
+                            </span>
+                        </div>
+
+                        <div className="relative h-10 w-full">
+                            {/* Scale 4 Display */}
+                            <div className={`absolute top-0 left-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isScale4Primary
+                                    ? 'opacity-100 translate-y-0 scale-100 origin-bottom-left'
+                                    : 'opacity-60 translate-y-[-20%] translate-x-[120px] scale-75 origin-bottom-left'
+                                }`}>
+                                <div className="flex items-end gap-1">
+                                    <span className={`font-bold text-slate-900 leading-none ${isScale4Primary ? 'text-3xl' : 'text-xl'}`}>
+                                        {gpa.toFixed(2)}
+                                    </span>
+                                    <span className="text-sm font-medium text-slate-400 mb-0.5">/ 4.0</span>
+                                </div>
+                            </div>
+
+                            {/* Scale 10 Display */}
+                            <div className={`absolute top-0 left-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${!isScale4Primary
+                                    ? 'opacity-100 translate-y-0 scale-100 origin-bottom-left'
+                                    : 'opacity-60 translate-y-[-20%] translate-x-[120px] scale-75 origin-bottom-left'
+                                }`}>
+                                <div className="flex items-end gap-1">
+                                    <span className={`font-bold text-slate-900 leading-none ${!isScale4Primary ? 'text-3xl' : 'text-xl'}`}>
+                                        {gpa10.toFixed(2)}
+                                    </span>
+                                    <span className="text-sm font-medium text-slate-400 mb-0.5">/ 10</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -271,18 +322,34 @@ const MyGrades = () => {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             {e.finalScore !== null ? (
-                                                <div className="flex flex-col items-center">
-                                                    <span className="text-lg font-bold text-slate-800">{e.finalScore}</span>
-                                                    <span className={`text-xs px-1.5 rounded font-bold ${(e.finalScore || 0) >= 8.5 ? 'bg-green-100 text-green-700' :
-                                                        (e.finalScore || 0) >= 7.0 ? 'bg-blue-100 text-blue-700' :
-                                                            (e.finalScore || 0) >= 5.0 ? 'bg-yellow-100 text-yellow-700' :
-                                                                'bg-red-100 text-red-700'
+                                                <div className="flex flex-col items-center gap-1">
+                                                    {/* Letter Grade Badge */}
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm border ${(e.finalScore || 0) >= 8.5 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                            (e.finalScore || 0) >= 8.0 ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                                                                (e.finalScore || 0) >= 7.0 ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                                    (e.finalScore || 0) >= 6.5 ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                                                        (e.finalScore || 0) >= 5.5 ? 'bg-violet-50 text-violet-700 border-violet-200' :
+                                                                            (e.finalScore || 0) >= 5.0 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                                                (e.finalScore || 0) >= 4.0 ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                                                                    'bg-red-50 text-red-700 border-red-200'
                                                         }`}>
                                                         {e.letterGrade}
-                                                    </span>
+                                                    </div>
+
+                                                    {/* Scale 4 & Scale 10 Details */}
+                                                    <div className="flex flex-col items-center">
+                                                        <span className="text-sm font-bold text-slate-700">
+                                                            {e.gpaValue?.toFixed(1)} <span className="text-[10px] text-slate-400 font-normal">/ 4.0</span>
+                                                        </span>
+                                                        <span className="text-[10px] uppercase tracking-wide text-slate-400 font-medium">
+                                                            Raw: {e.finalScore}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             ) : (
-                                                <span className="text-slate-400 text-sm italic">--</span>
+                                                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-500">
+                                                    --
+                                                </span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-center">
