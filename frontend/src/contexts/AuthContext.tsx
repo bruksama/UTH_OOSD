@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch user profile from backend to get role
-  const fetchUserProfile = async (firebaseUser: User): Promise<AuthUser> => {
+  const fetchUserProfile = async (firebaseUser: User): Promise<AuthUser | null> => {
     try {
       const token = await firebaseUser.getIdToken();
       const response = await api.get('/auth/me', {
@@ -54,13 +54,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         studentId: response.data.studentId,
       };
     } catch {
-      // Default to student role if backend call fails
-      return {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        role: 'student',
-      };
+      // Force re-authentication if backend call fails
+      await firebaseLogout();
+      return null;
     }
   };
 

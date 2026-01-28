@@ -15,7 +15,7 @@ const Dashboard = () => {
     const { user } = useAuth();
     const [enrollments, setEnrollments] = useState<EnrollmentDTO[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {

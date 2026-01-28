@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 function Login() {
@@ -28,8 +28,8 @@ function Login() {
     try {
       await loginWithEmail(email, password);
       // Navigation happens after user state updates
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
@@ -42,16 +42,21 @@ function Login() {
     try {
       await loginWithGoogle();
       // Navigation happens after user state updates
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to sign in with Google');
     } finally {
       setIsLoading(false);
     }
   };
 
   // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate(getRedirectPath(user.role), { replace: true });
+    }
+  }, [user, navigate]);
+
   if (user) {
-    navigate(getRedirectPath(user.role), { replace: true });
     return null;
   }
 
@@ -78,6 +83,7 @@ function Login() {
             className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             required
             disabled={isLoading}
+            autoComplete="email"
           />
 
           <input
@@ -88,6 +94,7 @@ function Login() {
             className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             required
             disabled={isLoading}
+            autoComplete="current-password"
           />
 
           <button
@@ -136,19 +143,19 @@ function Login() {
         </div>
 
         <div className="mt-6 text-center text-sm text-slate-600">
-          <span
-            className="text-primary-600 hover:underline cursor-pointer"
-            onClick={() => navigate('/register')}
+          <Link
+            to="/register"
+            className="text-primary-600 hover:underline"
           >
             Create an account
-          </span>
+          </Link>
           <span className="mx-2 text-slate-400">|</span>
-          <span
-            className="text-primary-600 hover:underline cursor-pointer"
-            onClick={() => navigate('/forgot-password')}
+          <Link
+            to="/forgot-password"
+            className="text-primary-600 hover:underline"
           >
             Forgot password?
-          </span>
+          </Link>
         </div>
       </form>
     </div>

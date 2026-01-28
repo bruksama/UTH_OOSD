@@ -19,3 +19,6 @@ uth-oosd-firebase*
 # Logs
 *.log
 logs/
+
+# AI agents
+.claude
