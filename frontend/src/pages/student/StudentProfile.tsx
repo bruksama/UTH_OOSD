@@ -4,7 +4,7 @@ import { StudentDTO, EnrollmentDTO } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 
 const StudentProfile = () => {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const [student, setStudent] = useState<StudentDTO | null>(null);
     const [enrollments, setEnrollments] = useState<EnrollmentDTO[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,7 +52,14 @@ const StudentProfile = () => {
         if (!student?.id) return;
         setSaving(true);
         try {
-            await studentService.update(student.id, { ...student, ...formData });
+            const updatedData = { ...student, ...formData };
+            await studentService.update(student.id, updatedData);
+
+            // Sync with Auth Context to update Header "Welcome back" name immediately
+            if (updateUser && (updatedData.firstName || updatedData.lastName)) {
+                updateUser({ displayName: `${updatedData.firstName} ${updatedData.lastName}` });
+            }
+
             setIsEditing(false);
             await loadData(); // Refresh data
             alert('Profile updated successfully!');
