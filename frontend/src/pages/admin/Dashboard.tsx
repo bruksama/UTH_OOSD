@@ -13,8 +13,8 @@ import {
 } from 'recharts';
 
 import { getAlertLevelColor, getStatusColor } from '../../utils/helpers';
-import { studentService, alertService } from '../../services';
-import { StudentDTO, AlertDTO, StudentStatus, DashboardStats } from '../../types';
+import { studentService, alertService, courseService } from '../../services';
+import { StudentDTO, AlertDTO, StudentStatus, DashboardStats, CourseDTO, ApprovalStatus } from '../../types';
 
 /* ===== STAT CARD ===== */
 interface StatCardProps {
@@ -33,16 +33,19 @@ const StatCard = ({ title, value }: StatCardProps) => (
 const AdminDashboard = () => {
   const [students, setStudents] = useState<StudentDTO[]>([]);
   const [alerts, setAlerts] = useState<AlertDTO[]>([]);
+  const [courses, setCourses] = useState<CourseDTO[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       studentService.getAll(),
-      alertService.getAll()
+      alertService.getAll(),
+      courseService.getAll()
     ])
-      .then(([studentsData, alertsData]) => {
+      .then(([studentsData, alertsData, coursesData]) => {
         setStudents(studentsData.data);
         setAlerts(alertsData.data);
+        setCourses(coursesData.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -57,6 +60,7 @@ const AdminDashboard = () => {
       ? students.reduce((sum, s) => sum + (s.gpa || 0), 0) / students.length
       : 0,
     activeAlerts: alerts.length,
+    pendingCourses: courses.filter(c => c.status === ApprovalStatus.PENDING).length,
   };
 
   const recentAlerts = alerts.slice(0, 3);
@@ -96,8 +100,8 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Students" value={stats.totalStudents} />
         <StatCard title="At Risk" value={stats.atRiskCount} />
-        <StatCard title="Average GPA" value={stats.averageGpa.toFixed(2)} />
         <StatCard title="Active Alerts" value={stats.activeAlerts} />
+        <StatCard title="Pending Courses" value={stats.pendingCourses || 0} />
       </div>
 
       {/* ===== CHARTS ===== */}
