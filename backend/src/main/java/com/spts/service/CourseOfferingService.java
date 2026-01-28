@@ -53,7 +53,9 @@ public class CourseOfferingService {
      */
     @Transactional(readOnly = true)
     public List<CourseOfferingDTO> getAllOfferings() {
-        return courseOfferingRepository.findAll().stream()
+        List<CourseOffering> offerings = courseOfferingRepository.findAll();
+        System.out.println("Fetching all offerings. Found: " + offerings.size());
+        return offerings.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -84,24 +86,37 @@ public class CourseOfferingService {
         Course course = courseRepository.findById(dto.getCourseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", dto.getCourseId()));
 
+        return convertToDTO(createOfferingEntity(course, dto.getSemester(), dto.getAcademicYear(), dto.getInstructor(), dto.getMaxEnrollment(), dto.getGradingScale()));
+    }
+
+    /**
+     * Create a default offering for a course (e.g. on approval)
+     */
+    public void createDefaultOffering(Course course) {
+        // Rule: Only create if no offerings exist to avoid duplicates during re-approval
+        if (courseOfferingRepository.findByCourseId(course.getId()).isEmpty()) {
+            createOfferingEntity(course, Semester.SPRING, 2026, "To be assigned", 60, "SCALE_10");
+        }
+    }
+
+    private CourseOffering createOfferingEntity(Course course, Semester semester, Integer year, String instructor, Integer max, String scale) {
         // Check for duplicate offering (same course, semester, year)
         if (courseOfferingRepository.findByCourseIdAndSemesterAndAcademicYear(
-                dto.getCourseId(), dto.getSemester(), dto.getAcademicYear()).isPresent()) {
+                course.getId(), semester, year).isPresent()) {
             throw new DuplicateResourceException("CourseOffering", 
-                    "course/semester/year", dto.getCourseId() + "/" + dto.getSemester() + "/" + dto.getAcademicYear());
+                    "course/semester/year", course.getId() + "/" + semester + "/" + year);
         }
 
         CourseOffering offering = new CourseOffering();
         offering.setCourse(course);
-        offering.setSemester(dto.getSemester());
-        offering.setAcademicYear(dto.getAcademicYear());
-        offering.setInstructor(dto.getInstructor());
-        offering.setMaxEnrollment(dto.getMaxEnrollment());
+        offering.setSemester(semester);
+        offering.setAcademicYear(year);
+        offering.setInstructor(instructor);
+        offering.setMaxEnrollment(max != null ? max : 60);
         offering.setCurrentEnrollment(0);
-        offering.setGradingScale(dto.getGradingScale() != null ? dto.getGradingScale() : "SCALE_10");
+        offering.setGradingScale(scale != null ? scale : "SCALE_10");
 
-        CourseOffering savedOffering = courseOfferingRepository.save(offering);
-        return convertToDTO(savedOffering);
+        return courseOfferingRepository.save(offering);
     }
 
     /**
@@ -159,14 +174,26 @@ public class CourseOfferingService {
         CourseOffering offering = courseOfferingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", id));
 
-        // Check if offering has enrollments
-        List<Enrollment> enrollments = enrollmentRepository.findByCourseOfferingId(id);
-        if (!enrollments.isEmpty()) {
-            throw new IllegalStateException("Cannot delete offering with existing enrollments. " +
-                    "Remove enrollments first or archive instead.");
-        }
-
+        validateOfferingCanBeDeleted(offering);
         courseOfferingRepository.deleteById(id);
+    }
+
+    /**
+     * Delete all offerings for a course if they have no enrollments
+     */
+    public void deleteOfferingsByCourseId(Long courseId) {
+        List<CourseOffering> offerings = courseOfferingRepository.findByCourseId(courseId);
+        for (CourseOffering offering : offerings) {
+            validateOfferingCanBeDeleted(offering);
+        }
+        courseOfferingRepository.deleteAll(offerings);
+    }
+
+    private void validateOfferingCanBeDeleted(CourseOffering offering) {
+        if (offering.getCurrentEnrollment() > 0) {
+            throw new IllegalStateException("Cannot delete offering '" + offering.getDisplayName() + 
+                "' because it has " + offering.getCurrentEnrollment() + " active enrollments.");
+        }
     }
 
     // ==================== Enrollment Management ====================

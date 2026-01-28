@@ -5,9 +5,9 @@ import com.spts.dto.CourseOfferingDTO;
 import com.spts.entity.Course;
 import com.spts.entity.CourseOffering;
 import com.spts.entity.GradingType;
+import com.spts.entity.Semester;
 import com.spts.exception.ResourceNotFoundException;
 import com.spts.exception.DuplicateResourceException;
-import com.spts.repository.CourseOfferingRepository;
 import com.spts.repository.CourseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,12 +31,12 @@ import java.util.stream.Collectors;
 public class CourseService {
 
     private final CourseRepository courseRepository;
-    private final CourseOfferingRepository courseOfferingRepository;
+    private final CourseOfferingService courseOfferingService;
 
     public CourseService(CourseRepository courseRepository,
-                         CourseOfferingRepository courseOfferingRepository) {
+                         CourseOfferingService courseOfferingService) {
         this.courseRepository = courseRepository;
-        this.courseOfferingRepository = courseOfferingRepository;
+        this.courseOfferingService = courseOfferingService;
     }
 
     // ==================== CRUD Operations ====================
@@ -101,8 +101,50 @@ public class CourseService {
             course.setGradingType(GradingType.SCALE_10);
         }
 
+        // Default status to PENDING if not provided
+        if (dto.getStatus() == null) {
+            course.setStatus(com.spts.entity.ApprovalStatus.PENDING);
+        } else {
+            course.setStatus(dto.getStatus());
+        }
+        
+        course.setCreatorEmail(dto.getCreatorEmail());
+
         Course savedCourse = courseRepository.save(course);
+        
+        // If newly created course is already APPROVED (e.g. by Admin), create an offering
+        if (savedCourse.getStatus() == com.spts.entity.ApprovalStatus.APPROVED) {
+            courseOfferingService.createDefaultOffering(savedCourse);
+        }
+
         return convertToDTO(savedCourse);
+    }
+
+    /**
+     * Approve a pending course request
+     */
+    public CourseDTO approveCourse(Long id) {
+        System.out.println("Approving course ID: " + id);
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
+        course.setStatus(com.spts.entity.ApprovalStatus.APPROVED);
+        Course savedCourse = courseRepository.save(course);
+        System.out.println("Course status updated to APPROVED. Ensuring offering exists...");
+
+        // SRP: Delegate offering creation logic to its own service
+        courseOfferingService.createDefaultOffering(savedCourse);
+
+        return convertToDTO(savedCourse);
+    }
+
+    /**
+     * Reject a pending course request
+     */
+    public CourseDTO rejectCourse(Long id) {
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
+        course.setStatus(com.spts.entity.ApprovalStatus.REJECTED);
+        return convertToDTO(courseRepository.save(course));
     }
 
     /**
@@ -148,17 +190,17 @@ public class CourseService {
      * @throws RuntimeException if course not found or has offerings
      */
     public void deleteCourse(Long id) {
+        // 1. Existence check (Dependency Inversion/Safety)
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
 
-        // Check if course has offerings
-        List<CourseOffering> offerings = courseOfferingRepository.findByCourseId(id);
-        if (!offerings.isEmpty()) {
-            throw new IllegalStateException("Cannot delete course with existing offerings. " +
-                    "Delete offerings first or use archive instead.");
-        }
+        // 2. SRP: Delegate related data cleanup to the appropriate service
+        // This will throw an error if any offering has active enrollments
+        courseOfferingService.deleteOfferingsByCourseId(id);
 
-        courseRepository.deleteById(id);
+        // 3. Delete from DB (The actual database deletion)
+        courseRepository.delete(course);
+        System.out.println("Permanently deleted course from DB: " + course.getCourseCode());
     }
 
     // ==================== Course Offerings (Abstraction-Occurrence) ====================
@@ -178,8 +220,9 @@ public class CourseService {
             throw new ResourceNotFoundException("Course", "id", courseId);
         }
 
-        return courseOfferingRepository.findByCourseId(courseId).stream()
-                .map(this::convertOfferingToDTO)
+        // Delegate to CourseOfferingService
+        return courseOfferingService.getAllOfferings().stream()
+                .filter(o -> o.getCourseId().equals(courseId))
                 .collect(Collectors.toList());
     }
 
@@ -191,7 +234,7 @@ public class CourseService {
      */
     @Transactional(readOnly = true)
     public int countCourseOfferings(Long courseId) {
-        return courseOfferingRepository.findByCourseId(courseId).size();
+        return getCourseOfferings(courseId).size();
     }
 
     // ==================== Search and Filter ====================
@@ -279,6 +322,8 @@ public class CourseService {
         dto.setCredits(course.getCredits());
         dto.setDepartment(course.getDepartment());
         dto.setGradingType(course.getGradingType());
+        dto.setStatus(course.getStatus());
+        dto.setCreatorEmail(course.getCreatorEmail());
         return dto;
     }
 
@@ -293,6 +338,8 @@ public class CourseService {
         course.setCredits(dto.getCredits());
         course.setDepartment(dto.getDepartment());
         course.setGradingType(dto.getGradingType());
+        course.setStatus(dto.getStatus());
+        course.setCreatorEmail(dto.getCreatorEmail());
         return course;
     }
 

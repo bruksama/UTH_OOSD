@@ -108,6 +108,18 @@ public class CourseController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/approve")
+    @Operation(summary = "Approve course proposal", description = "Approves a student-submitted course proposal")
+    public ResponseEntity<CourseDTO> approveCourse(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.approveCourse(id));
+    }
+
+    @PostMapping("/{id}/reject")
+    @Operation(summary = "Reject course proposal", description = "Rejects a student-submitted course proposal")
+    public ResponseEntity<CourseDTO> rejectCourse(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.rejectCourse(id));
+    }
+
     // ==================== Related Data ====================
 
     @GetMapping("/{id}/offerings")
