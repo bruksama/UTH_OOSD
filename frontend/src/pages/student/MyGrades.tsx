@@ -20,6 +20,7 @@ const MyGrades = () => {
     const [selectedEnrollment, setSelectedEnrollment] = useState<EnrollmentDTO | null>(null);
     const [gradeInput, setGradeInput] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [modalDeptFilter, setModalDeptFilter] = useState('All');
 
     useEffect(() => {
         loadData();
@@ -38,8 +39,8 @@ const MyGrades = () => {
 
             // 1. Load available offerings (Active classes)
             try {
-                // In a real app, you might want to filter by current semester
-                const offeringsRes = await courseOfferingService.getAll();
+                // Now supports filtering: students see their own PENDING courses
+                const offeringsRes = await courseOfferingService.getAll(user?.email || '', user?.role || 'student');
                 setAvailableOfferings(offeringsRes.data);
             } catch (err) {
                 console.error('Error fetching offerings:', err);
@@ -84,10 +85,17 @@ const MyGrades = () => {
     // Get list of Course Codes currently enrolled (or completed)
     const enrolledCourseCodes = enrollments.map(e => e.courseCode);
 
+    const modalDepartments = ['All', ...Array.from(new Set(availableOfferings.map(o => o.department || 'General')))];
+
     const validOfferings = availableOfferings.filter(o => {
         // Exclude if student already has an enrollment for this Course Code
-        // (This covers both: same offering ID and different offering ID for same course)
-        return !enrolledCourseCodes.includes(o.courseCode);
+        const alreadyEnrolled = enrolledCourseCodes.includes(o.courseCode);
+        if (alreadyEnrolled) return false;
+
+        // Apply department filter
+        if (modalDeptFilter !== 'All' && (o.department || 'General') !== modalDeptFilter) return false;
+
+        return true;
     });
 
     // --- ACTIONS ---
@@ -225,7 +233,7 @@ const MyGrades = () => {
 
                     <div className="z-10 flex-1">
                         <div className="flex justify-between items-start">
-                            <p className="text-sm font-medium text-slate-500 mb-1">Cumulative GPA</p>
+                            <p className="text-sm font-medium text-slate-500 mb-1">Cumulative Grade</p>
                             <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
                                 Switch Scale
@@ -235,8 +243,8 @@ const MyGrades = () => {
                         <div className="relative h-10 w-full">
                             {/* Scale 4 Display */}
                             <div className={`absolute top-0 left-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isScale4Primary
-                                    ? 'opacity-100 translate-y-0 scale-100 origin-bottom-left'
-                                    : 'opacity-60 translate-y-[-20%] translate-x-[120px] scale-75 origin-bottom-left'
+                                ? 'opacity-100 translate-y-0 scale-100 origin-bottom-left'
+                                : 'opacity-60 translate-y-[-20%] translate-x-[120px] scale-75 origin-bottom-left'
                                 }`}>
                                 <div className="flex items-end gap-1">
                                     <span className={`font-bold text-slate-900 leading-none ${isScale4Primary ? 'text-3xl' : 'text-xl'}`}>
@@ -248,8 +256,8 @@ const MyGrades = () => {
 
                             {/* Scale 10 Display */}
                             <div className={`absolute top-0 left-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${!isScale4Primary
-                                    ? 'opacity-100 translate-y-0 scale-100 origin-bottom-left'
-                                    : 'opacity-60 translate-y-[-20%] translate-x-[120px] scale-75 origin-bottom-left'
+                                ? 'opacity-100 translate-y-0 scale-100 origin-bottom-left'
+                                : 'opacity-60 translate-y-[-20%] translate-x-[120px] scale-75 origin-bottom-left'
                                 }`}>
                                 <div className="flex items-end gap-1">
                                     <span className={`font-bold text-slate-900 leading-none ${!isScale4Primary ? 'text-3xl' : 'text-xl'}`}>
@@ -288,8 +296,7 @@ const MyGrades = () => {
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500 font-semibold">
                             <tr>
-                                <th className="px-6 py-4 text-left tracking-wider">Code</th>
-                                <th className="px-6 py-4 text-left tracking-wider">Subject Name</th>
+                                <th className="px-6 py-4 text-left tracking-wider">Tên môn học</th>
                                 <th className="px-6 py-4 text-center tracking-wider">Credits</th>
                                 <th className="px-6 py-4 text-center tracking-wider">Score</th>
                                 <th className="px-6 py-4 text-center tracking-wider">Status</th>
@@ -311,10 +318,7 @@ const MyGrades = () => {
                             ) : (
                                 enrollments.map((e) => (
                                     <tr key={e.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 font-mono text-sm font-medium text-slate-700">
-                                            {e.courseCode}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                                        <td className="px-6 py-4 text-sm font-bold text-slate-900">
                                             {e.courseName}
                                         </td>
                                         <td className="px-6 py-4 text-center text-sm text-slate-600">
@@ -325,13 +329,13 @@ const MyGrades = () => {
                                                 <div className="flex flex-col items-center gap-1">
                                                     {/* Letter Grade Badge */}
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm border ${(e.finalScore || 0) >= 8.5 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                            (e.finalScore || 0) >= 8.0 ? 'bg-teal-50 text-teal-700 border-teal-200' :
-                                                                (e.finalScore || 0) >= 7.0 ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                                    (e.finalScore || 0) >= 6.5 ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                                                        (e.finalScore || 0) >= 5.5 ? 'bg-violet-50 text-violet-700 border-violet-200' :
-                                                                            (e.finalScore || 0) >= 5.0 ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                                                (e.finalScore || 0) >= 4.0 ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                                                                                    'bg-red-50 text-red-700 border-red-200'
+                                                        (e.finalScore || 0) >= 8.0 ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                                                            (e.finalScore || 0) >= 7.0 ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                                (e.finalScore || 0) >= 6.5 ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                                                    (e.finalScore || 0) >= 5.5 ? 'bg-violet-50 text-violet-700 border-violet-200' :
+                                                                        (e.finalScore || 0) >= 5.0 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                                            (e.finalScore || 0) >= 4.0 ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                                                                'bg-red-50 text-red-700 border-red-200'
                                                         }`}>
                                                         {e.letterGrade}
                                                     </div>
@@ -407,6 +411,22 @@ const MyGrades = () => {
 
                         <div className="space-y-4">
                             <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Filter by Department</label>
+                                <select
+                                    className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-primary-500 outline-none transition-all bg-slate-50"
+                                    value={modalDeptFilter}
+                                    onChange={(e) => {
+                                        setModalDeptFilter(e.target.value);
+                                        setSelectedOfferingId(''); // Reset selection when filter changes
+                                    }}
+                                >
+                                    {modalDepartments.map(dept => (
+                                        <option key={dept} value={dept}>{dept}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-2">Select Course Offering</label>
                                 <select
                                     className="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
@@ -417,16 +437,16 @@ const MyGrades = () => {
                                     {validOfferings.length > 0 ? (
                                         validOfferings.map((o) => (
                                             <option key={o.id} value={o.id}>
-                                                {o.courseCode} - {o.courseName} ({o.semester} {o.academicYear})
+                                                {o.courseName} ({o.semester} {o.academicYear})
                                             </option>
                                         ))
                                     ) : (
-                                        <option value="" disabled>No available courses</option>
+                                        <option value="" disabled>No courses found in this department</option>
                                     )}
                                 </select>
                             </div>
 
-                            {validOfferings.length === 0 && (
+                            {validOfferings.length === 0 && modalDeptFilter === 'All' && (
                                 <p className="text-amber-600 text-sm bg-amber-50 p-3 rounded-lg border border-amber-200">
                                     No courses available to enroll at the moment.
                                 </p>
@@ -469,7 +489,7 @@ const MyGrades = () => {
                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                                 <p className="font-bold text-slate-900">{selectedEnrollment.courseName}</p>
                                 <p className="text-sm text-slate-500 mt-1">
-                                    {selectedEnrollment.courseCode} • {selectedEnrollment.credits} credits
+                                    {selectedEnrollment.credits} tín chỉ
                                 </p>
                             </div>
 

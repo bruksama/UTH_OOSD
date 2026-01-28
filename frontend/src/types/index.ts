@@ -98,6 +98,7 @@ export interface CourseOfferingDTO {
   courseCode?: string;
   courseName?: string;
   credits?: number;
+  department?: string;
   semester: Semester;
   academicYear: number;
   instructor?: string;

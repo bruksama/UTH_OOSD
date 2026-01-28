@@ -18,6 +18,7 @@ public class CourseOfferingDTO {
     private String courseCode;
     private String courseName;
     private Integer credits;
+    private String department;
 
     @NotNull(message = "Semester is required")
     private Semester semester;
@@ -80,6 +81,14 @@ public class CourseOfferingDTO {
 
     public void setCredits(Integer credits) {
         this.credits = credits;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
     }
 
     public Semester getSemester() {
