@@ -125,7 +125,7 @@ const Layout = () => {
                 <h1 className="text-2xl font-black tracking-tighter text-slate-800 leading-none">
                   SPTS
                 </h1>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Ecosytem v2</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">v2</p>
               </div>
             </div>
             <button
