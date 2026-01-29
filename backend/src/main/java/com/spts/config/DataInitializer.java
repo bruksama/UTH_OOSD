@@ -111,6 +111,16 @@ public class DataInitializer implements CommandLineRunner {
         CourseOffering o9 = createOffering(ph2, Semester.SPRING, 2026, "Dr. Newton", 50);
         CourseOffering o10 = createOffering(mn2, Semester.SPRING, 2026, "Prof. Buffet", 45);
 
+        // Additional offerings for previously missing courses
+        CourseOffering o11 = createOffering(cs3, Semester.SPRING, 2026, "Prof. Xavier", 45);
+        CourseOffering o12 = createOffering(cs4, Semester.SPRING, 2026, "Dr. Turing", 50);
+        CourseOffering o13 = createOffering(se2, Semester.SPRING, 2026, "Prof. Pressman", 40);
+        CourseOffering o14 = createOffering(se4, Semester.SPRING, 2026, "Eng. Jobs", 35);
+        CourseOffering o15 = createOffering(ai3, Semester.SPRING, 2026, "Dr. Hinton", 30);
+        CourseOffering o16 = createOffering(ai4, Semester.SPRING, 2026, "Prof. LeCun", 30);
+        CourseOffering o17 = createOffering(ph3, Semester.SPRING, 2026, "Dr. Einstein", 25);
+        CourseOffering o18 = createOffering(mn1, Semester.SPRING, 2026, "Dr. Drucker", 45);
+
         // ==================== 3. STUDENTS (VIETNAMESE LOCALIZED) ====================
         Student s1 = createStudent("IT202301", "Nguyễn", "Thị Mai", "mai.nt@student.uth.edu.vn", 3.95, StudentStatus.NORMAL, 2005, 12, 1);
         Student s2 = createStudent("IT202302", "Trần", "Văn Nam", "nam.tv@student.uth.edu.vn", 3.82, StudentStatus.NORMAL, 2004, 5, 20);
@@ -139,25 +149,25 @@ public class DataInitializer implements CommandLineRunner {
         createEnrollment(s1, o3, EnrollmentStatus.IN_PROGRESS, null);
         createEnrollment(s6, o1, EnrollmentStatus.COMPLETED, 4.5);
 
-        // Batch enrollments for offerings to show numbers in table
+        // Fully engage all students in the new course offerings
+        CourseOffering[] allOfferings = {o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, o12, o13, o14, o15, o16, o17, o18};
         var allStudents = studentRepository.findAll();
         for(int i = 0; i < allStudents.size(); i++) {
              Student st = allStudents.get(i);
-             
-             // For students s8 onwards (index 7+), distribute them across all offerings
-             if (i >= 7) {
-                 if (i % 3 == 0) createEnrollment(st, o1, EnrollmentStatus.IN_PROGRESS, null);
-                 if (i % 3 == 1) createEnrollment(st, o2, EnrollmentStatus.IN_PROGRESS, null);
-                 if (i % 3 == 2) createEnrollment(st, o3, EnrollmentStatus.IN_PROGRESS, null);
-                 
-                 if (i % 4 == 0) createEnrollment(st, o4, EnrollmentStatus.IN_PROGRESS, null);
-                 if (i % 4 == 1) createEnrollment(st, o5, EnrollmentStatus.IN_PROGRESS, null);
-                 if (i % 4 == 2) createEnrollment(st, o6, EnrollmentStatus.IN_PROGRESS, null);
-                 
-                 if (i % 5 == 0) createEnrollment(st, o7, EnrollmentStatus.IN_PROGRESS, null);
-                 if (i % 5 == 1) createEnrollment(st, o8, EnrollmentStatus.IN_PROGRESS, null);
-                 if (i % 5 == 2) createEnrollment(st, o9, EnrollmentStatus.IN_PROGRESS, null);
-                 if (i % 5 == 3) createEnrollment(st, o10, EnrollmentStatus.IN_PROGRESS, null);
+             // Enroll each student in 3-4 different courses based on their index
+             for(int j = 0; j < 4; j++) {
+                 int offeringIdx = (i + j * 3) % allOfferings.length;
+                 // Avoid duplicate enrollments for s1 and s6 who already have manual ones
+                 if ((i == 0 && (offeringIdx == 0 || offeringIdx == 2)) || (i == 5 && offeringIdx == 0)) continue;
+                 // 70% chance to be COMPLETED with a grade, 30% IN_PROGRESS
+                 if (Math.random() > 0.3) {
+                     double score = 5.0 + (Math.random() * 4.5); // Random score 5.0 - 9.5
+                     // Round to 1 decimal
+                     score = Math.round(score * 10.0) / 10.0;
+                     createEnrollment(st, allOfferings[offeringIdx], EnrollmentStatus.COMPLETED, score);
+                 } else {
+                     createEnrollment(st, allOfferings[offeringIdx], EnrollmentStatus.IN_PROGRESS, null);
+                 }
              }
         }
 
