@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StudentDTO, StudentStatus } from '../types';
+import { User, Mail, Calendar, Hash, GraduationCap, Info, X, Loader2, Sparkles } from 'lucide-react';
 
 interface StudentModalProps {
   isOpen: boolean;
@@ -9,6 +10,16 @@ interface StudentModalProps {
   onSubmit: (data: StudentDTO) => Promise<void>;
   isLoading?: boolean;
 }
+
+/**
+ * Generate a unique student ID
+ * Format: STU-YYYY-XXXXX (e.g., STU-2026-00001)
+ */
+const generateStudentId = (): string => {
+  const year = new Date().getFullYear();
+  const random = Math.floor(10000 + Math.random() * 90000); // 5-digit random
+  return `STU-${year}-${random}`;
+};
 
 const StudentModal = ({
   isOpen,
@@ -25,7 +36,11 @@ const StudentModal = ({
     if (mode === 'edit' && student) {
       setFormData(student);
     } else {
-      setFormData({});
+      // Generate new student ID for create mode
+      setFormData({
+        studentId: generateStudentId(),
+        status: StudentStatus.NORMAL,
+      });
     }
     setErrors({});
   }, [mode, student, isOpen]);
@@ -79,47 +94,107 @@ const StudentModal = ({
     }
   };
 
+  const regenerateStudentId = () => {
+    setFormData((prev) => ({ ...prev, studentId: generateStudentId() }));
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-slate-900/30 transition-opacity">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all border border-slate-100">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto transform transition-all border border-slate-100">
         {/* Header */}
         <div className="border-b border-slate-100 px-8 py-6 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900">
-                {mode === 'create' ? 'Add New Student' : 'Edit Student'}
-              </h2>
-              <p className="text-slate-500 text-sm mt-1">
-                Fill in the details below to {mode === 'create' ? 'register a new' : 'update the'} student record.
-              </p>
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-xl ${mode === 'create'
+                ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                : 'bg-gradient-to-br from-blue-500 to-indigo-600'} shadow-lg`}>
+                {mode === 'create' ? (
+                  <User className="h-6 w-6 text-white" />
+                ) : (
+                  <GraduationCap className="h-6 w-6 text-white" />
+                )}
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">
+                  {mode === 'create' ? 'Add New Student' : 'Edit Student'}
+                </h2>
+                <p className="text-slate-500 text-sm mt-0.5">
+                  {mode === 'create'
+                    ? 'Register a new student with default password: 123456'
+                    : 'Update student information'}
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}
               className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-8 py-6 space-y-8">
+        <form onSubmit={handleSubmit} className="px-8 py-6 space-y-6">
 
-          {/* Section: Personal Information */}
+          {/* Student ID Section */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 border border-indigo-100">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Hash className="h-5 w-5 text-indigo-600" />
+                <label className="font-semibold text-indigo-900">Student ID</label>
+              </div>
+              {mode === 'create' && (
+                <button
+                  type="button"
+                  onClick={regenerateStudentId}
+                  className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Generate New
+                </button>
+              )}
+            </div>
+            <input
+              type="text"
+              name="studentId"
+              value={formData.studentId || ''}
+              onChange={handleChange}
+              className={`input font-mono text-lg tracking-wide ${errors.studentId ? 'ring-2 ring-red-500/50 border-red-500' : 'border-indigo-200'} ${mode === 'edit' ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+              placeholder="STU-2026-00001"
+              disabled={mode === 'edit'}
+              readOnly={mode === 'create'}
+            />
+            {errors.studentId && (
+              <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                {errors.studentId}
+              </p>
+            )}
+            {mode === 'create' && (
+              <p className="text-xs text-indigo-600 mt-2 flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                Auto-generated ID. Click "Generate New" for a different one.
+              </p>
+            )}
+          </div>
+
+          {/* Personal Information */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-primary-600 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-6 h-px bg-primary-200"></span>
+            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+              <span className="w-6 h-px bg-slate-200"></span>
               Personal Information
-              <span className="flex-1 h-px bg-slate-100"></span>
+              <span className="flex-1 h-px bg-slate-200"></span>
             </h3>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-5">
               <div>
-                <label className="label">First Name <span className="text-red-500">*</span></label>
+                <label className="label flex items-center gap-2">
+                  <User className="w-4 h-4 text-slate-400" />
+                  First Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="firstName"
@@ -129,14 +204,14 @@ const StudentModal = ({
                   placeholder="e.g. John"
                 />
                 {errors.firstName && (
-                  <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    {errors.firstName}
-                  </p>
+                  <p className="text-red-500 text-xs mt-1.5">{errors.firstName}</p>
                 )}
               </div>
               <div>
-                <label className="label">Last Name <span className="text-red-500">*</span></label>
+                <label className="label flex items-center gap-2">
+                  <User className="w-4 h-4 text-slate-400" />
+                  Last Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="lastName"
@@ -151,103 +226,12 @@ const StudentModal = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-5">
               <div>
-                <label className="label">Date of Birth <span className="text-red-500">*</span></label>
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  value={formData.dateOfBirth || ''}
-                  onChange={handleChange}
-                  className={`input ${errors.dateOfBirth ? 'ring-2 ring-red-500/50 border-red-500' : ''}`}
-                />
-                {errors.dateOfBirth && (
-                  <p className="text-red-500 text-xs mt-1.5">{errors.dateOfBirth}</p>
-                )}
-              </div>
-              <div>
-                <label className="label">Address</label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address || ''}
-                  onChange={handleChange}
-                  className="input"
-                  placeholder="e.g. 123 Campus Dr"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Section: Academic Details */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-primary-600 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-6 h-px bg-primary-200"></span>
-              Academic Details
-              <span className="flex-1 h-px bg-slate-100"></span>
-            </h3>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="label">Student ID <span className="text-red-500">*</span></label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0c0 .883.393 1.627 1 2.188C8.607 7.627 9 6.883 9 6" /></svg>
-                  </span>
-                  <input
-                    type="text"
-                    name="studentId"
-                    value={formData.studentId || ''}
-                    onChange={handleChange}
-                    className={`input pl-10 ${errors.studentId ? 'ring-2 ring-red-500/50 border-red-500' : ''}`}
-                    placeholder="e.g. STU-2024-001"
-                    disabled={mode === 'edit'}
-                  />
-                </div>
-                {errors.studentId && (
-                  <p className="text-red-500 text-xs mt-1.5">{errors.studentId}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="label">Academic Status</label>
-                <select
-                  name="status"
-                  value={formData.status || StudentStatus.NORMAL}
-                  onChange={handleChange}
-                  className="input appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%20stroke%3D%22%236b7280%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22M6%208l4%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1rem_center] bg-no-repeat pr-10"
-                >
-                  <option value={StudentStatus.NORMAL}>Normal Standing</option>
-                  <option value={StudentStatus.AT_RISK}>At Risk (Warning)</option>
-                  <option value={StudentStatus.PROBATION}>Probation</option>
-                  <option value={StudentStatus.GRADUATED}>Alumni / Graduated</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="label">Major / Program</label>
-              <input
-                type="text"
-                name="major"
-                value={formData.major || ''}
-                onChange={handleChange}
-                className="input"
-                placeholder="e.g. Computer Science"
-              />
-            </div>
-          </div>
-
-          {/* Section: Contact */}
-          <div className="space-y-4">
-             <h3 className="text-sm font-semibold text-primary-600 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-6 h-px bg-primary-200"></span>
-              Contact Info
-              <span className="flex-1 h-px bg-slate-100"></span>
-            </h3>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="label">Email Address <span className="text-red-500">*</span></label>
+                <label className="label flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-slate-400" />
+                  Email Address <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="email"
                   name="email"
@@ -261,24 +245,85 @@ const StudentModal = ({
                 )}
               </div>
               <div>
-                <label className="label">Phone Number</label>
+                <label className="label flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-slate-400" />
+                  Date of Birth <span className="text-red-500">*</span>
+                </label>
                 <input
-                  type="tel"
-                  name="phoneNumber"
-                  value={formData.phoneNumber || ''}
+                  type="date"
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth || ''}
                   onChange={handleChange}
-                  className="input"
-                  placeholder="+1 (555) 000-0000"
+                  className={`input ${errors.dateOfBirth ? 'ring-2 ring-red-500/50 border-red-500' : ''}`}
                 />
+                {errors.dateOfBirth && (
+                  <p className="text-red-500 text-xs mt-1.5">{errors.dateOfBirth}</p>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Info Banner for Create Mode */}
+          {mode === 'create' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+              <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-amber-800">Account Creation Notice</p>
+                <p className="text-amber-700 mt-1">
+                  A login account will be created automatically with:
+                </p>
+                <ul className="text-amber-600 mt-1 space-y-0.5">
+                  <li>• <strong>Username:</strong> Student's email address</li>
+                  <li>• <strong>Default Password:</strong> <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono">123456</code></li>
+                </ul>
+                <p className="text-amber-600 mt-1.5 text-xs">
+                  Students can change their password after first login.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Mode: Read-only Academic Info */}
+          {mode === 'edit' && student && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                <span className="w-6 h-px bg-slate-200"></span>
+                Academic Information
+                <span className="flex-1 h-px bg-slate-200"></span>
+              </h3>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
+                  <p className="text-2xl font-bold text-indigo-600">{student.gpa?.toFixed(2) || 'N/A'}</p>
+                  <p className="text-xs text-slate-500 mt-1">Current GPA</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
+                  <p className="text-2xl font-bold text-emerald-600">{student.totalCredits || 0}</p>
+                  <p className="text-xs text-slate-500 mt-1">Total Credits</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
+                  <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${student.status === StudentStatus.NORMAL ? 'bg-green-100 text-green-700' :
+                      student.status === StudentStatus.AT_RISK ? 'bg-yellow-100 text-yellow-700' :
+                        student.status === StudentStatus.PROBATION ? 'bg-red-100 text-red-700' :
+                          'bg-blue-100 text-blue-700'
+                    }`}>
+                    {student.status?.replace('_', ' ')}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">Status</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 text-center">
+                * GPA, Credits, and Status are calculated automatically based on enrollment records
+              </p>
+            </div>
+          )}
         </form>
 
         {/* Footer */}
         <div className="border-t border-slate-100 px-8 py-5 flex justify-end gap-4 sticky bottom-0 bg-slate-50/80 backdrop-blur rounded-b-2xl">
           <button
             onClick={onClose}
+            type="button"
             className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-white hover:text-slate-900 transition focus:ring-2 focus:ring-slate-200"
             disabled={isLoading}
           >
@@ -286,18 +331,23 @@ const StudentModal = ({
           </button>
           <button
             onClick={handleSubmit}
-            className="px-6 py-2.5 bg-primary-600 text-white rounded-xl font-medium shadow-lg shadow-primary-500/30 hover:bg-primary-700 hover:shadow-primary-500/40 transition active:scale-95 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-lg shadow-indigo-500/30 hover:from-indigo-700 hover:to-purple-700 hover:shadow-indigo-500/40 transition active:scale-95 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             disabled={isLoading}
           >
             {isLoading ? (
-              <div className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Processing...
-              </div>
-            ) : mode === 'create' ? 'Create Student' : 'Save Changes'}
+              </>
+            ) : mode === 'create' ? (
+              <>
+                <User className="h-4 w-4" />
+                Create Student
+              </>
+            ) : (
+              'Save Changes'
+            )}
           </button>
         </div>
       </div>
