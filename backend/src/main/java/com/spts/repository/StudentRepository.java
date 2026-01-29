@@ -40,12 +40,22 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     boolean existsByEmail(String email);
 
     /**
-     * Find students by status
+     * Find students by status in a list of statuses
      */
-    List<Student> findByStatus(StudentStatus status);
+    List<Student> findByStatusIn(List<StudentStatus> statuses);
 
     /**
      * Find students with GPA below threshold
+     */
+    List<Student> findByGpaLessThan(Double threshold);
+
+    /**
+     * Search students by name (case-insensitive)
+     */
+    List<Student> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(String firstName, String lastName);
+
+    /**
+     * Find students with GPA below threshold (custom query version)
      */
     @Query("SELECT s FROM Student s WHERE s.gpa < :threshold")
     List<Student> findStudentsWithGpaBelow(@Param("threshold") Double threshold);
@@ -63,7 +73,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findStudentsOnProbation();
 
     /**
-     * Search students by name (case-insensitive)
+     * Search students by name (custom query version)
      */
     @Query("SELECT s FROM Student s WHERE LOWER(s.firstName) LIKE LOWER(CONCAT('%', :name, '%')) " +
            "OR LOWER(s.lastName) LIKE LOWER(CONCAT('%', :name, '%'))")
