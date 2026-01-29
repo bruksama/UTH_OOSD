@@ -1,57 +1,51 @@
 package com.spts.service;
 
-import com.spts.dto.AlertDTO;
-import com.spts.dto.EnrollmentDTO;
 import com.spts.dto.StudentDTO;
-import com.spts.entity.*;
+import com.spts.entity.Student;
+import com.spts.entity.StudentStatus;
+import com.spts.entity.Enrollment;
+import com.spts.entity.EnrollmentStatus;
 import com.spts.exception.ResourceNotFoundException;
 import com.spts.exception.DuplicateResourceException;
-import com.spts.patterns.state.*;
-import com.spts.repository.AlertRepository;
-import com.spts.repository.EnrollmentRepository;
 import com.spts.repository.StudentRepository;
+import com.spts.repository.EnrollmentRepository;
+import com.spts.repository.AlertRepository;
+import com.spts.repository.UserRepository;
+import com.spts.patterns.state.StudentStateManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Service class for Student entity.
- * Provides CRUD operations, GPA calculation, and state management.
- * 
- * Integrates with:
- * - State Pattern: For student status transitions based on GPA
- * - Observer Pattern: Hooks for GPA change notifications (via Member 3)
- * 
- * @author SPTS Team
- */
 @Service
-@Transactional
 public class StudentService {
+
+    private static final String DEFAULT_PASSWORD = "123456";
 
     private final StudentRepository studentRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final AlertRepository alertRepository;
+    private final UserRepository userRepository;
     private final StudentStateManager stateManager;
+    private final AuthService authService;
 
     public StudentService(StudentRepository studentRepository,
                           EnrollmentRepository enrollmentRepository,
                           AlertRepository alertRepository,
-                          StudentStateManager stateManager) {
+                          UserRepository userRepository,
+                          StudentStateManager stateManager,
+                          AuthService authService) {
         this.studentRepository = studentRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.alertRepository = alertRepository;
+        this.userRepository = userRepository;
         this.stateManager = stateManager;
+        this.authService = authService;
     }
 
     // ==================== CRUD Operations ====================
 
-    /**
-     * Get all students
-     * 
-     * @return List of all students as DTOs
-     */
     @Transactional(readOnly = true)
     public List<StudentDTO> getAllStudents() {
         return studentRepository.findAll().stream()
@@ -59,13 +53,6 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Get student by ID
-     * 
-     * @param id Student database ID
-     * @return StudentDTO
-     * @throws ResourceNotFoundException if student not found
-     */
     @Transactional(readOnly = true)
     public StudentDTO getStudentById(Long id) {
         Student student = studentRepository.findById(id)
@@ -73,13 +60,6 @@ public class StudentService {
         return convertToDTO(student);
     }
 
-    /**
-     * Get student by student ID (business key)
-     * 
-     * @param studentId Student ID (e.g., "STU001")
-     * @return StudentDTO
-     * @throws ResourceNotFoundException if student not found
-     */
     @Transactional(readOnly = true)
     public StudentDTO getStudentByStudentId(String studentId) {
         Student student = studentRepository.findByStudentId(studentId)
@@ -87,13 +67,7 @@ public class StudentService {
         return convertToDTO(student);
     }
 
-    /**
-     * Create a new student
-     * 
-     * @param dto StudentDTO with student data
-     * @return Created StudentDTO with generated ID
-     * @throws DuplicateResourceException if student ID or email already exists
-     */
+    @Transactional
     public StudentDTO createStudent(StudentDTO dto) {
         // Check for duplicates
         if (studentRepository.existsByStudentId(dto.getStudentId())) {
@@ -109,57 +83,88 @@ public class StudentService {
         student.setTotalCredits(0);
 
         Student savedStudent = studentRepository.save(student);
+
+        // Create Firebase user account with default password
+        try {
+            String displayName = savedStudent.getFirstName() + " " + savedStudent.getLastName();
+            authService.createStudentAccount(
+                savedStudent.getEmail(),
+                displayName,
+                savedStudent,
+                DEFAULT_PASSWORD
+            );
+        } catch (Exception e) {
+            // Log error but don't fail student creation
+            System.err.println("Warning: Failed to create Firebase account for student " + 
+                savedStudent.getEmail() + ": " + e.getMessage());
+        }
+
         return convertToDTO(savedStudent);
     }
 
-    /**
-     * Update an existing student
-     * 
-     * @param id  Student database ID
-     * @param dto StudentDTO with updated data
-     * @return Updated StudentDTO
-     * @throws ResourceNotFoundException if student not found
-     */
+    @Transactional
     public StudentDTO updateStudent(Long id, StudentDTO dto) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
 
-        // Check for duplicate email (if changed)
-        if (!student.getEmail().equals(dto.getEmail()) 
-                && studentRepository.existsByEmail(dto.getEmail())) {
-            throw new DuplicateResourceException("Student", "email", dto.getEmail());
-        }
-
-        // Check for duplicate student ID (if changed)
-        if (!student.getStudentId().equals(dto.getStudentId()) 
-                && studentRepository.existsByStudentId(dto.getStudentId())) {
-            throw new DuplicateResourceException("Student", "studentId", dto.getStudentId());
-        }
-
         // Update fields
-        student.setStudentId(dto.getStudentId());
         student.setFirstName(dto.getFirstName());
         student.setLastName(dto.getLastName());
         student.setEmail(dto.getEmail());
         student.setDateOfBirth(dto.getDateOfBirth());
-        student.setEnrollmentDate(dto.getEnrollmentDate());
+        // gpa, totalCredits and status are not updated via this CRUD method
+        // they are updated via business logic (recalculateGpa, graduate)
 
-        // Note: GPA and status are managed by the system, not directly updated
-        Student savedStudent = studentRepository.save(student);
-        return convertToDTO(savedStudent);
+        return convertToDTO(studentRepository.save(student));
     }
 
-    /**
-     * Delete a student
-     * 
-     * @param id Student database ID
-     * @throws ResourceNotFoundException if student not found
-     */
+    @Transactional
     public void deleteStudent(Long id) {
         if (!studentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Student", "id", id);
         }
         studentRepository.deleteById(id);
+    }
+
+    // ==================== Business Logic ====================
+
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsAtRisk() {
+        return studentRepository.findByStatusIn(List.of(StudentStatus.AT_RISK, StudentStatus.PROBATION))
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentDTO> searchByName(String name) {
+        return studentRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(name, name)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentDTO> getStudentsWithGpaBelow(Double threshold) {
+        return studentRepository.findByGpaLessThan(threshold)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void graduateStudent(Long id) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
+
+        // Business logic for graduation (e.g., total credits >= 120, gpa >= 2.0)
+        if (student.getTotalCredits() != null && student.getTotalCredits() >= 120 && 
+            student.getGpa() != null && student.getGpa() >= 2.0) {
+            student.setStatus(StudentStatus.GRADUATED);
+            studentRepository.save(student);
+        } else {
+            throw new IllegalStateException("Student does not meet graduation requirements");
+        }
     }
 
     // ==================== GPA Calculation ====================
@@ -176,24 +181,29 @@ public class StudentService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
-        List<Enrollment> completedEnrollments = enrollmentRepository
-                .findByStudentIdAndStatus(studentId, EnrollmentStatus.COMPLETED);
+        // Get all enrollments for this student
+        List<Enrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
+        
+        // Filter those that have a final score and GPA value
+        List<Enrollment> gradedEnrollments = enrollments.stream()
+                .filter(e -> e.getFinalScore() != null && e.getGpaValue() != null)
+                .collect(Collectors.toList());
 
-        if (completedEnrollments.isEmpty()) {
+        if (gradedEnrollments.isEmpty()) {
             return null;
         }
 
         double totalWeightedGpa = 0.0;
-        int totalCredits = 0;
+        int totalCreditsCount = 0;
 
-        for (Enrollment enrollment : completedEnrollments) {
-            if (enrollment.getGpaValue() != null && enrollment.getCredits() != null) {
+        for (Enrollment enrollment : gradedEnrollments) {
+            if (enrollment.getCredits() != null) {
                 totalWeightedGpa += enrollment.getGpaValue() * enrollment.getCredits();
-                totalCredits += enrollment.getCredits();
+                totalCreditsCount += enrollment.getCredits();
             }
         }
 
-        return totalCredits > 0 ? totalWeightedGpa / totalCredits : null;
+        return totalCreditsCount > 0 ? totalWeightedGpa / totalCreditsCount : null;
     }
 
     /**
@@ -230,143 +240,40 @@ public class StudentService {
      */
     @Transactional(readOnly = true)
     public Integer calculateTotalCredits(Long studentId) {
-        Integer credits = enrollmentRepository.countCompletedCredits(studentId);
-        return credits != null ? credits : 0;
+        // Find all graded enrollments for this student with a passing grade
+        List<Enrollment> enrollments = enrollmentRepository.findByStudentId(studentId);
+        
+        return enrollments.stream()
+                .filter(e -> e.getFinalScore() != null && e.getGpaValue() != null && e.getGpaValue() >= 1.0)
+                .mapToInt(e -> e.getCredits() != null ? e.getCredits() : 0)
+                .sum();
     }
 
-    // ==================== State Pattern Integration ====================
+    // ==================== Helpers ====================
 
     /**
-     * Update student status based on GPA using State Pattern.
-     * Uses StudentStateManager for centralized state management.
-     * 
-     * @param student Student entity to update
-     * @param newGpa  New GPA value
+     * Update student status using the State Design Pattern logic.
+     * Delegates decision to the StudentStateManager.
      */
-    private void updateStudentStatus(Student student, double newGpa) {
-        // Skip if already graduated
-        if (student.getStatus() == StudentStatus.GRADUATED) {
-            return;
-        }
-
-        // Use StateManager for state transition
-        StudentStatus newStatus = stateManager.handleStateTransition(student, newGpa);
+    private void updateStudentStatus(Student student, Double currentGpa) {
+        StudentStatus newStatus = stateManager.handleStateTransition(student, currentGpa);
         student.setStatus(newStatus);
     }
 
     /**
-     * Get StudentState object for a given StudentStatus enum.
-     * Delegates to StudentStateManager.
-     * 
-     * @param status StudentStatus enum value
-     * @return Corresponding StudentState implementation
+     * Convert StudentDTO to Student entity
      */
-    public StudentState getStateForStatus(StudentStatus status) {
-        return stateManager.getStateForStatus(status);
+    private Student convertToEntity(StudentDTO dto) {
+        Student student = new Student();
+        student.setStudentId(dto.getStudentId());
+        student.setFirstName(dto.getFirstName());
+        student.setLastName(dto.getLastName());
+        student.setEmail(dto.getEmail());
+        student.setDateOfBirth(dto.getDateOfBirth());
+        student.setEnrollmentDate(dto.getEnrollmentDate());
+        // status, gpa, and credits are handled by services/logic
+        return student;
     }
-
-    /**
-     * Manually mark a student as graduated.
-     * 
-     * @param studentId Student database ID
-     * @throws RuntimeException if student not found or does not meet requirements
-     */
-    public void graduateStudent(Long studentId) {
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
-
-        // Check graduation requirements (example: minimum credits and GPA)
-        if (student.getTotalCredits() == null || student.getTotalCredits() < 120) {
-            throw new IllegalStateException("Student does not meet minimum credit requirement (120 credits)");
-        }
-        if (student.getGpa() == null || student.getGpa() < 2.0) {
-            throw new IllegalStateException("Student does not meet minimum GPA requirement (2.0)");
-        }
-
-        student.setStatus(StudentStatus.GRADUATED);
-        studentRepository.save(student);
-    }
-
-    // ==================== Related Data Queries ====================
-
-    /**
-     * Get all enrollments for a student
-     * 
-     * @param studentId Student database ID
-     * @return List of EnrollmentDTOs
-     */
-    @Transactional(readOnly = true)
-    public List<EnrollmentDTO> getStudentEnrollments(Long studentId) {
-        if (!studentRepository.existsById(studentId)) {
-            throw new ResourceNotFoundException("Student", "id", studentId);
-        }
-
-        return enrollmentRepository.findByStudentId(studentId).stream()
-                .map(this::convertEnrollmentToDTO)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Get all alerts for a student
-     * 
-     * @param studentId Student database ID
-     * @return List of AlertDTOs
-     */
-    @Transactional(readOnly = true)
-    public List<AlertDTO> getStudentAlerts(Long studentId) {
-        if (!studentRepository.existsById(studentId)) {
-            throw new ResourceNotFoundException("Student", "id", studentId);
-        }
-
-        return alertRepository.findByStudentId(studentId).stream()
-                .map(this::convertAlertToDTO)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Get students at risk (AT_RISK or PROBATION status)
-     * 
-     * @return List of at-risk StudentDTOs
-     */
-    @Transactional(readOnly = true)
-    public List<StudentDTO> getStudentsAtRisk() {
-        List<Student> atRisk = studentRepository.findByStatus(StudentStatus.AT_RISK);
-        List<Student> probation = studentRepository.findByStatus(StudentStatus.PROBATION);
-
-        atRisk.addAll(probation);
-
-        return atRisk.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Search students by name (first or last name)
-     * 
-     * @param name Name to search for
-     * @return List of matching StudentDTOs
-     */
-    @Transactional(readOnly = true)
-    public List<StudentDTO> searchByName(String name) {
-        return studentRepository.searchByName(name).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Get students with GPA below a threshold
-     * 
-     * @param threshold GPA threshold
-     * @return List of StudentDTOs
-     */
-    @Transactional(readOnly = true)
-    public List<StudentDTO> getStudentsWithGpaBelow(Double threshold) {
-        return studentRepository.findStudentsWithGpaBelow(threshold).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
-    // ==================== DTO Conversion Helpers ====================
 
     /**
      * Convert Student entity to StudentDTO
@@ -383,65 +290,6 @@ public class StudentService {
         dto.setGpa(student.getGpa());
         dto.setTotalCredits(student.getTotalCredits());
         dto.setStatus(student.getStatus());
-        return dto;
-    }
-
-    /**
-     * Convert StudentDTO to Student entity
-     */
-    private Student convertToEntity(StudentDTO dto) {
-        Student student = new Student();
-        student.setStudentId(dto.getStudentId());
-        student.setFirstName(dto.getFirstName());
-        student.setLastName(dto.getLastName());
-        student.setEmail(dto.getEmail());
-        student.setDateOfBirth(dto.getDateOfBirth());
-        student.setEnrollmentDate(dto.getEnrollmentDate());
-        return student;
-    }
-
-    /**
-     * Convert Enrollment entity to EnrollmentDTO
-     */
-    private EnrollmentDTO convertEnrollmentToDTO(Enrollment enrollment) {
-        EnrollmentDTO dto = new EnrollmentDTO();
-        dto.setId(enrollment.getId());
-        dto.setStudentId(enrollment.getStudent().getId());
-        dto.setStudentName(enrollment.getStudent().getFullName());
-        dto.setStudentCode(enrollment.getStudent().getStudentId());
-        dto.setCourseOfferingId(enrollment.getCourseOffering().getId());
-        dto.setCourseCode(enrollment.getCourseOffering().getCourse().getCourseCode());
-        dto.setCourseName(enrollment.getCourseOffering().getCourse().getCourseName());
-        dto.setCredits(enrollment.getCourseOffering().getCourse().getCredits());
-        dto.setSemester(enrollment.getCourseOffering().getSemester().getDisplayName());
-        dto.setAcademicYear(enrollment.getCourseOffering().getAcademicYear());
-        dto.setFinalScore(enrollment.getFinalScore());
-        dto.setLetterGrade(enrollment.getLetterGrade());
-        dto.setGpaValue(enrollment.getGpaValue());
-        dto.setStatus(enrollment.getStatus());
-        dto.setEnrolledAt(enrollment.getEnrolledAt());
-        dto.setCompletedAt(enrollment.getCompletedAt());
-        return dto;
-    }
-
-    /**
-     * Convert Alert entity to AlertDTO
-     */
-    private AlertDTO convertAlertToDTO(Alert alert) {
-        AlertDTO dto = new AlertDTO();
-        dto.setId(alert.getId());
-        dto.setStudentId(alert.getStudent().getId());
-        dto.setStudentName(alert.getStudent().getFullName());
-        dto.setLevel(alert.getLevel());
-        dto.setType(alert.getType());
-        dto.setMessage(alert.getMessage());
-        dto.setCreatedDate(alert.getCreatedAt() != null ? alert.getCreatedAt().toLocalDate() : null);
-        dto.setCreatedAt(alert.getCreatedAt());
-        dto.setIsRead(alert.getIsRead());
-        dto.setReadAt(alert.getReadAt());
-        dto.setIsResolved(alert.getIsResolved());
-        dto.setResolvedAt(alert.getResolvedAt());
-        dto.setResolvedBy(alert.getResolvedBy());
         return dto;
     }
 }

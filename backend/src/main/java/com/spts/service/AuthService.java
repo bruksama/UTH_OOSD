@@ -114,4 +114,50 @@ public class AuthService {
         user.setStudent(student);
         return userRepository.save(user);
     }
+
+    /**
+     * Create Firebase user account with default password.
+     * Also creates User record in database and links to student.
+     * 
+     * @param email User email
+     * @param displayName Display name
+     * @param student Student entity to link
+     * @param defaultPassword Default password for the account
+     * @return Created User entity
+     */
+    @Transactional
+    public User createStudentAccount(String email, String displayName, Student student, String defaultPassword) {
+        try {
+            // Try to create Firebase user
+            com.google.firebase.auth.FirebaseAuth firebaseAuth = com.google.firebase.auth.FirebaseAuth.getInstance();
+            
+            com.google.firebase.auth.UserRecord.CreateRequest request = new com.google.firebase.auth.UserRecord.CreateRequest()
+                    .setEmail(email)
+                    .setPassword(defaultPassword)
+                    .setDisplayName(displayName)
+                    .setEmailVerified(false);
+            
+            com.google.firebase.auth.UserRecord userRecord = firebaseAuth.createUser(request);
+            
+            // Create User in database
+            User user = new User();
+            user.setFirebaseUid(userRecord.getUid());
+            user.setEmail(email);
+            user.setDisplayName(displayName);
+            user.setRole(UserRole.STUDENT);
+            user.setStudent(student);
+            
+            return userRepository.save(user);
+        } catch (com.google.firebase.auth.FirebaseAuthException e) {
+            throw new RuntimeException("Failed to create Firebase user: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Create Firebase user account (overload without student link).
+     */
+    @Transactional
+    public User createStudentAccount(String email, String displayName, String defaultPassword) {
+        return createStudentAccount(email, displayName, null, defaultPassword);
+    }
 }
