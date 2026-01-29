@@ -189,7 +189,7 @@ const StudentModal = ({
               <span className="flex-1 h-px bg-slate-200"></span>
             </h3>
 
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <div>
                 <label className="label flex items-center gap-2">
                   <User className="w-4 h-4 text-slate-400" />
@@ -226,7 +226,7 @@ const StudentModal = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
               <div>
                 <label className="label flex items-center gap-2">
                   <Mail className="w-4 h-4 text-slate-400" />
@@ -303,9 +303,9 @@ const StudentModal = ({
                 </div>
                 <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
                   <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${student.status === StudentStatus.NORMAL ? 'bg-green-100 text-green-700' :
-                      student.status === StudentStatus.AT_RISK ? 'bg-yellow-100 text-yellow-700' :
-                        student.status === StudentStatus.PROBATION ? 'bg-red-100 text-red-700' :
-                          'bg-blue-100 text-blue-700'
+                    student.status === StudentStatus.AT_RISK ? 'bg-yellow-100 text-yellow-700' :
+                      student.status === StudentStatus.PROBATION ? 'bg-red-100 text-red-700' :
+                        'bg-blue-100 text-blue-700'
                     }`}>
                     {student.status?.replace('_', ' ')}
                   </div>

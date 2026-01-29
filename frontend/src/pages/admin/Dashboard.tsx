@@ -157,86 +157,92 @@ const AdminDashboard = () => {
   // ==================== Render ====================
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <div className="min-h-screen bg-transparent p-0">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
 
         {/* ===== HEADER ===== */}
-        <div className="mb-8">
+        <div className="mb-4 lg:mb-8">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
-              <BarChart3 className="h-8 w-8 text-white" />
+            <div className="p-2 lg:p-3 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shrink-0">
+              <BarChart3 className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-800">Admin Dashboard</h1>
-              <p className="text-slate-500">Real-time overview of student performance and enrollments</p>
+            <div className="min-w-0">
+              <h1 className="text-xl lg:text-3xl font-bold text-slate-800 truncate">Admin Dashboard</h1>
+              <p className="text-xs lg:text-sm text-slate-500 truncate">Real-time overview of performance and enrollments</p>
             </div>
           </div>
         </div>
 
         {/* ===== PRIMARY STAT CARDS ===== */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Students" value={stats.totalStudents} icon={<Users className="h-7 w-7" />} gradient={GRADIENT_COLORS.primary} />
-          <StatCard title="Total Enrollments" value={advancedStats?.totalEnrollments || 0} icon={<BookOpen className="h-7 w-7" />} gradient={GRADIENT_COLORS.success} />
-          <StatCard title="Active Enrollments" value={advancedStats?.activeEnrollments || 0} icon={<Clock className="h-7 w-7" />} gradient={GRADIENT_COLORS.info} />
-          <StatCard title="Active Alerts" value={stats.activeAlerts} icon={<AlertTriangle className="h-7 w-7" />} gradient={GRADIENT_COLORS.danger} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <StatCard title="Total Students" value={stats.totalStudents} icon={<Users className="h-6 w-6 lg:h-7 lg:w-7" />} gradient={GRADIENT_COLORS.primary} />
+          <StatCard title="Total Enrollments" value={advancedStats?.totalEnrollments || 0} icon={<BookOpen className="h-6 w-6 lg:h-7 lg:w-7" />} gradient={GRADIENT_COLORS.success} />
+          <StatCard title="Active Enrollments" value={advancedStats?.activeEnrollments || 0} icon={<Clock className="h-6 w-6 lg:h-7 lg:w-7" />} gradient={GRADIENT_COLORS.info} />
+          <StatCard title="Active Alerts" value={stats.activeAlerts} icon={<AlertTriangle className="h-6 w-6 lg:h-7 lg:w-7" />} gradient={GRADIENT_COLORS.danger} />
         </div>
 
         {/* ===== SECONDARY STAT CARDS ===== */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="At Risk Students" value={stats.atRiskCount} icon={<ShieldAlert className="h-7 w-7" />} gradient={['#f97316', '#fb923c']} />
-          <StatCard title="Overall Avg GPA" value={(advancedStats?.overallAverageGpa || stats.averageGpa).toFixed(2)} icon={<TrendingUp className="h-7 w-7" />} gradient={GRADIENT_COLORS.purple} />
-          <StatCard title="Completed Courses" value={advancedStats?.completedEnrollments || 0} icon={<CheckCircle className="h-7 w-7" />} gradient={['#14b8a6', '#2dd4bf']} />
-          <StatCard title="Pending Approvals" value={stats.pendingCourses || 0} icon={<ClipboardList className="h-7 w-7" />} gradient={['#64748b', '#94a3b8']} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <StatCard title="At Risk Students" value={stats.atRiskCount} icon={<ShieldAlert className="h-6 w-6 lg:h-7 lg:w-7" />} gradient={['#f97316', '#fb923c']} />
+          <StatCard title="Overall Avg GPA" value={(advancedStats?.overallAverageGpa || stats.averageGpa).toFixed(2)} icon={<TrendingUp className="h-6 w-6 lg:h-7 lg:w-7" />} gradient={GRADIENT_COLORS.purple} />
+          <StatCard title="Completed Courses" value={advancedStats?.completedEnrollments || 0} icon={<CheckCircle className="h-6 w-6 lg:h-7 lg:w-7" />} gradient={['#14b8a6', '#2dd4bf']} />
+          <StatCard title="Pending Approvals" value={stats.pendingCourses || 0} icon={<ClipboardList className="h-6 w-6 lg:h-7 lg:w-7" />} gradient={['#64748b', '#94a3b8']} />
         </div>
 
         {/* ===== TOP COURSES & DEPARTMENT STATS ===== */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ChartCard title="🏆 Top Enrolled Courses" subtitle="Most popular courses by enrollment">
-            <BarChartWidget
-              data={topCoursesData}
-              bars={[
-                { dataKey: 'enrollments', name: 'Enrollments', gradient: true },
-                { dataKey: 'completed', name: 'Completed', fill: '#10b981' },
-              ]}
-              xAxisKey="name"
-              layout="vertical"
-              height={320}
-            />
+            <div className="h-[280px] sm:h-[320px]">
+              <BarChartWidget
+                data={topCoursesData}
+                bars={[
+                  { dataKey: 'enrollments', name: 'Enrollments', gradient: true },
+                  { dataKey: 'completed', name: 'Completed', fill: '#10b981' },
+                ]}
+                xAxisKey="name"
+                layout="vertical"
+                height={undefined} // Use container height
+              />
+            </div>
           </ChartCard>
 
           <ChartCard title="🎯 Department Performance" subtitle="Enrollments and students by department">
-            <RadarChartWidget
-              data={departmentRadarData}
-              radars={[
-                { dataKey: 'enrollments', name: 'Enrollments', color: '#6366f1' },
-                { dataKey: 'students', name: 'Students', color: '#10b981' },
-              ]}
-              angleAxisKey="department"
-              height={320}
-            />
+            <div className="h-[280px] sm:h-[320px]">
+              <RadarChartWidget
+                data={departmentRadarData}
+                radars={[
+                  { dataKey: 'enrollments', name: 'Enrollments', color: '#6366f1' },
+                  { dataKey: 'students', name: 'Students', color: '#10b981' },
+                ]}
+                angleAxisKey="department"
+                height={undefined}
+              />
+            </div>
           </ChartCard>
         </div>
-
-
 
         {/* ===== GPA & STATUS DISTRIBUTION ===== */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ChartCard title="📊 GPA Distribution" subtitle="Students by GPA range">
-            <BarChartWidget
-              data={gpaDistribution}
-              bars={[{ dataKey: 'count', name: 'Students' }]}
-              xAxisKey="range"
-              height={288}
-            />
+            <div className="h-[240px] sm:h-[288px]">
+              <BarChartWidget
+                data={gpaDistribution}
+                bars={[{ dataKey: 'count', name: 'Students' }]}
+                xAxisKey="range"
+                height={undefined}
+              />
+            </div>
           </ChartCard>
 
           <ChartCard title="🎓 Student Status Distribution" subtitle="Academic classification overview">
-            <PieChartWidget
-              data={statusDistribution}
-              innerRadius={60}
-              centerLabel={{ value: realStudents.length, label: 'Students' }}
-              height={288}
-            />
+            <div className="h-[240px] sm:h-[288px]">
+              <PieChartWidget
+                data={statusDistribution}
+                innerRadius={window.innerWidth < 640 ? 40 : 60}
+                centerLabel={{ value: realStudents.length, label: 'Students' }}
+                height={undefined}
+              />
+            </div>
           </ChartCard>
         </div>
 
