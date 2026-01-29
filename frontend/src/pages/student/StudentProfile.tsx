@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { studentService, enrollmentService } from '../../services';
 import { StudentDTO, EnrollmentDTO } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { getAcademicClassification, getClassificationColor } from '../../utils/helpers';
 
 const StudentProfile = () => {
     const { user, updateUser } = useAuth();
@@ -108,23 +109,9 @@ const StudentProfile = () => {
                             className="w-full h-full object-cover"
                         />
                     </div>
-                    {/* Classification Badge - Dynamic based on GPA */}
-                    <div className={`absolute bottom-2 right-[-8px] px-3 py-1 rounded-full text-xs font-bold border-2 border-white shadow-sm ${(() => {
-                        const val = gpa || 0;
-                        if (val >= 3.6) return 'bg-purple-100 text-purple-700';
-                        if (val >= 3.2) return 'bg-emerald-100 text-emerald-700';
-                        if (val >= 2.5) return 'bg-blue-100 text-blue-700';
-                        if (val >= 2.0) return 'bg-amber-100 text-amber-700';
-                        return 'bg-red-100 text-red-700';
-                    })()}`}>
-                        {(() => {
-                            const val = gpa || 0;
-                            if (val >= 3.6) return 'Excellent';
-                            if (val >= 3.2) return 'Very Good';
-                            if (val >= 2.5) return 'Good';
-                            if (val >= 2.0) return 'Average';
-                            return 'Weak';
-                        })()}
+                    {/* Classification Badge - Dynamic based on GPA and Credits */}
+                    <div className={`absolute bottom-2 right-[-8px] px-3 py-1 rounded-full text-xs font-bold border-2 border-white shadow-sm ${getClassificationColor(getAcademicClassification(gpa, totalCredits)).replace('badge ', '')}`}>
+                        {getAcademicClassification(gpa, totalCredits)}
                     </div>
                 </div>
 
