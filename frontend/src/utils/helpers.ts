@@ -53,9 +53,18 @@ export const getStudentFullName = (student: StudentDTO): string => {
 
 /**
  * Get Academic Classification based on GPA (Scale 4)
+ * Returns 'New Student' for students without enrollment history
  */
 export const getAcademicClassification = (gpa: number | undefined | null, credits: number | undefined | null): string => {
-    if (credits === 0 || gpa === undefined || gpa === null) return 'N/A';
+    // New student: no credits means no completed courses yet
+    if (credits === undefined || credits === null || credits === 0) {
+        return 'New Student';
+    }
+    // Has credits but no GPA (shouldn't happen, but handle gracefully)
+    if (gpa === undefined || gpa === null) {
+        return 'N/A';
+    }
+    // Academic classification based on GPA
     if (gpa >= 3.6) return 'Excellent';     // Xuất sắc
     if (gpa >= 3.2) return 'Very Good';     // Giỏi
     if (gpa >= 2.5) return 'Good';          // Khá
@@ -73,6 +82,7 @@ export const getClassificationColor = (classification: string): string => {
         case 'Good': return 'badge bg-blue-100 text-blue-700 border-blue-200';
         case 'Average': return 'badge bg-yellow-100 text-yellow-700 border-yellow-200';
         case 'Weak': return 'badge bg-red-100 text-red-700 border-red-200';
+        case 'New Student': return 'badge bg-indigo-100 text-indigo-700 border-indigo-200';
         default: return 'badge bg-slate-100 text-slate-500';
     }
 };
@@ -94,9 +104,6 @@ export const getStatusDisplay = (student: StudentDTO): { label: string, color: s
 
     // Priority 2: Academic Rank (for NORMAL status)
     const classification = getAcademicClassification(student.gpa, student.totalCredits);
-    if (classification === 'N/A') {
-        return { label: 'New Student', color: 'badge bg-slate-100 text-slate-600 border-slate-200' };
-    }
 
     return {
         label: classification,
