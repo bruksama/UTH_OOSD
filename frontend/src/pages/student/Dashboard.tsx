@@ -78,7 +78,7 @@ const Dashboard = () => {
                     </svg>
                 </div>
                 <div className="relative z-10">
-                    <h1 className="text-2xl lg:text-4xl font-black mb-2 tracking-tight">Welcome back, {user?.displayName?.split(' ')[0] || 'Student'}! 👋</h1>
+                    <h1 className="text-2xl lg:text-4xl font-black mb-2 tracking-tight">Welcome back, {user?.displayName || 'Student'}! 👋</h1>
                     <p className="text-indigo-100 text-sm lg:text-lg font-medium opacity-90 max-w-xl">
                         You've completed {progressPercent.toFixed(0)}% of your degree. Keep up the great work!
                     </p>

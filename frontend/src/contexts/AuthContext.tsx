@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
+        displayName: response.data.displayName || firebaseUser.displayName,
         role: response.data.role as UserRole,
         studentId: response.data.studentId,
       };
