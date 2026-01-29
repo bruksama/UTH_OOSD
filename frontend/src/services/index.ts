@@ -5,4 +5,4 @@ export { enrollmentService } from './enrollmentService';
 export { alertService } from './alert.service';
 export { courseOfferingService } from './courseOffering.service';
 export { gradeEntryService } from './gradeEntry.service';
-
+export { statisticsService } from './statistics.service';
