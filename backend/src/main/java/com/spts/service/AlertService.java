@@ -247,6 +247,26 @@ public class AlertService {
         return count;
     }
 
+    /**
+     * Resolve all alerts of a specific type for a student.
+     * Used when the condition causing the alert is no longer present.
+     * 
+     * @param studentId Student ID
+     * @param type Alert type to resolve
+     * @param resolvedBy System or user resolving the alert
+     * @return Number of alerts resolved
+     */
+    public int resolveAlertsByType(Long studentId, AlertType type, String resolvedBy) {
+        List<Alert> alerts = alertRepository.findByStudentIdAndTypeAndIsResolvedFalse(studentId, type);
+        int count = 0;
+        for (Alert alert : alerts) {
+            alert.markAsResolved(resolvedBy);
+            count++;
+        }
+        alertRepository.saveAll(alerts);
+        return count;
+    }
+
     // ==================== Search and Filter ====================
 
     /**
