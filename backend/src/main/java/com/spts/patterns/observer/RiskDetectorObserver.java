@@ -39,8 +39,10 @@ public class RiskDetectorObserver implements IGradeObserver {
         logger.info("Checking risk status for student: {} after grade update", student.getStudentId());
         
         Double currentGpa = student.getGpa();
-        if (currentGpa == null) {
-            logger.debug("Student {} has no GPA calculated yet", student.getStudentId());
+        Integer totalCredits = student.getTotalCredits();
+        
+        if (currentGpa == null || totalCredits == null || totalCredits == 0) {
+            logger.debug("Student {} has no GPA or credits yet, skipping risk detection", student.getStudentId());
             return;
         }
         
@@ -52,6 +54,7 @@ public class RiskDetectorObserver implements IGradeObserver {
         }
         
         // Create alerts based on GPA thresholds
+        // Create alerts based on GPA thresholds
         if (currentGpa < PROBATION_THRESHOLD) {
             createAlert(student, AlertLevel.CRITICAL, AlertType.PROBATION,
                 String.format("Student GPA (%.2f) is below probation threshold (%.1f)", 
@@ -60,6 +63,20 @@ public class RiskDetectorObserver implements IGradeObserver {
             createAlert(student, AlertLevel.WARNING, AlertType.LOW_GPA,
                 String.format("Student GPA (%.2f) is below at-risk threshold (%.1f)", 
                     currentGpa, AT_RISK_THRESHOLD));
+        } else {
+            // GPA is healthy (>= 2.0)
+            // Resolve any existing risk alerts
+            int resolvedProbation = alertService.resolveAlertsByType(student.getId(), AlertType.PROBATION, "System_AutoResolve");
+            int resolvedRisk = alertService.resolveAlertsByType(student.getId(), AlertType.LOW_GPA, "System_AutoResolve");
+            
+            if (resolvedProbation > 0 || resolvedRisk > 0) {
+                logger.info("Auto-resolved {} probation/risk alerts for student {} due to GPA improvement", 
+                        resolvedProbation + resolvedRisk, student.getStudentId());
+                        
+                // Create improvement alert
+                createAlert(student, AlertLevel.INFO, AlertType.IMPROVEMENT,
+                    String.format("Great job! Your GPA (%.2f) has improved and is now in good standing.", currentGpa));
+            }
         }
     }
     

@@ -79,4 +79,9 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
            "AND a.type = :type AND a.isResolved = false")
     boolean existsUnresolvedByStudentIdAndType(@Param("studentId") Long studentId, 
                                                 @Param("type") AlertType type);
+
+    /**
+     * Find unresolved alerts by student ID and type.
+     */
+    List<Alert> findByStudentIdAndTypeAndIsResolvedFalse(Long studentId, AlertType type);
 }

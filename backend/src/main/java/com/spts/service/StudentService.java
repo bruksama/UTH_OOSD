@@ -112,8 +112,12 @@ public class StudentService {
         student.setLastName(dto.getLastName());
         student.setEmail(dto.getEmail());
         student.setDateOfBirth(dto.getDateOfBirth());
-        // gpa, totalCredits and status are not updated via this CRUD method
-        // they are updated via business logic (recalculateGpa, graduate)
+
+        // Sync with associated User if name changed
+        userRepository.findByEmail(student.getEmail()).ifPresent(u -> {
+            u.setDisplayName(student.getFirstName() + " " + student.getLastName());
+            userRepository.save(u);
+        });
 
         return convertToDTO(studentRepository.save(student));
     }
