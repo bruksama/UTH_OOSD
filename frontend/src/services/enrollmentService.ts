@@ -10,5 +10,6 @@ export const enrollmentService = {
   completeWithStrategy: (id: number, score: number) =>
     api.post<EnrollmentDTO>(`/enrollments/${id}/complete-with-strategy?score=${score}`),
   withdraw: (id: number) => api.post<EnrollmentDTO>(`/enrollments/${id}/withdraw`),
+  getByOffering: (offeringId: number) => api.get<EnrollmentDTO[]>(`/enrollments/offering/${offeringId}`),
   getByStudent: (studentId: number) => api.get<EnrollmentDTO[]>(`/enrollments/student/${studentId}`),
 };
