@@ -2,6 +2,14 @@ package com.spts.config;
 
 import com.spts.entity.*;
 import com.spts.repository.*;
+import com.spts.entity.ApprovalStatus;
+import com.spts.entity.GradingType;
+import com.spts.entity.Semester;
+import com.spts.entity.StudentStatus;
+import com.spts.entity.EnrollmentStatus;
+import com.spts.entity.AlertLevel;
+import com.spts.entity.AlertType;
+import com.spts.entity.GradeEntryType;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
@@ -48,175 +56,205 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        // Check if data already exists
         if (studentRepository.count() > 0) {
-            System.out.println("DataInitializer: Data already exists, skipping seeding.");
+            System.out.println("DataInitializer: Data directory already indexed. Skipping seeding.");
             return;
         }
 
-        System.out.println("DataInitializer: Seeding sample data...");
+        System.out.println("DataInitializer: Generating High-Engagement Test Dataset...");
 
-        // ==================== Create Students ====================
-        Student s1 = createStudent("STU001", "Nguyen", "Van A", "nguyen.vana@university.edu", 
-                3.5, StudentStatus.NORMAL, LocalDate.of(2002, 5, 15));
-        Student s2 = createStudent("STU002", "Tran", "Thi B", "tran.thib@university.edu", 
-                2.8, StudentStatus.NORMAL, LocalDate.of(2001, 8, 22));
-        Student s3 = createStudent("STU003", "Le", "Van C", "le.vanc@university.edu", 
-                1.8, StudentStatus.AT_RISK, LocalDate.of(2003, 1, 10));
-        Student s4 = createStudent("STU004", "Pham", "Thi D", "pham.thid@university.edu", 
-                1.3, StudentStatus.PROBATION, LocalDate.of(2002, 11, 5));
-        Student s5 = createStudent("STU005", "Hoang", "Van E", "hoang.vane@university.edu", 
-                3.9, StudentStatus.NORMAL, LocalDate.of(2001, 3, 28));
+        // ==================== 1. DEPARTMENTS & COURSES ====================
+        // Computer Science
+        Course cs1 = createCourse("CS101", "Introduction to Computing", "Basics of hardware and software.", 3, "Computer Science", ApprovalStatus.APPROVED);
+        Course cs2 = createCourse("CS202", "Data Structures", "Advanced Algorithms and complexity.", 4, "Computer Science", ApprovalStatus.APPROVED);
+        Course cs3 = createCourse("CS301", "Operating Systems", "Kernel, memory and process management.", 4, "Computer Science", ApprovalStatus.APPROVED);
+        Course cs4 = createCourse("CS401", "Database Systems", "SQL, NoSQL and data modeling.", 3, "Computer Science", ApprovalStatus.APPROVED);
+        
+        // Software Engineering
+        Course se1 = createCourse("SE101", "Design Patterns", "Clean Code & SOLID principles.", 3, "Software Engineering", ApprovalStatus.APPROVED);
+        Course se2 = createCourse("SE102", "Requirement Engineering", "Managing software lifecycle.", 3, "Software Engineering", ApprovalStatus.APPROVED);
+        Course se3 = createCourse("SE301", "Full-Stack Web Dev", "React, Node and Modern Web.", 4, "Software Engineering", ApprovalStatus.APPROVED);
+        Course se4 = createCourse("SE402", "Mobile Application", "Android and Flutter development.", 4, "Software Engineering", ApprovalStatus.APPROVED);
 
-        // ==================== Create Courses ====================
-        Course c1 = createCourse("CS101", "Introduction to Programming", 
-                "Fundamentals of programming using Java", 3, "Computer Science");
-        Course c2 = createCourse("CS201", "Data Structures and Algorithms", 
-                "Advanced data structures and algorithm analysis", 4, "Computer Science");
-        Course c3 = createCourse("CS301", "Software Engineering", 
-                "Software development lifecycle and design patterns", 3, "Computer Science");
-        Course c4 = createCourse("MATH101", "Calculus I", 
-                "Introduction to differential and integral calculus", 4, "Mathematics");
+        // Artificial Intelligence
+        Course ai1 = createCourse("AI101", "Neural Networks", "Deep Learning Base.", 4, "Artificial Intelligence", ApprovalStatus.APPROVED);
+        Course ai2 = createCourse("AI102", "Machine Learning", "Supervised and Unsupervised.", 4, "Artificial Intelligence", ApprovalStatus.APPROVED);
+        Course ai3 = createCourse("AI201", "Natural Language", "NLP and LLM fundamentals.", 4, "Artificial Intelligence", ApprovalStatus.APPROVED);
+        Course ai4 = createCourse("AI301", "Computer Vision", "Image processing and CNN.", 4, "Artificial Intelligence", ApprovalStatus.APPROVED);
 
-        // ==================== Create Course Offerings ====================
-        CourseOffering o1 = createOffering(c1, Semester.FALL, 2025, "Dr. Nguyen Van Minh", 40);
-        CourseOffering o2 = createOffering(c2, Semester.FALL, 2025, "Dr. Tran Thi Lan", 35);
-        CourseOffering o3 = createOffering(c3, Semester.FALL, 2025, "Dr. Le Quoc Hung", 30);
+        // Physics
+        Course ph1 = createCourse("PHY101", "General Physics 1", "Mechanics and Thermodynamics.", 3, "Physics", ApprovalStatus.APPROVED);
+        Course ph2 = createCourse("PHY102", "Electromagnetism", "Electricity and Magnetism.", 3, "Physics", ApprovalStatus.APPROVED);
+        Course ph3 = createCourse("PHY301", "Quantum Mechanics", "Particles and Wave functions.", 4, "Physics", ApprovalStatus.APPROVED);
 
-        // ==================== Create Enrollments ====================
-        // Student 1 - Good student with completed courses
-        Enrollment e1 = createEnrollment(s1, o1, EnrollmentStatus.COMPLETED, 8.5);
-        Enrollment e2 = createEnrollment(s1, o2, EnrollmentStatus.IN_PROGRESS, null);
+        // Management
+        Course mn1 = createCourse("MAN101", "Org Behavior", "Human behavior in organizations.", 3, "Management", ApprovalStatus.APPROVED);
+        Course mn2 = createCourse("MAN301", "Strategic Management", "Corporate planning and growth.", 4, "Management", ApprovalStatus.APPROVED);
+        Course mn3 = createCourse("MAN4438", "IT Management", "Core management for IT projects.", 4, "Management", ApprovalStatus.APPROVED);
 
-        // Student 2 - Average student
-        Enrollment e3 = createEnrollment(s2, o1, EnrollmentStatus.COMPLETED, 7.0);
-        Enrollment e4 = createEnrollment(s2, o3, EnrollmentStatus.IN_PROGRESS, null);
+        // Pending/Rejected Proposals (For Admin Testing)
+        createCourse("WEB404", "Quantum Computing", "Future of Compute", 5, "Experimental", ApprovalStatus.PENDING, "dr.weird@lab.edu");
+        createCourse("FAIL101", "Underwater Basket Weaving", "No credits", 1, "Arts", ApprovalStatus.REJECTED, "lazy.pro@edu.vn");
 
-        // Student 3 - At-risk student
-        Enrollment e5 = createEnrollment(s3, o1, EnrollmentStatus.COMPLETED, 5.0);
-        Enrollment e6 = createEnrollment(s3, o2, EnrollmentStatus.IN_PROGRESS, null);
+        // ==================== 2. COURSE OFFERINGS (SPRING 2026) ====================
+        // Core offerings
+        CourseOffering o1 = createOffering(ph1, Semester.SPRING, 2026, null, 60);
+        CourseOffering o2 = createOffering(mn3, Semester.SPRING, 2026, null, 40);
+        CourseOffering o3 = createOffering(cs2, Semester.SPRING, 2026, null, 50);
+        CourseOffering o4 = createOffering(se1, Semester.SPRING, 2026, null, 45);
+        CourseOffering o5 = createOffering(ai1, Semester.SPRING, 2026, null, 35);
+        
+        // Secondary offerings
+        CourseOffering o6 = createOffering(cs1, Semester.SPRING, 2026, "Dr. Banner", 80);
+        CourseOffering o7 = createOffering(se3, Semester.SPRING, 2026, "Prof. Stark", 40);
+        CourseOffering o8 = createOffering(ai2, Semester.SPRING, 2026, "Dr. Strange", 30);
+        CourseOffering o9 = createOffering(ph2, Semester.SPRING, 2026, "Dr. Newton", 50);
+        CourseOffering o10 = createOffering(mn2, Semester.SPRING, 2026, "Prof. Buffet", 45);
 
-        // Student 4 - Probation student
-        Enrollment e7 = createEnrollment(s4, o1, EnrollmentStatus.COMPLETED, 4.0);
+        // ==================== 3. STUDENTS (VIETNAMESE LOCALIZED) ====================
+        Student s1 = createStudent("IT202301", "Nguyễn", "Thị Mai", "mai.nt@student.uth.edu.vn", 3.95, StudentStatus.NORMAL, 2005, 12, 1);
+        Student s2 = createStudent("IT202302", "Trần", "Văn Nam", "nam.tv@student.uth.edu.vn", 3.82, StudentStatus.NORMAL, 2004, 5, 20);
+        Student s3 = createStudent("IT202303", "Alice", "Wonderland", "alice.w@univ.edu", 3.90, StudentStatus.NORMAL, 2005, 3, 15);
+        Student s4 = createStudent("IT202304", "Lê", "Hoàng Long", "long.lh@student.uth.edu.vn", 2.50, StudentStatus.NORMAL, 2005, 6, 12);
+        Student s5 = createStudent("IT202305", "Phạm", "Thanh Thảo", "thao.pt@student.uth.edu.vn", 2.75, StudentStatus.NORMAL, 2003, 8, 30);
+        Student s6 = createStudent("IT202410", "Hoàng", "Minh Tuấn", "tuan.hm@student.uth.edu.vn", 1.85, StudentStatus.AT_RISK, 2006, 1, 10);
+        Student s7 = createStudent("IT202411", "Đặng", "Văn Hậu", "hau.dv@student.uth.edu.vn", 1.25, StudentStatus.PROBATION, 2005, 11, 2);
 
-        // Student 5 - Excellent student
-        Enrollment e8 = createEnrollment(s5, o1, EnrollmentStatus.COMPLETED, 9.5);
-        Enrollment e9 = createEnrollment(s5, o2, EnrollmentStatus.COMPLETED, 9.0);
-        Enrollment e10 = createEnrollment(s5, o3, EnrollmentStatus.IN_PROGRESS, null);
+        // Batch students
+        String[] firstNames = {"Anh", "Bình", "Cường", "Dung", "Em", "Gia", "Hòa", "Khánh", "Linh", "Minh", "Nghĩa", "Oanh", "Phúc", "Quang", "Sơn"};
+        String[] lastNames = {"Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng", "Bùi", "Đỗ", "Hồ", "Ngô", "Dương"};
+        
+        for(int i = 0; i < 15; i++) {
+            createStudent("GEN2025" + String.format("%02d", i+1), lastNames[i], firstNames[i], 
+                    "student." + (i+1) + "@uth.edu.vn", 
+                    2.0 + (Math.random() * 1.8), StudentStatus.NORMAL, 2004 + (i%2), (i%12)+1, (i%28)+1);
+        }
 
-        // ==================== Create Grade Entries ====================
-        // Sample grade entries for completed enrollment e1 (Student 1, CS101)
-        createGradeEntry(e1, "Midterm", 0.3, 8.0);
-        createGradeEntry(e1, "Final Exam", 0.4, 9.0);
-        createGradeEntry(e1, "Assignments", 0.3, 8.5);
+        // ==================== 4. ENROLLMENTS & GRADES ====================
+        Enrollment e1 = createEnrollment(s1, o1, EnrollmentStatus.COMPLETED, 9.5);
+        createGradeEntry(e1, "Baitap 1", 0.2, 10.0);
+        createGradeEntry(e1, "Giua ky", 0.4, 9.0);
+        createGradeEntry(e1, "Cuoi ky", 0.4, 9.5);
+        
+        createEnrollment(s1, o3, EnrollmentStatus.IN_PROGRESS, null);
+        createEnrollment(s6, o1, EnrollmentStatus.COMPLETED, 4.5);
 
-        // Sample grade entries for Student 5's completed CS201 enrollment
-        createGradeEntry(e9, "Midterm", 0.3, 9.0);
-        createGradeEntry(e9, "Final Exam", 0.4, 9.5);
-        createGradeEntry(e9, "Lab Work", 0.3, 8.5);
+        // Batch enrollments for offerings to show numbers in table
+        var allStudents = studentRepository.findAll();
+        for(int i = 0; i < allStudents.size(); i++) {
+             Student st = allStudents.get(i);
+             
+             // For students s8 onwards (index 7+), distribute them across all offerings
+             if (i >= 7) {
+                 if (i % 3 == 0) createEnrollment(st, o1, EnrollmentStatus.IN_PROGRESS, null);
+                 if (i % 3 == 1) createEnrollment(st, o2, EnrollmentStatus.IN_PROGRESS, null);
+                 if (i % 3 == 2) createEnrollment(st, o3, EnrollmentStatus.IN_PROGRESS, null);
+                 
+                 if (i % 4 == 0) createEnrollment(st, o4, EnrollmentStatus.IN_PROGRESS, null);
+                 if (i % 4 == 1) createEnrollment(st, o5, EnrollmentStatus.IN_PROGRESS, null);
+                 if (i % 4 == 2) createEnrollment(st, o6, EnrollmentStatus.IN_PROGRESS, null);
+                 
+                 if (i % 5 == 0) createEnrollment(st, o7, EnrollmentStatus.IN_PROGRESS, null);
+                 if (i % 5 == 1) createEnrollment(st, o8, EnrollmentStatus.IN_PROGRESS, null);
+                 if (i % 5 == 2) createEnrollment(st, o9, EnrollmentStatus.IN_PROGRESS, null);
+                 if (i % 5 == 3) createEnrollment(st, o10, EnrollmentStatus.IN_PROGRESS, null);
+             }
+        }
 
-        // ==================== Create Alerts ====================
-        createAlert(s3, AlertLevel.WARNING, AlertType.LOW_GPA, 
-                "GPA has fallen below 2.0. Current GPA: 1.8. Academic intervention recommended.");
-        createAlert(s4, AlertLevel.CRITICAL, AlertType.PROBATION, 
-                "Student has been placed on academic probation. GPA: 1.3. Immediate advisor meeting required.");
-        createAlert(s4, AlertLevel.HIGH, AlertType.LOW_GPA, 
-                "GPA is critically low at 1.3. Risk of academic dismissal if not improved.");
-        createAlert(s5, AlertLevel.INFO, AlertType.IMPROVEMENT, 
-                "Excellent academic performance maintained. GPA: 3.9. Dean's List candidate.");
+        // ==================== 5. ALERTS (HIERARCHY) ====================
+        createAlert(s6, AlertLevel.CRITICAL, AlertType.PROBATION, "CRITICAL: Student on final probation. Dismissal pending next GPA drop.");
+        createAlert(s5, AlertLevel.HIGH, AlertType.LOW_GPA, "WARNING: GPA below 2.0. Mandatory advising scheduled.");
+        createAlert(s3, AlertLevel.WARNING, AlertType.GPA_DROP, "NOTICE: 0.5 GPA drop detected since last semester.");
+        createAlert(s1, AlertLevel.INFO, AlertType.IMPROVEMENT, "ACHIEVEMENT: Top 1% of Computer Science faculty.");
 
-        System.out.println("DataInitializer: Sample data seeded successfully!");
-        System.out.println("  - Students: 5");
-        System.out.println("  - Courses: 4");
-        System.out.println("  - Course Offerings: 3");
-        System.out.println("  - Enrollments: 10");
-        System.out.println("  - Grade Entries: 6");
-        System.out.println("  - Alerts: 4");
+        System.out.println("DataInitializer: High-Engagement Dataset Seeding Complete!");
+        System.out.println(">> Indexing Summary:");
+        System.out.println("   - Managed Records: " + studentRepository.count() + " Students");
+        System.out.println("   - Catalog Assets: " + courseRepository.count() + " Courses");
+        System.out.println("   - Active Offerings: " + courseOfferingRepository.count());
     }
 
     // ==================== Helper Methods ====================
 
-    private Student createStudent(String studentId, String firstName, String lastName, 
-            String email, Double gpa, StudentStatus status, LocalDate dateOfBirth) {
+    private Student createStudent(String studentId, String fName, String lName, String email, Double gpa, StudentStatus status, int y, int m, int d) {
         Student student = new Student();
         student.setStudentId(studentId);
-        student.setFirstName(firstName);
-        student.setLastName(lastName);
+        student.setFirstName(fName);
+        student.setLastName(lName);
         student.setEmail(email);
         student.setGpa(gpa);
         student.setStatus(status);
-        student.setDateOfBirth(dateOfBirth);
-        student.setEnrollmentDate(LocalDate.of(2023, 9, 1));
-        student.setTotalCredits(0);
+        student.setDateOfBirth(LocalDate.of(y, m, d));
+        student.setEnrollmentDate(LocalDate.now().minusYears(1));
+        student.setTotalCredits(30 + (int)(Math.random() * 60));
         return studentRepository.save(student);
     }
 
-    private Course createCourse(String courseCode, String courseName, String description, 
-            Integer credits, String department) {
+    private Course createCourse(String code, String name, String desc, int credits, String dept, ApprovalStatus status) {
+        return createCourse(code, name, desc, credits, dept, status, "admin@university.edu");
+    }
+
+    private Course createCourse(String code, String name, String desc, int credits, String dept, ApprovalStatus status, String creator) {
         Course course = new Course();
-        course.setCourseCode(courseCode);
-        course.setCourseName(courseName);
-        course.setDescription(description);
+        course.setCourseCode(code);
+        course.setCourseName(name);
+        course.setDescription(desc);
         course.setCredits(credits);
-        course.setDepartment(department);
+        course.setDepartment(dept);
+        course.setStatus(status);
+        course.setCreatorEmail(creator);
         course.setGradingType(GradingType.SCALE_10);
         return courseRepository.save(course);
     }
 
-    private CourseOffering createOffering(Course course, Semester semester, Integer year, 
-            String instructor, Integer maxEnrollment) {
-        CourseOffering offering = new CourseOffering();
-        offering.setCourse(course);
-        offering.setSemester(semester);
-        offering.setAcademicYear(year);
-        offering.setInstructor(instructor);
-        offering.setMaxEnrollment(maxEnrollment);
-        offering.setCurrentEnrollment(0);
-        offering.setGradingScale("SCALE_10");
-        return courseOfferingRepository.save(offering);
+    private CourseOffering createOffering(Course c, Semester s, int y, String inst, int max) {
+        CourseOffering o = new CourseOffering();
+        o.setCourse(c);
+        o.setSemester(s);
+        o.setAcademicYear(y);
+        o.setInstructor(inst);
+        o.setMaxEnrollment(max);
+        o.setCurrentEnrollment(0);
+        o.setGradingScale("SCALE_10");
+        return courseOfferingRepository.save(o);
     }
 
-    private Enrollment createEnrollment(Student student, CourseOffering offering, 
-            EnrollmentStatus status, Double finalScore) {
-        Enrollment enrollment = new Enrollment();
-        enrollment.setStudent(student);
-        enrollment.setCourseOffering(offering);
-        enrollment.setStatus(status);
-        enrollment.setEnrolledAt(LocalDateTime.now().minusMonths(3));
-        
-        if (finalScore != null) {
-            enrollment.setFinalScore(finalScore);
-            enrollment.setCompletedAt(LocalDateTime.now().minusWeeks(1));
+    private Enrollment createEnrollment(Student s, CourseOffering o, EnrollmentStatus status, Double score) {
+        Enrollment e = new Enrollment();
+        e.setStudent(s);
+        e.setCourseOffering(o);
+        e.setStatus(status);
+        e.setEnrolledAt(LocalDateTime.now().minusDays(30));
+        if (score != null) {
+            e.setFinalScore(score);
+            e.setCompletedAt(LocalDateTime.now().minusDays(5));
         }
-        
-        // Update offering's current enrollment count
-        offering.setCurrentEnrollment(offering.getCurrentEnrollment() + 1);
-        courseOfferingRepository.save(offering);
-        
-        return enrollmentRepository.save(enrollment);
+        o.setCurrentEnrollment(o.getCurrentEnrollment() + 1);
+        courseOfferingRepository.save(o);
+        return enrollmentRepository.save(e);
     }
 
-    private GradeEntry createGradeEntry(Enrollment enrollment, String name, Double weight, Double score) {
+    private void createGradeEntry(Enrollment e, String name, Double weight, Double score) {
         GradeEntry entry = new GradeEntry();
-        entry.setEnrollment(enrollment);
+        entry.setEnrollment(e);
         entry.setName(name);
         entry.setWeight(weight);
         entry.setScore(score);
         entry.setEntryType(GradeEntryType.COMPONENT);
-        entry.setRecordedBy("System");
-        entry.setRecordedAt(LocalDateTime.now().minusWeeks(2));
-        return gradeEntryRepository.save(entry);
+        entry.setRecordedBy("System_Initialize");
+        entry.setRecordedAt(LocalDateTime.now().minusDays(15));
+        gradeEntryRepository.save(entry);
     }
 
-    private Alert createAlert(Student student, AlertLevel level, AlertType type, String message) {
-        Alert alert = new Alert();
-        alert.setStudent(student);
-        alert.setLevel(level);
-        alert.setType(type);
-        alert.setMessage(message);
-        alert.setIsRead(false);
-        alert.setIsResolved(false);
-        alert.setCreatedAt(LocalDateTime.now().minusDays(1));
-        return alertRepository.save(alert);
+    private void createAlert(Student s, AlertLevel lvl, AlertType type, String msg) {
+        Alert a = new Alert();
+        a.setStudent(s);
+        a.setLevel(lvl);
+        a.setType(type);
+        a.setMessage(msg);
+        a.setIsRead(false);
+        a.setIsResolved(false);
+        a.setCreatedAt(LocalDateTime.now().minusHours(5));
+        alertRepository.save(a);
     }
 }
