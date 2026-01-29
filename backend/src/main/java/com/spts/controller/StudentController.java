@@ -170,4 +170,19 @@ public class StudentController {
         studentService.recalculateAndUpdateGpa(id);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/recalculate-all-gpa")
+    @Operation(summary = "Recalculate GPA for all students", description = "Recalculates and updates GPA for all students in the system")
+    @ApiResponse(responseCode = "200", description = "All GPAs recalculated successfully")
+    public ResponseEntity<String> recalculateAllGpa() {
+        List<StudentDTO> allStudents = studentService.getAllStudents();
+        int count = 0;
+        for (StudentDTO student : allStudents) {
+            if (student.getId() != null) {
+                studentService.recalculateAndUpdateGpa(student.getId());
+                count++;
+            }
+        }
+        return ResponseEntity.ok("Recalculated GPA for " + count + " students");
+    }
 }

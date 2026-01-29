@@ -183,9 +183,10 @@ public class EnrollmentService {
 
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
 
-        // Trigger student GPA recalculation if grade changed
-        if (dto.getFinalScore() != null && enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
-            studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());
+        // Use the established Observer Pattern to trigger GPA updates and Risk Detection
+        // This ensures all behavioral updates (GPA, Risk, Alerts) happen in the correct order
+        if (savedEnrollment.getFinalScore() != null) {
+            notifyEnrollmentObservers(savedEnrollment);
         }
 
         return convertToDTO(savedEnrollment);
@@ -269,10 +270,8 @@ public class EnrollmentService {
         enrollment.setFinalScore(score);
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
 
-        // If already completed, recalculate GPA
-        if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {
-            studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());
-        }
+        // Unified trigger via Observer Pattern
+        notifyEnrollmentObservers(savedEnrollment);
 
         return convertToDTO(savedEnrollment);
     }
