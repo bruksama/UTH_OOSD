@@ -1,0 +1,16 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_STUDENT_01,Student Management,Display student list successfully,Admin logged in,Open student management page,Student list displayed correctly,High,Ready
+TC_STUDENT_02,Student Management,Add new student successfully,Admin logged in,Enter valid student information and save,Student added successfully,High,Ready
+TC_STUDENT_03,Student Management,Add student with existing email,Student email already exists,Enter duplicated email and save,System displays duplicate email error,High,Ready
+TC_STUDENT_04,Student Management,Edit student information,Student exists,Update student information and save,Student information updated successfully,High,Ready
+TC_STUDENT_05,Student Management,Delete student successfully,Student exists,Click delete button,Student removed successfully,High,Ready
+TC_STUDENT_06,Student Management,Search student by name,Student data exists,Enter student name in search box,Matching students displayed,Medium,Ready
+TC_STUDENT_07,Student Management,Search student by ID,Student data exists,Enter student ID in search box,Correct student displayed,Medium,Ready
+TC_STUDENT_08,Student Management,View student details,Student exists,Click View Details,Student information displayed correctly,Medium,Ready
+TC_STUDENT_09,Student Management,Add student with empty fields,Admin logged in,Leave required fields blank,System displays validation messages,Medium,Ready
+TC_STUDENT_10,Student Management,Invalid email format,Admin logged in,Enter invalid email and save,System displays invalid email error,Medium,Ready
+TC_STUDENT_11,Student Management,Upload student avatar,Admin logged in,Upload valid image file,Avatar uploaded successfully,Low,Ready
+TC_STUDENT_12,Student Management,Pagination student list,Many student records exist,Switch page in student list,Correct records displayed,Low,Ready
+TC_STUDENT_13,Student Management,Filter students by class,Student data exists,Select class filter,Filtered students displayed correctly,Low,Ready
+TC_STUDENT_14,Student Management,Export student list,System has student data,Click Export button,Student list exported successfully,Low,Ready
+TC_STUDENT_15,Student Management,Unauthorized student management access,Student logged in,Access student management page,Access denied,High,Ready

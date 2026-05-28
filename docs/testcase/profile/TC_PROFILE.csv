@@ -1,0 +1,6 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_PROFILE_01,Profile,View profile successfully,Student logged in,Open profile page,Profile displayed correctly,High,Ready
+TC_PROFILE_02,Profile,Update profile successfully,Student logged in,Edit profile and save,Profile updated successfully,High,Ready
+TC_PROFILE_03,Profile,Upload avatar successfully,Student logged in,Upload valid image,Avatar updated successfully,Medium,Ready
+TC_PROFILE_04,Profile,Invalid avatar format,Student logged in,Upload invalid file format,System rejects invalid file,Medium,Ready
+TC_PROFILE_05,Profile,Empty required fields,Student logged in,Clear required fields and save,Validation message displayed,Medium,Ready

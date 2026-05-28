@@ -1,0 +1,6 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_DASHBOARD_01,Dashboard,Display dashboard successfully,User logged in,Open dashboard page,Dashboard loads successfully,High,Ready
+TC_DASHBOARD_02,Dashboard,Display GPA correctly,Student has grades,Open dashboard,GPA displayed correctly,High,Ready
+TC_DASHBOARD_03,Dashboard,Display enrolled courses,Student enrolled courses exist,Open dashboard,Course list displayed correctly,Medium,Ready
+TC_DASHBOARD_04,Dashboard,Display notifications,Notifications available,Open dashboard,Notifications displayed correctly,Medium,Ready
+TC_DASHBOARD_05,Dashboard,Dashboard responsive UI,None,Resize browser window,UI displays correctly,Low,Ready

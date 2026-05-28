@@ -1,0 +1,11 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_REGISTER_01,Register,Register success,Email not exists,Enter valid information and click Register,Account created successfully,High,Ready
+TC_REGISTER_02,Register,Email already exists,Email exists in system,Enter existing email and submit,Display email already exists message,High,Ready
+TC_REGISTER_03,Register,Empty fullname,None,Leave fullname blank,Validation message displayed,Medium,Ready
+TC_REGISTER_04,Register,Empty email,None,Leave email blank,Validation message displayed,Medium,Ready
+TC_REGISTER_05,Register,Invalid email format,None,Enter invalid email format,Display invalid email error,Medium,Ready
+TC_REGISTER_06,Register,Empty password,None,Leave password blank,Validation message displayed,Medium,Ready
+TC_REGISTER_07,Register,Weak password,None,Enter weak password,System rejects weak password,Medium,Ready
+TC_REGISTER_08,Register,Password confirmation mismatch,None,Enter different confirm password,Display password mismatch error,Medium,Ready
+TC_REGISTER_09,Register,Special characters in fullname,None,Enter fullname with special characters,System validates correctly,Low,Ready
+TC_REGISTER_10,Register,Register with long input,None,Enter maximum length input,Account created successfully,Low,Ready

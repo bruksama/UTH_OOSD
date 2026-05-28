@@ -1,0 +1,11 @@
+﻿ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_LOGIN_01,Authentication,Login success,User has valid account,Enter correct email/password → Click Login,Redirect to dashboard,High,Ready
+TC_LOGIN_02,Authentication,Wrong password,Account exists,Enter correct email + wrong password,Error message displayed,High,Ready
+TC_LOGIN_03,Authentication,Wrong email,Account does not exist,Enter invalid email,Error message displayed,High,Ready
+TC_LOGIN_04,Authentication,Empty email,None,Leave email blank,Validation message shown,Medium,Ready
+TC_LOGIN_05,Authentication,Empty password,None,Leave password blank,Validation message shown,Medium,Ready
+TC_LOGIN_06,Authentication,Empty email & password,None,Leave all blank,Validation displayed,Medium,Ready
+TC_LOGIN_07,Authentication,Invalid email format,None,Enter abcgmail.com,Email format error,Medium,Ready
+TC_LOGIN_08,Authentication,SQL Injection test,None,Enter ' OR 1=1 --,Login blocked,High,Ready
+TC_LOGIN_09,Authentication,Remember me,Valid account,Tick Remember Me,Session saved,Low,Ready
+TC_LOGIN_10,Authentication,Logout after login,Logged in,Click Logout,Return to login page,Medium,Ready

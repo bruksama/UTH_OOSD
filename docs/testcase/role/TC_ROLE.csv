@@ -1,0 +1,6 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_ROLE_01,Role Management,Student access admin page,Student logged in,Access admin URL,Access denied,High,Ready
+TC_ROLE_02,Role Management,Admin access admin page,Admin logged in,Open admin dashboard,Admin dashboard displayed,High,Ready
+TC_ROLE_03,Role Management,Unauthorized API access,Student token available,Call admin API,System returns 403 Forbidden,High,Ready
+TC_ROLE_04,Role Management,Session timeout,User logged in,Wait session timeout and refresh,Redirect to login page,Medium,Ready
+TC_ROLE_05,Role Management,Role displayed correctly,Logged in,Open profile page,Correct role displayed,Low,Ready

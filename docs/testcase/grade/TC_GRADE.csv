@@ -1,0 +1,11 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_GRADE_01,Grade Management,Input grade successfully,Teacher logged in,Enter valid score and save,Grade saved successfully,High,Ready
+TC_GRADE_02,Grade Management,Input score greater than 10,Teacher logged in,Enter score 11,System displays validation error,High,Ready
+TC_GRADE_03,Grade Management,Input negative score,Teacher logged in,Enter score -1,System displays validation error,High,Ready
+TC_GRADE_04,Grade Management,Empty score field,Teacher logged in,Leave score blank,System displays validation error,Medium,Ready
+TC_GRADE_05,Grade Management,Update existing grade,Grade already exists,Edit score and save,Grade updated successfully,High,Ready
+TC_GRADE_06,Grade Management,Delete grade,Grade exists,Click delete button,Grade removed successfully,Medium,Ready
+TC_GRADE_07,Grade Management,GPA recalculation,Student has grades,Update score and save,GPA recalculated correctly,High,Ready
+TC_GRADE_08,Grade Management,Student views grades,Student logged in,Open My Grades page,Display correct grades,High,Ready
+TC_GRADE_09,Grade Management,Unauthorized grade edit,Student logged in,Attempt to edit grade,Access denied,High,Ready
+TC_GRADE_10,Grade Management,Import grades from file,Import file available,Upload valid grade file,Grades imported successfully,Medium,Ready

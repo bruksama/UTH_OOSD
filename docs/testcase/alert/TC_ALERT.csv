@@ -1,0 +1,6 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_ALERT_01,Alert Management,Display academic warning,Student has warning,Open alert page,Warning displayed correctly,High,Ready
+TC_ALERT_02,Alert Management,No warning available,Student has no warning,Open alert page,Display no warning message,Medium,Ready
+TC_ALERT_03,Alert Management,Unread alert notification,Unread alerts exist,Open dashboard,Unread alerts displayed,Medium,Ready
+TC_ALERT_04,Alert Management,Mark alert as read,Unread alert exists,Click mark as read,Alert marked successfully,Low,Ready
+TC_ALERT_05,Alert Management,Delete alert,Alert exists,Click delete alert,Alert removed successfully,Low,Ready

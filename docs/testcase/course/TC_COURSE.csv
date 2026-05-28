@@ -1,0 +1,11 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_COURSE_01,Course Registration,Register course successfully,Student logged in,Select course and click Register,Course added successfully,High,Ready
+TC_COURSE_02,Course Registration,Duplicate course registration,Course already registered,Register same course again,Display duplicate registration error,High,Ready
+TC_COURSE_03,Course Registration,Register full course,Course capacity full,Attempt registration,System blocks registration,High,Ready
+TC_COURSE_04,Course Registration,Register without login,User not logged in,Access course registration page,Redirect to login page,High,Ready
+TC_COURSE_05,Course Registration,Cancel registered course,Course already registered,Click Cancel Registration,Course removed successfully,Medium,Ready
+TC_COURSE_06,Course Registration,Search course by keyword,Logged in,Enter keyword in search box,Display matching courses,Low,Ready
+TC_COURSE_07,Course Registration,Filter courses by semester,Logged in,Select semester filter,Display correct course list,Low,Ready
+TC_COURSE_08,Course Registration,Schedule conflict registration,Course schedule overlaps,Register conflicting course,Display schedule conflict warning,High,Ready
+TC_COURSE_09,Course Registration,Display course list,Logged in,Open course page,Display all available courses,Medium,Ready
+TC_COURSE_10,Course Registration,Register multiple courses,Logged in,Register several courses,All valid courses registered successfully,Medium,Ready
