@@ -1,0 +1,9 @@
+# Ignore e2e tests (handled separately by Playwright)
+e2e/
+
+# Build output
+dist/
+build/
+
+# Dependencies
+node_modules/

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run build)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(mvn compile:*)",
+      "Bash(npm run test:run)"
+    ]
+  }
+}
