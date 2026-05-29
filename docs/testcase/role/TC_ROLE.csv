@@ -1,6 +1,6 @@
 ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
-TC_ROLE_01,Role Management,Student access admin page,Student logged in,Access admin URL,Access denied,High,Ready
-TC_ROLE_02,Role Management,Admin access admin page,Admin logged in,Open admin dashboard,Admin dashboard displayed,High,Ready
-TC_ROLE_03,Role Management,Unauthorized API access,Student token available,Call admin API,System returns 403 Forbidden,High,Ready
-TC_ROLE_04,Role Management,Session timeout,User logged in,Wait session timeout and refresh,Redirect to login page,Medium,Ready
-TC_ROLE_05,Role Management,Role displayed correctly,Logged in,Open profile page,Correct role displayed,Low,Ready
+TC_ROLE_01,Role Management,Sinh viên truy cập trang Admin,Sinh viên đã đăng nhập,"Truy cập URL Admin","Hệ thống từ chối truy cập",High,Ready 
+TC_ROLE_02,Role Management,Admin truy cập trang Admin,Admin đã đăng nhập,"Mở Dashboard Admin","Hiển thị Dashboard Admin",High,Ready 
+TC_ROLE_03,Role Management,Truy cập API không có quyền,Có token sinh viên,"Gọi API Admin","Trả về lỗi 403 Forbidden",High,Ready 
+TC_ROLE_04,Role Management,Hết phiên đăng nhập,Người dùng đã đăng nhập,"Chờ session timeout → Refresh","Chuyển về trang đăng nhập",Medium,Ready 
+TC_ROLE_05,Role Management,Hiển thị đúng vai trò,Người dùng đã đăng nhập,"Mở trang Profile","Hiển thị đúng role",Low,Ready
