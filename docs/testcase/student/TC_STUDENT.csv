@@ -1,16 +1,16 @@
 ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
-TC_STUDENT_01,Student Management,Display student list successfully,Admin logged in,Open student management page,Student list displayed correctly,High,Ready
-TC_STUDENT_02,Student Management,Add new student successfully,Admin logged in,Enter valid student information and save,Student added successfully,High,Ready
-TC_STUDENT_03,Student Management,Add student with existing email,Student email already exists,Enter duplicated email and save,System displays duplicate email error,High,Ready
-TC_STUDENT_04,Student Management,Edit student information,Student exists,Update student information and save,Student information updated successfully,High,Ready
-TC_STUDENT_05,Student Management,Delete student successfully,Student exists,Click delete button,Student removed successfully,High,Ready
-TC_STUDENT_06,Student Management,Search student by name,Student data exists,Enter student name in search box,Matching students displayed,Medium,Ready
-TC_STUDENT_07,Student Management,Search student by ID,Student data exists,Enter student ID in search box,Correct student displayed,Medium,Ready
-TC_STUDENT_08,Student Management,View student details,Student exists,Click View Details,Student information displayed correctly,Medium,Ready
-TC_STUDENT_09,Student Management,Add student with empty fields,Admin logged in,Leave required fields blank,System displays validation messages,Medium,Ready
-TC_STUDENT_10,Student Management,Invalid email format,Admin logged in,Enter invalid email and save,System displays invalid email error,Medium,Ready
-TC_STUDENT_11,Student Management,Upload student avatar,Admin logged in,Upload valid image file,Avatar uploaded successfully,Low,Ready
-TC_STUDENT_12,Student Management,Pagination student list,Many student records exist,Switch page in student list,Correct records displayed,Low,Ready
-TC_STUDENT_13,Student Management,Filter students by class,Student data exists,Select class filter,Filtered students displayed correctly,Low,Ready
-TC_STUDENT_14,Student Management,Export student list,System has student data,Click Export button,Student list exported successfully,Low,Ready
-TC_STUDENT_15,Student Management,Unauthorized student management access,Student logged in,Access student management page,Access denied,High,Ready
+TC_STUDENT_01,Student Management,Hiển thị danh sách sinh viên,Admin đã đăng nhập,"Mở trang Student Management","Hiển thị danh sách sinh viên",High,Ready 
+TC_STUDENT_02,Student Management,Thêm sinh viên thành công,Admin đã đăng nhập,"Nhập thông tin hợp lệ → Nhấn Save","Thêm sinh viên thành công",High,Ready 
+TC_STUDENT_03,Student Management,Email sinh viên đã tồn tại,Email tồn tại trong hệ thống,"Nhập email trùng","Hiển thị lỗi email",High,Ready 
+TC_STUDENT_04,Student Management,Cập nhật thông tin sinh viên,Sinh viên tồn tại,"Sửa thông tin → Nhấn Save","Cập nhật thành công",High,Ready 
+TC_STUDENT_05,Student Management,Xóa sinh viên,Sinh viên tồn tại,"Nhấn Delete","Xóa sinh viên thành công",High,Ready 
+TC_STUDENT_06,Student Management,Tìm kiếm sinh viên,Sinh viên tồn tại,"Nhập tên sinh viên","Hiển thị kết quả phù hợp",Medium,Ready 
+TC_STUDENT_07,Student Management,Xem chi tiết sinh viên,Sinh viên tồn tại,"Nhấn View Details","Hiển thị đúng thông tin",Medium,Ready 
+TC_STUDENT_08,Student Management,Bỏ trống thông tin bắt buộc,Admin đã đăng nhập,"Để trống dữ liệu → Nhấn Save","Hiển thị validation",Medium,Ready 
+TC_STUDENT_09,Student Management,Email sai định dạng,Admin đã đăng nhập,"Nhập email không hợp lệ","Hiển thị lỗi email",Medium,Ready 
+TC_STUDENT_10,Student Management,Phân trang danh sách sinh viên,Có nhiều dữ liệu sinh viên,"Chuyển trang","Hiển thị dữ liệu chính xác",Low,Ready
+TC_STUDENT_11,Student Management,Tải ảnh đại diện sinh viên,Admin đã đăng nhập,"Upload ảnh hợp lệ","Cập nhật avatar thành công",Low,Ready 
+TC_STUDENT_12,Student Management,Phân trang danh sách sinh viên,Có nhiều dữ liệu sinh viên,"Chuyển sang trang khác","Hiển thị dữ liệu chính xác",Low,Ready 
+TC_STUDENT_13,Student Management,Lọc sinh viên theo lớp,Có dữ liệu sinh viên,"Chọn bộ lọc lớp","Hiển thị đúng danh sách sinh viên",Low,Ready 
+TC_STUDENT_14,Student Management,Export danh sách sinh viên,Hệ thống có dữ liệu sinh viên,"Nhấn nút Export","Xuất file danh sách sinh viên thành công",Low,Ready 
+TC_STUDENT_15,Student Management,Sinh viên truy cập trang quản lý sinh viên,Sinh viên đã đăng nhập,"Truy cập trang Student Management","Hệ thống từ chối truy cập",High,Ready
