@@ -28,7 +28,7 @@ vi.stubEnv('VITE_FIREBASE_PROJECT_ID', 'test-project');
 vi.stubEnv('VITE_FIREBASE_STORAGE_BUCKET', 'test.appspot.com');
 vi.stubEnv('VITE_FIREBASE_MESSAGING_SENDER_ID', '123456');
 vi.stubEnv('VITE_FIREBASE_APP_ID', 'test-app-id');
-vi.stubEnv('VITE_API_URL', 'http://localhost:8081/api');
+vi.stubEnv('VITE_API_URL', 'http://localhost:8080/api');
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

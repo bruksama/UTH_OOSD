@@ -601,6 +601,12 @@
 - Security: Bearer Token required
 - Response: `200 OK` - AuthUserDTO
 
+### Logout Current User
+- **POST** `/api/auth/logout`
+- Description: Revokes the current token so subsequent requests with the same token return `401`
+- Security: Bearer Token required
+- Response: `204 No Content`
+
 ### Auth Service Health Check
 - **GET** `/api/auth/health`
 - Description: Auth service health check

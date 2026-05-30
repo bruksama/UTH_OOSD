@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 /**
@@ -87,6 +88,17 @@ public class AuthService {
      */
     public Optional<User> getUserByFirebaseUid(String firebaseUid) {
         return userRepository.findByFirebaseUid(firebaseUid);
+    }
+
+    /**
+     * Mark the current Firebase token as revoked for the authenticated user.
+     */
+    @Transactional
+    public void revokeCurrentToken(FirebaseToken firebaseToken) {
+        userRepository.findByFirebaseUid(firebaseToken.getUid()).ifPresent(user -> {
+            user.setTokenRevokedAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+            userRepository.save(user);
+        });
     }
 
     /**

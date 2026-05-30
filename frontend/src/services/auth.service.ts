@@ -8,6 +8,7 @@ import {
   User,
 } from 'firebase/auth';
 import { auth, googleProvider } from '../config/firebase';
+import api from './api';
 import { mockAuthService } from './mockAuth';
 
 // Helper: Check if Firebase is available
@@ -116,6 +117,12 @@ export const logout = async (): Promise<void> => {
   if (!isFirebaseAvailable()) {
     await mockAuthService.logout();
     return;
+  }
+
+  try {
+    await api.post('/auth/logout');
+  } catch (error) {
+    console.warn('Backend logout failed:', error);
   }
 
   try {

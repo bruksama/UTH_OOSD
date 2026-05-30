@@ -43,6 +43,9 @@ public class User {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "token_revoked_at")
+    private LocalDateTime tokenRevokedAt;
+
     public User() {
         this.createdAt = LocalDateTime.now();
     }
@@ -117,5 +120,13 @@ public class User {
 
     public void setLastLoginAt(LocalDateTime lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
+    }
+
+    public LocalDateTime getTokenRevokedAt() {
+        return tokenRevokedAt;
+    }
+
+    public void setTokenRevokedAt(LocalDateTime tokenRevokedAt) {
+        this.tokenRevokedAt = tokenRevokedAt;
     }
 }

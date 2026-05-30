@@ -9,15 +9,19 @@ import com.spts.repository.StudentRepository;
 import com.spts.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
@@ -45,6 +49,8 @@ public class CustomUserDetailsService {
         User user = userRepository.findByFirebaseUid(uid)
             .orElseGet(() -> createUserFromToken(token));
 
+        assertTokenNotRevoked(user, token);
+
         // Update last login
         user.setLastLoginAt(LocalDateTime.now());
         user = userRepository.save(user);
@@ -61,6 +67,27 @@ public class CustomUserDetailsService {
             "",            // password (not used for Firebase auth)
             authorities    // actual role from database
         );
+    }
+
+    private void assertTokenNotRevoked(User user, FirebaseToken token) {
+        LocalDateTime tokenAuthTime = getTokenAuthTime(token);
+        LocalDateTime tokenRevokedAt = user.getTokenRevokedAt();
+
+        if (tokenRevokedAt != null && (tokenAuthTime == null || !tokenAuthTime.isAfter(tokenRevokedAt))) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token has been revoked");
+        }
+    }
+
+    private LocalDateTime getTokenAuthTime(FirebaseToken token) {
+        Object authTimeClaim = token.getClaims().get("auth_time");
+        if (!(authTimeClaim instanceof Number authTimeNumber)) {
+            return null;
+        }
+
+        return LocalDateTime.ofInstant(
+                Instant.ofEpochSecond(authTimeNumber.longValue()),
+                java.time.ZoneId.systemDefault()
+        ).truncatedTo(ChronoUnit.SECONDS);
     }
 
     private User createUserFromToken(FirebaseToken token) {
