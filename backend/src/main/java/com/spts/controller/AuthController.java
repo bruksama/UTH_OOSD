@@ -57,11 +57,12 @@ public class AuthController {
     public ResponseEntity<Void> logout(HttpServletRequest request) {
         FirebaseToken firebaseToken = (FirebaseToken) request.getAttribute("firebaseToken");
 
-        if (firebaseToken == null) {
-            return ResponseEntity.status(401).build();
+        // If token is present, revoke it
+        if (firebaseToken != null) {
+            authService.revokeCurrentToken(firebaseToken);
         }
-
-        authService.revokeCurrentToken(firebaseToken);
+        
+        // Return 204 No Content whether token was revoked or not
         return ResponseEntity.noContent().build();
     }
 
