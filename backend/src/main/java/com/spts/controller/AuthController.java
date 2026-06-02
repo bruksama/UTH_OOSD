@@ -70,7 +70,10 @@ public class AuthController {
      * Health check endpoint for auth service.
      */
     @GetMapping("/health")
-    @Operation(summary = "Auth service health check")
+    @Operation(
+            summary = "Auth service health check",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Auth service is running");
     }
