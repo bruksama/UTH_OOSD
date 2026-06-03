@@ -46,10 +46,34 @@ public class AuthController {
     }
 
     /**
+     * Logout the current authenticated user by revoking the current token.
+     */
+    @PostMapping("/logout")
+    @Operation(
+            summary = "Logout current user",
+            description = "Revokes the current token so subsequent requests return 401",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        FirebaseToken firebaseToken = (FirebaseToken) request.getAttribute("firebaseToken");
+
+        // If token is present, revoke it
+        if (firebaseToken != null) {
+            authService.revokeCurrentToken(firebaseToken);
+        }
+        
+        // Return 204 No Content whether token was revoked or not
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Health check endpoint for auth service.
      */
     @GetMapping("/health")
-    @Operation(summary = "Auth service health check")
+    @Operation(
+            summary = "Auth service health check",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Auth service is running");
     }

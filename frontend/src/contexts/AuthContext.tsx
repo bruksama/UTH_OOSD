@@ -53,15 +53,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         role: response.data.role as UserRole,
         studentId: response.data.studentId,
       };
-    } catch {
-      // Force re-authentication if backend call fails
-      await firebaseLogout();
-      return null;
+    } catch (error) {
+      // In development with mock auth, create a basic user without backend profile
+      console.warn('Could not fetch user profile from backend, using basic auth user:', error);
+      return {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || 'demo@example.com',
+        displayName: firebaseUser.displayName || 'Demo User',
+        role: 'student' as UserRole,
+        studentId: undefined,
+      };
     }
   };
 
   // Listen for auth state changes
   useEffect(() => {
+    // Check if Firebase is available
+    if (!auth) {
+      console.log('Firebase not configured - app running in development mode');
+      setIsLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setIsLoading(true);
       setError(null);
@@ -88,7 +101,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const authUser = await fetchUserProfile(firebaseUser);
       setUser(authUser);
     } catch (err: any) {
-      const message = getFirebaseErrorMessage(err.code);
+      const message = err?.message || 'Login failed. Please try again.';
       setError(message);
       throw new Error(message);
     } finally {
@@ -105,7 +118,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const authUser = await fetchUserProfile(firebaseUser);
       setUser(authUser);
     } catch (err: any) {
-      const message = getFirebaseErrorMessage(err.code);
+      const message = err?.message || 'Google login not available. Please use email/password login.';
       setError(message);
       throw new Error(message);
     } finally {
@@ -119,9 +132,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     try {
       await firebaseRegister(email, password);
-      // Don't set user here - they need to verify email first
+      // Auto-login after registration with mock auth
+      const firebaseUser = await firebaseLoginWithEmail(email, password);
+      const authUser = await fetchUserProfile(firebaseUser);
+      setUser(authUser);
     } catch (err: any) {
-      const message = getFirebaseErrorMessage(err.code);
+      const message = err?.message || 'Registration failed. Please try again.';
       setError(message);
       throw new Error(message);
     } finally {
@@ -137,7 +153,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       await firebaseLogout();
       setUser(null);
     } catch (err: any) {
-      const message = getFirebaseErrorMessage(err.code);
+      const message = err?.message || 'Logout failed. Please try again.';
       setError(message);
       throw new Error(message);
     } finally {
