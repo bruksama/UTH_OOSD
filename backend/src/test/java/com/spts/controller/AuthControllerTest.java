@@ -39,5 +39,34 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/logout"))
                 .andExpect(status().isNoContent());
     }
+
+    @Test
+    void testGetMeWithValidMockToken() throws Exception {
+        // Test: GET /me with a valid mock token should return 200 OK
+        mockMvc.perform(get("/api/auth/me")
+                .header("Authorization", "Bearer mock-token-test@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("mock-token-test@example.com"));
+    }
+
+    @Test
+    void testGetMeAfterLogoutReturns401() throws Exception {
+        String token = "Bearer mock-logout-test@example.com";
+        
+        // 1. First call should succeed (creates the user and succeeds)
+        mockMvc.perform(get("/api/auth/me")
+                .header("Authorization", token))
+                .andExpect(status().isOk());
+                
+        // 2. Logout should succeed
+        mockMvc.perform(post("/api/auth/logout")
+                .header("Authorization", token))
+                .andExpect(status().isNoContent());
+                
+        // 3. Subsequent call should fail with 401
+        mockMvc.perform(get("/api/auth/me")
+                .header("Authorization", token))
+                .andExpect(status().isUnauthorized());
+    }
 }
 
