@@ -102,9 +102,11 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
                         email = realToken.getEmail();
                         // CustomUserDetailsService still needs FirebaseToken method for real tokens,
                         // but since we updated it to take FirebaseTokenInfo, we need to adapt here:
+                        Object authTimeObj = realToken.getClaims().get("auth_time");
+                        long authTime = (authTimeObj instanceof Number number) ? number.longValue() : 0L;
                         FirebaseTokenInfo infoAdapter = new FirebaseTokenInfo(
                             uid, email, realToken.getName(),
-                            (Long) realToken.getClaims().getOrDefault("auth_time", 0L)
+                            authTime
                         );
                         org.springframework.security.core.userdetails.UserDetails userDetails = customUserDetailsService.loadUserByFirebaseToken(infoAdapter);
                         logger.debug("Real Firebase token verified for uid: {}, email: {}", uid, email);
