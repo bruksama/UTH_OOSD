@@ -1,31 +1,36 @@
 package com.spts.config;
 
 import com.spts.security.FirebaseTokenFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
 /**
  * Spring Security configuration for Firebase authentication.
+ * When firebase.enabled=false (or Firebase not configured), all API requests are permitted
+ * to allow local development and testing without Firebase credentials.
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final FirebaseTokenFilter firebaseTokenFilter;
+    private final Environment environment;
 
-    public SecurityConfig(FirebaseTokenFilter firebaseTokenFilter) {
+    @Value("${firebase.enabled:true}")
+    private boolean firebaseEnabled;
+
+    public SecurityConfig(FirebaseTokenFilter firebaseTokenFilter, Environment environment) {
         this.firebaseTokenFilter = firebaseTokenFilter;
+        this.environment = environment;
     }
 
     @Bean
@@ -33,26 +38,32 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/api/auth/register").permitAll()
-                        .requestMatchers("/api/auth/logout").permitAll()
-                        .requestMatchers("/api/auth/health").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
-                        // Protected endpoints
-                        .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll()
-                )
-                .exceptionHandling(exc -> exc
-                        // Return 401 when authentication fails (no token provided)
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
-                        })
-                )
-                .addFilterBefore(firebaseTokenFilter, UsernamePasswordAuthenticationFilter.class)
-                // Allow H2 console frames
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+
+        if (firebaseEnabled) {
+            // Firebase mode: protect /api/** endpoints with Firebase token
+            http.authorizeHttpRequests(auth -> auth
+                            .requestMatchers("/api/auth/register").permitAll()
+                            .requestMatchers("/api/auth/logout").permitAll()
+                            .requestMatchers("/api/auth/health").permitAll()
+                            .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                            .requestMatchers("/h2-console/**").permitAll()
+                            .requestMatchers("/api/**").authenticated()
+                            .anyRequest().permitAll()
+                    )
+                    .exceptionHandling(exc -> exc
+                            .authenticationEntryPoint((request, response, authException) ->
+                                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                    )
+                    .addFilterBefore(firebaseTokenFilter, UsernamePasswordAuthenticationFilter.class);
+        } else {
+            // Dev mode: permit all requests (Firebase not configured)
+            // Enforce that firebase can only be disabled in dev/test profiles to prevent accidental fail-open in prod
+            if (!environment.acceptsProfiles(Profiles.of("dev", "test"))) {
+                throw new IllegalStateException("Firebase authentication cannot be disabled in non-development environments!");
+            }
+            http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        }
 
         return http.build();
     }
