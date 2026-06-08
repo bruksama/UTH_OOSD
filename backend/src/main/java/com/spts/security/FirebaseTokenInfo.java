@@ -14,13 +14,13 @@ public class FirebaseTokenInfo {
     private final Map<String, Object> claims;
 
     public FirebaseTokenInfo(String uid, String email, String name, long authTime) {
-        this.uid = uid;
+        this.uid = java.util.Objects.requireNonNull(uid, "uid must not be null");
         this.email = email;
         this.name = name;
         this.authTime = authTime;
         this.claims = Map.of(
-            "sub", uid,
-            "user_id", uid,
+            "sub", this.uid,
+            "user_id", this.uid,
             "email", email != null ? email : "",
             "name", name != null ? name : "",
             "auth_time", authTime
