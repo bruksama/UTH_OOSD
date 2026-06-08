@@ -1,6 +1,6 @@
 package com.spts.service;
 
-import com.google.firebase.auth.FirebaseToken;
+import com.spts.security.FirebaseTokenInfo;
 import com.spts.dto.AuthUserDTO;
 import com.spts.entity.Student;
 import com.spts.entity.User;
@@ -35,7 +35,7 @@ public class AuthService {
      * Auto-links to student record if email matches.
      */
     @Transactional
-    public AuthUserDTO getOrCreateUser(FirebaseToken firebaseToken) {
+    public AuthUserDTO getOrCreateUser(FirebaseTokenInfo firebaseToken) {
         String uid = firebaseToken.getUid();
         String email = firebaseToken.getEmail();
         String displayName = firebaseToken.getName();
@@ -96,7 +96,7 @@ public class AuthService {
      * Mark the current Firebase token as revoked for the authenticated user.
      */
     @Transactional
-    public void revokeCurrentToken(FirebaseToken firebaseToken) {
+    public void revokeCurrentToken(FirebaseTokenInfo firebaseToken) {
         userRepository.findByFirebaseUid(firebaseToken.getUid()).ifPresent(user -> {
             user.setTokenRevokedAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             userRepository.save(user);
@@ -140,7 +140,7 @@ public class AuthService {
      * @param defaultPassword Unused here — kept for API compatibility
      * @return Created User entity
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public User createStudentAccount(String email, String displayName, Student student, String defaultPassword) {
         // Chỉ tạo User trong DB — Firebase được gọi bởi StudentService.afterCommit()
         // Dùng UUID tạm, Firebase mock sẽ dùng uid này để tạo account
@@ -156,7 +156,7 @@ public class AuthService {
     /**
      * Create User account (overload without student link).
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public User createStudentAccount(String email, String displayName, String defaultPassword) {
         return createStudentAccount(email, displayName, null, defaultPassword);
     }

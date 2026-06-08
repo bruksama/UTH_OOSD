@@ -1,6 +1,6 @@
 package com.spts.controller;
 
-import com.google.firebase.auth.FirebaseToken;
+import com.spts.security.FirebaseTokenInfo;
 import com.spts.dto.AuthUserDTO;
 import com.spts.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,7 +35,7 @@ public class AuthController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<AuthUserDTO> getCurrentUser(HttpServletRequest request) {
-        FirebaseToken firebaseToken = (FirebaseToken) request.getAttribute("firebaseToken");
+        FirebaseTokenInfo firebaseToken = (FirebaseTokenInfo) request.getAttribute("firebaseToken");
 
         if (firebaseToken == null) {
             return ResponseEntity.status(401).build();
@@ -55,7 +55,7 @@ public class AuthController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<Void> logout(HttpServletRequest request) {
-        FirebaseToken firebaseToken = (FirebaseToken) request.getAttribute("firebaseToken");
+        FirebaseTokenInfo firebaseToken = (FirebaseTokenInfo) request.getAttribute("firebaseToken");
 
         // If token is present, revoke it
         if (firebaseToken != null) {

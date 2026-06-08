@@ -91,6 +91,9 @@ public class CustomUserDetailsService {
     }
 
     private User createUserFromToken(FirebaseTokenInfo token) {
+        if (token.getEmail() == null || token.getEmail().trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required for user provisioning");
+        }
         logger.info("Creating new user for email: {}", token.getEmail());
 
         // Check if a student already exists with this email

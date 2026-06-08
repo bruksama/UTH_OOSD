@@ -171,12 +171,24 @@ public class StudentService {
         // → Không giữ connection DB trong khi chờ Firebase
         if (firebaseUid != null) {
             final String uid = firebaseUid;
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            firebaseService.deleteAccount(uid);
+                        } catch (Exception e) {
+                            log.warn("Firebase deleteAccount failed for uid {}, but student was already deleted from DB", uid, e);
+                        }
+                    }
+                });
+            } else {
+                try {
                     firebaseService.deleteAccount(uid);
+                } catch (Exception e) {
+                    log.warn("Firebase deleteAccount failed for uid {}, but student was already deleted from DB", uid, e);
                 }
-            });
+            }
         }
     }
 

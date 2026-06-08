@@ -84,10 +84,12 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
                 if (decodedToken != null) {
                     String uid;
                     String email;
+                    FirebaseTokenInfo tokenInfo = null;
                     
                     if (decodedToken instanceof FirebaseTokenInfo mockInfo) {
                         uid = mockInfo.getUid();
                         email = mockInfo.getEmail();
+                        tokenInfo = mockInfo;
                         // Load user from database
                         org.springframework.security.core.userdetails.UserDetails userDetails = customUserDetailsService.loadUserByFirebaseToken(mockInfo);
                         logger.debug("Mock Firebase token verified for uid: {}, email: {}", uid, email);
@@ -108,6 +110,7 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
                             uid, email, realToken.getName(),
                             authTime
                         );
+                        tokenInfo = infoAdapter;
                         org.springframework.security.core.userdetails.UserDetails userDetails = customUserDetailsService.loadUserByFirebaseToken(infoAdapter);
                         logger.debug("Real Firebase token verified for uid: {}, email: {}", uid, email);
                         logger.debug("User loaded with authorities: {}", userDetails.getAuthorities());
@@ -121,11 +124,11 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
                         email = null;
                     }
 
-                    if (uid != null) {
+                    if (uid != null && tokenInfo != null) {
                         // Store email in request for later use
                         request.setAttribute("firebaseEmail", email);
                         request.setAttribute("firebaseUid", uid);
-                        request.setAttribute("firebaseToken", decodedToken);
+                        request.setAttribute("firebaseToken", tokenInfo);
                     }
                 }
 
