@@ -53,11 +53,11 @@ public class FirebaseConfig {
             if (FirebaseApp.getApps().isEmpty()) {
                 // Dùng Resource để hỗ trợ cả classpath: và file: prefix
                 // try-with-resources đảm bảo InputStream luôn được đóng
-                try (InputStream serviceAccount = serviceAccountResource.getInputStream()) {
+                org.springframework.core.io.Resource resource = new org.springframework.core.io.DefaultResourceLoader().getResource(serviceAccountPath);
+                try (InputStream serviceAccount = resource.getInputStream()) {
                     FirebaseOptions options = FirebaseOptions.builder()
                             .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                             .build();
-
                     FirebaseApp.initializeApp(options);
                 }
                 initialized = true;
