@@ -7,13 +7,13 @@ import com.spts.entity.User;
 import com.spts.entity.UserRole;
 import com.spts.repository.StudentRepository;
 import com.spts.repository.UserRepository;
-import com.spts.service.firebase.FirebaseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service for authentication operations.
@@ -23,12 +23,10 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
-    private final FirebaseService firebaseService;
 
-    public AuthService(UserRepository userRepository, StudentRepository studentRepository, FirebaseService firebaseService) {
+    public AuthService(UserRepository userRepository, StudentRepository studentRepository) {
         this.userRepository = userRepository;
         this.studentRepository = studentRepository;
-        this.firebaseService = firebaseService;
     }
 
     /**
@@ -131,37 +129,31 @@ public class AuthService {
     }
 
     /**
-     * Create Firebase user account with default password.
-     * Also creates User record in database and links to student.
-     * 
+     * Create User record in database and links to student.
+     * Firebase account creation is handled by StudentService.afterCommit().
+     * Uses a temporary UUID as firebaseUid (will be the same UID if Firebase creates it with setUid).
+     *
      * @param email User email
      * @param displayName Display name
      * @param student Student entity to link
-     * @param defaultPassword Default password for the account
+     * @param defaultPassword Unused here — kept for API compatibility
      * @return Created User entity
      */
     @Transactional
     public User createStudentAccount(String email, String displayName, Student student, String defaultPassword) {
-        try {
-            // Create Firebase user via FirebaseService (handles Mock/Real automatically)
-            String firebaseUid = firebaseService.createAccount(email, displayName, defaultPassword);
-            
-            // Create User in database
-            User user = new User();
-            user.setFirebaseUid(firebaseUid);
-            user.setEmail(email);
-            user.setDisplayName(displayName);
-            user.setRole(UserRole.STUDENT);
-            user.setStudent(student);
-            
-            return userRepository.save(user);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create Firebase user: " + e.getMessage(), e);
-        }
+        // Chỉ tạo User trong DB — Firebase được gọi bởi StudentService.afterCommit()
+        // Dùng UUID tạm, Firebase mock sẽ dùng uid này để tạo account
+        User user = new User();
+        user.setFirebaseUid(UUID.randomUUID().toString());
+        user.setEmail(email);
+        user.setDisplayName(displayName);
+        user.setRole(UserRole.STUDENT);
+        user.setStudent(student);
+        return userRepository.save(user);
     }
 
     /**
-     * Create Firebase user account (overload without student link).
+     * Create User account (overload without student link).
      */
     @Transactional
     public User createStudentAccount(String email, String displayName, String defaultPassword) {

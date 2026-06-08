@@ -15,6 +15,10 @@ import com.spts.patterns.state.StudentStateManager;
 import com.spts.service.firebase.FirebaseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,6 +26,7 @@ import java.util.stream.Collectors;
 @Service
 public class StudentService {
 
+    private static final Logger log = LoggerFactory.getLogger(StudentService.class);
     private static final String DEFAULT_PASSWORD = "123456";
 
     private final StudentRepository studentRepository;
@@ -88,20 +93,28 @@ public class StudentService {
 
         Student savedStudent = studentRepository.save(student);
 
-        // Create Firebase user account with default password
-        try {
-            String displayName = savedStudent.getFirstName() + " " + savedStudent.getLastName();
-            authService.createStudentAccount(
-                savedStudent.getEmail(),
-                displayName,
-                savedStudent,
-                DEFAULT_PASSWORD
-            );
-        } catch (Exception e) {
-            // Log error but don't fail student creation
-            System.err.println("Warning: Failed to create Firebase account for student " + 
-                savedStudent.getEmail() + ": " + e.getMessage());
-        }
+        // Tạo User record trong DB (cùng transaction → FK hợp lệ)
+        String displayName = savedStudent.getFirstName() + " " + savedStudent.getLastName();
+        authService.createStudentAccount(
+            savedStudent.getEmail(),
+            displayName,
+            savedStudent,
+            DEFAULT_PASSWORD
+        );
+
+        // Gọi Firebase SAU KHI DB commit xong (afterCommit)
+        // → Tránh giữ connection pool, tránh UnexpectedRollbackException
+        String email = savedStudent.getEmail();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    firebaseService.createAccount(email, displayName, DEFAULT_PASSWORD);
+                } catch (Exception e) {
+                    log.warn("Firebase createAccount failed for {}, student still saved in DB", email, e);
+                }
+            }
+        });
 
         return convertToDTO(savedStudent);
     }
@@ -132,7 +145,7 @@ public class StudentService {
             throw new ResourceNotFoundException("Student", "id", id);
         }
         
-        // Remove associated User record to prevent Foreign Key constraint violation
+        // Lấy firebaseUid trước khi xóa User
         String firebaseUid = null;
         java.util.Optional<com.spts.entity.User> userOpt = userRepository.findByStudentId(id);
         if (userOpt.isPresent()) {
@@ -142,8 +155,17 @@ public class StudentService {
         
         studentRepository.deleteById(id);
         
+        // Gọi Firebase SAU KHI DB commit xong (afterCommit)
+        // → Nếu DB rollback thì Firebase không bị xóa (đúng)
+        // → Không giữ connection DB trong khi chờ Firebase
         if (firebaseUid != null) {
-            firebaseService.deleteAccount(firebaseUid);
+            final String uid = firebaseUid;
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    firebaseService.deleteAccount(uid);
+                }
+            });
         }
     }
 

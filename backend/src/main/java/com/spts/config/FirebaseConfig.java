@@ -9,10 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
 
 import jakarta.annotation.PostConstruct;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Firebase configuration for authentication.
@@ -23,6 +24,9 @@ import java.io.IOException;
 public class FirebaseConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(FirebaseConfig.class);
+
+    @Value("${firebase.service-account-path:}")
+    private Resource serviceAccountResource;
 
     @Value("${firebase.service-account-path:}")
     private String serviceAccountPath;
@@ -50,7 +54,8 @@ public class FirebaseConfig {
 
         try {
             if (FirebaseApp.getApps().isEmpty()) {
-                FileInputStream serviceAccount = new FileInputStream(serviceAccountPath);
+                // Dùng Resource để hỗ trợ cả classpath: và file: prefix
+                InputStream serviceAccount = serviceAccountResource.getInputStream();
                 FirebaseOptions options = FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                         .build();

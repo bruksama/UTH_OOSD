@@ -21,6 +21,10 @@ public class RealFirebaseService implements FirebaseService {
 
     @Override
     public String createAccount(String email, String displayName, String password) {
+        if (firebaseAuth == null) {
+            log.error("Firebase: Cannot create account for {} — FirebaseAuth not initialized", email);
+            return null;
+        }
         try {
             UserRecord.CreateRequest request = new UserRecord.CreateRequest()
                 .setEmail(email)
@@ -30,20 +34,28 @@ public class RealFirebaseService implements FirebaseService {
             UserRecord userRecord = firebaseAuth.createUser(request);
             log.info("Firebase: Created account for {}", email);
             return userRecord.getUid();
-        } catch (FirebaseAuthException e) {
+        } catch (Exception e) {
+            // Bắt Exception chung (không chỉ FirebaseAuthException)
+            // → tránh NullPointerException và các lỗi không lường trước lan ra ngoài
             log.error("Firebase: Failed to create account for {}", email, e);
-            throw new RuntimeException("Firebase account creation failed", e);
+            // afterCommit() đã xử lý, Student vẫn được lưu trong DB
+            return null;
         }
     }
 
     @Override
     public void deleteAccount(String uid) {
+        if (firebaseAuth == null) {
+            log.error("Firebase: Cannot delete account {} — FirebaseAuth not initialized", uid);
+            return;
+        }
         try {
             firebaseAuth.deleteUser(uid);
             log.info("Firebase: Deleted account {}", uid);
-        } catch (FirebaseAuthException e) {
+        } catch (Exception e) {
+            // Bắt Exception chung để NullPointerException không lan ra
             log.error("Firebase: Failed to delete account {}", uid, e);
-            // Not throwing to allow local deletion to succeed even if firebase fails
+            // Không throw → local deletion vẫn thành công
         }
     }
 }

@@ -118,7 +118,10 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
     }
 
     private boolean isMockToken(String token) {
-        return token != null && (token.startsWith("mock-") || !token.contains("."));
+        // Thêm trim().isEmpty() check: token rỗng hoặc chỉ có khoảng trắng không được nhận là mock
+        return token != null
+            && !token.trim().isEmpty()
+            && (token.startsWith("mock-") || !token.contains("."));
     }
 
     private FirebaseToken parseMockToken(String idToken) {
