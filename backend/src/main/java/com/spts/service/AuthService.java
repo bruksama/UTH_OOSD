@@ -8,6 +8,7 @@ import com.spts.entity.UserRole;
 import com.spts.repository.StudentRepository;
 import com.spts.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -137,7 +138,7 @@ public class AuthService {
      * @param defaultPassword Default password for the account
      * @return Created User entity
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public User createStudentAccount(String email, String displayName, Student student, String defaultPassword) {
         try {
             // Try to create Firebase user
@@ -168,7 +169,7 @@ public class AuthService {
     /**
      * Create Firebase user account (overload without student link).
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public User createStudentAccount(String email, String displayName, String defaultPassword) {
         return createStudentAccount(email, displayName, null, defaultPassword);
     }

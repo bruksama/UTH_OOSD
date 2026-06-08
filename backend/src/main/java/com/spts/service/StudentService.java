@@ -127,6 +127,10 @@ public class StudentService {
         if (!studentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Student", "id", id);
         }
+        
+        // Remove associated User record to prevent Foreign Key constraint violation
+        userRepository.findByStudentId(id).ifPresent(userRepository::delete);
+        
         studentRepository.deleteById(id);
     }
 
