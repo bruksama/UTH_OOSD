@@ -70,9 +70,12 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
 
             try {
                 FirebaseToken decodedToken = null;
-                if (allowMockToken && (firebaseAuth == null || !firebaseConfig.isInitialized() || isMockToken(idToken))) {
+                if (allowMockToken) {
+                    // Dev/Test: luôn dùng parseMockToken khi flag bật
+                    // → Token thật hết hạn, token rỗng, token mock đều OK
                     decodedToken = parseMockToken(idToken);
-                } else if (firebaseAuth != null) {
+                } else if (firebaseAuth != null && firebaseConfig.isInitialized()) {
+                    // Prod: xác thực bằng Firebase thật
                     decodedToken = firebaseAuth.verifyIdToken(idToken);
                 } else {
                     logger.error("Firebase is not initialized and mock tokens are disabled.");
