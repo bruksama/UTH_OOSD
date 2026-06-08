@@ -1,6 +1,6 @@
 package com.spts.security;
 
-import com.google.firebase.auth.FirebaseToken;
+import com.spts.security.FirebaseTokenInfo;
 import com.spts.entity.Student;
 import com.spts.entity.StudentStatus;
 import com.spts.entity.User;
@@ -42,7 +42,7 @@ public class CustomUserDetailsService {
     }
 
     @Transactional
-    public UserDetails loadUserByFirebaseToken(FirebaseToken token) {
+    public UserDetails loadUserByFirebaseToken(FirebaseTokenInfo token) {
         String uid = token.getUid();
 
         // Find or create user (JIT provisioning)
@@ -69,7 +69,7 @@ public class CustomUserDetailsService {
         );
     }
 
-    private void assertTokenNotRevoked(User user, FirebaseToken token) {
+    private void assertTokenNotRevoked(User user, FirebaseTokenInfo token) {
         LocalDateTime tokenAuthTime = getTokenAuthTime(token);
         LocalDateTime tokenRevokedAt = user.getTokenRevokedAt();
 
@@ -78,7 +78,7 @@ public class CustomUserDetailsService {
         }
     }
 
-    private LocalDateTime getTokenAuthTime(FirebaseToken token) {
+    private LocalDateTime getTokenAuthTime(FirebaseTokenInfo token) {
         Object authTimeClaim = token.getClaims().get("auth_time");
         if (!(authTimeClaim instanceof Number authTimeNumber)) {
             return null;
@@ -90,7 +90,7 @@ public class CustomUserDetailsService {
         ).truncatedTo(ChronoUnit.SECONDS);
     }
 
-    private User createUserFromToken(FirebaseToken token) {
+    private User createUserFromToken(FirebaseTokenInfo token) {
         logger.info("Creating new user for email: {}", token.getEmail());
 
         // Check if a student already exists with this email
@@ -124,7 +124,7 @@ public class CustomUserDetailsService {
         return savedUser;
     }
 
-    private Student createStudentFromToken(FirebaseToken token) {
+    private Student createStudentFromToken(FirebaseTokenInfo token) {
         Student student = new Student();
 
         // Generate unique student ID

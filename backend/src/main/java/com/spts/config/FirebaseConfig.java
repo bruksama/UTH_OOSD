@@ -55,12 +55,14 @@ public class FirebaseConfig {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
                 // Dùng Resource để hỗ trợ cả classpath: và file: prefix
-                InputStream serviceAccount = serviceAccountResource.getInputStream();
-                FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                        .build();
+                // try-with-resources đảm bảo InputStream luôn được đóng
+                try (InputStream serviceAccount = serviceAccountResource.getInputStream()) {
+                    FirebaseOptions options = FirebaseOptions.builder()
+                            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                            .build();
 
-                FirebaseApp.initializeApp(options);
+                    FirebaseApp.initializeApp(options);
+                }
                 initialized = true;
                 logger.info("Firebase initialized successfully with service account file");
             } else {
