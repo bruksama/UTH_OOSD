@@ -108,16 +108,24 @@ public class StudentService {
         // Gọi Firebase SAU KHI DB commit xong (afterCommit)
         // → Truyền đúng uid vào Firebase → DB và Firebase sẽ dùng cùng UID
         String email = savedStudent.getEmail();
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                try {
-                    firebaseService.createAccount(firebaseUid, email, displayName, DEFAULT_PASSWORD);
-                } catch (Exception e) {
-                    log.warn("Firebase createAccount failed for {}, student still saved in DB", email, e);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        firebaseService.createAccount(firebaseUid, email, displayName, DEFAULT_PASSWORD);
+                    } catch (Exception e) {
+                        log.warn("Firebase createAccount failed for {}, student still saved in DB", email, e);
+                    }
                 }
+            });
+        } else {
+            try {
+                firebaseService.createAccount(firebaseUid, email, displayName, DEFAULT_PASSWORD);
+            } catch (Exception e) {
+                log.warn("Firebase createAccount failed for {}, student still saved in DB", email, e);
             }
-        });
+        }
 
         return convertToDTO(savedStudent);
     }
