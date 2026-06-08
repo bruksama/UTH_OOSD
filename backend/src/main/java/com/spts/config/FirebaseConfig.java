@@ -26,9 +26,6 @@ public class FirebaseConfig {
     private static final Logger logger = LoggerFactory.getLogger(FirebaseConfig.class);
 
     @Value("${firebase.service-account-path:}")
-    private Resource serviceAccountResource;
-
-    @Value("${firebase.service-account-path:}")
     private String serviceAccountPath;
 
     @Value("${firebase.enabled:true}")
