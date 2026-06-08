@@ -12,6 +12,7 @@ import com.spts.repository.EnrollmentRepository;
 import com.spts.repository.AlertRepository;
 import com.spts.repository.UserRepository;
 import com.spts.patterns.state.StudentStateManager;
+import com.spts.service.firebase.FirebaseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,19 +30,22 @@ public class StudentService {
     private final UserRepository userRepository;
     private final StudentStateManager stateManager;
     private final AuthService authService;
+    private final FirebaseService firebaseService;
 
     public StudentService(StudentRepository studentRepository,
                           EnrollmentRepository enrollmentRepository,
                           AlertRepository alertRepository,
                           UserRepository userRepository,
                           StudentStateManager stateManager,
-                          AuthService authService) {
+                          AuthService authService,
+                          FirebaseService firebaseService) {
         this.studentRepository = studentRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.alertRepository = alertRepository;
         this.userRepository = userRepository;
         this.stateManager = stateManager;
         this.authService = authService;
+        this.firebaseService = firebaseService;
     }
 
     // ==================== CRUD Operations ====================
@@ -129,9 +133,18 @@ public class StudentService {
         }
         
         // Remove associated User record to prevent Foreign Key constraint violation
-        userRepository.findByStudentId(id).ifPresent(userRepository::delete);
+        String firebaseUid = null;
+        java.util.Optional<com.spts.entity.User> userOpt = userRepository.findByStudentId(id);
+        if (userOpt.isPresent()) {
+            firebaseUid = userOpt.get().getFirebaseUid();
+            userRepository.delete(userOpt.get());
+        }
         
         studentRepository.deleteById(id);
+        
+        if (firebaseUid != null) {
+            firebaseService.deleteAccount(firebaseUid);
+        }
     }
 
     // ==================== Business Logic ====================

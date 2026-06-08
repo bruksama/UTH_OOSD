@@ -7,8 +7,8 @@ import com.spts.entity.User;
 import com.spts.entity.UserRole;
 import com.spts.repository.StudentRepository;
 import com.spts.repository.UserRepository;
+import com.spts.service.firebase.FirebaseService;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -23,10 +23,12 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
+    private final FirebaseService firebaseService;
 
-    public AuthService(UserRepository userRepository, StudentRepository studentRepository) {
+    public AuthService(UserRepository userRepository, StudentRepository studentRepository, FirebaseService firebaseService) {
         this.userRepository = userRepository;
         this.studentRepository = studentRepository;
+        this.firebaseService = firebaseService;
     }
 
     /**
@@ -138,30 +140,22 @@ public class AuthService {
      * @param defaultPassword Default password for the account
      * @return Created User entity
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public User createStudentAccount(String email, String displayName, Student student, String defaultPassword) {
         try {
-            // Try to create Firebase user
-            com.google.firebase.auth.FirebaseAuth firebaseAuth = com.google.firebase.auth.FirebaseAuth.getInstance();
-            
-            com.google.firebase.auth.UserRecord.CreateRequest request = new com.google.firebase.auth.UserRecord.CreateRequest()
-                    .setEmail(email)
-                    .setPassword(defaultPassword)
-                    .setDisplayName(displayName)
-                    .setEmailVerified(false);
-            
-            com.google.firebase.auth.UserRecord userRecord = firebaseAuth.createUser(request);
+            // Create Firebase user via FirebaseService (handles Mock/Real automatically)
+            String firebaseUid = firebaseService.createAccount(email, displayName, defaultPassword);
             
             // Create User in database
             User user = new User();
-            user.setFirebaseUid(userRecord.getUid());
+            user.setFirebaseUid(firebaseUid);
             user.setEmail(email);
             user.setDisplayName(displayName);
             user.setRole(UserRole.STUDENT);
             user.setStudent(student);
             
             return userRepository.save(user);
-        } catch (com.google.firebase.auth.FirebaseAuthException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to create Firebase user: " + e.getMessage(), e);
         }
     }
@@ -169,7 +163,7 @@ public class AuthService {
     /**
      * Create Firebase user account (overload without student link).
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public User createStudentAccount(String email, String displayName, String defaultPassword) {
         return createStudentAccount(email, displayName, null, defaultPassword);
     }
