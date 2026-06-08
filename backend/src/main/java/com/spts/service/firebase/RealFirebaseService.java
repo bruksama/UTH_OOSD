@@ -20,19 +20,20 @@ public class RealFirebaseService implements FirebaseService {
     }
 
     @Override
-    public String createAccount(String email, String displayName, String password) {
+    public String createAccount(String uid, String email, String displayName, String password) {
         if (firebaseAuth == null) {
             log.error("Firebase: Cannot create account for {} — FirebaseAuth not initialized", email);
             return null;
         }
         try {
             UserRecord.CreateRequest request = new UserRecord.CreateRequest()
+                .setUid(uid)            // QUAN TRỌNG: dùng UID từ DB, không để Firebase tự sinh
                 .setEmail(email)
                 .setPassword(password)
                 .setDisplayName(displayName)
                 .setEmailVerified(false);
             UserRecord userRecord = firebaseAuth.createUser(request);
-            log.info("Firebase: Created account for {}", email);
+            log.info("Firebase: Created account for {} with uid {}", email, uid);
             return userRecord.getUid();
         } catch (Exception e) {
             // Bắt Exception chung (không chỉ FirebaseAuthException)

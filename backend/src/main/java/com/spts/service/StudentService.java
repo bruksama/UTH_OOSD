@@ -95,21 +95,24 @@ public class StudentService {
 
         // Tạo User record trong DB (cùng transaction → FK hợp lệ)
         String displayName = savedStudent.getFirstName() + " " + savedStudent.getLastName();
-        authService.createStudentAccount(
+        com.spts.entity.User createdUser = authService.createStudentAccount(
             savedStudent.getEmail(),
             displayName,
             savedStudent,
             DEFAULT_PASSWORD
         );
 
+        // Lấy firebaseUid từ User vừa tạo trong DB
+        String firebaseUid = createdUser.getFirebaseUid();
+
         // Gọi Firebase SAU KHI DB commit xong (afterCommit)
-        // → Tránh giữ connection pool, tránh UnexpectedRollbackException
+        // → Truyền đúng uid vào Firebase → DB và Firebase sẽ dùng cùng UID
         String email = savedStudent.getEmail();
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
                 try {
-                    firebaseService.createAccount(email, displayName, DEFAULT_PASSWORD);
+                    firebaseService.createAccount(firebaseUid, email, displayName, DEFAULT_PASSWORD);
                 } catch (Exception e) {
                     log.warn("Firebase createAccount failed for {}, student still saved in DB", email, e);
                 }

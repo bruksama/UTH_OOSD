@@ -57,7 +57,7 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
         this.customUserDetailsService = customUserDetailsService;
     }
 
-    private static final Map<String, Long> mockTokenAuthTimes = new java.util.concurrent.ConcurrentHashMap<>();
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -120,12 +120,6 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private boolean isMockToken(String token) {
-        // Thêm trim().isEmpty() check: token rỗng hoặc chỉ có khoảng trắng không được nhận là mock
-        return token != null
-            && !token.trim().isEmpty()
-            && (token.startsWith("mock-") || !token.contains("."));
-    }
 
     private FirebaseToken parseMockToken(String idToken) {
         String uid = "mock-uid-123";

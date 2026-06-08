@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
 
 @Service
 @Profile("!prod")
@@ -14,10 +13,10 @@ public class MockFirebaseService implements FirebaseService {
     private static final Logger log = LoggerFactory.getLogger(MockFirebaseService.class);
 
     @Override
-    public String createAccount(String email, String displayName, String password) {
-        String mockUid = "mock-uid-" + UUID.randomUUID().toString().substring(0, 8);
-        log.info("[MOCK] Firebase: Created account for {} with uid {}", email, mockUid);
-        return mockUid;
+    public String createAccount(String uid, String email, String displayName, String password) {
+        // Trả về đúng uid từ DB — không sinh random để tránh mất đồng bộ DB vs Firebase
+        log.info("[MOCK] Firebase: Created account for {} with uid {}", email, uid);
+        return uid;
     }
 
     @Override
