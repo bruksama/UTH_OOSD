@@ -57,6 +57,8 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
         this.customUserDetailsService = customUserDetailsService;
     }
 
+    private static final Map<String, Long> mockTokenAuthTimes = new java.util.concurrent.ConcurrentHashMap<>();
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
