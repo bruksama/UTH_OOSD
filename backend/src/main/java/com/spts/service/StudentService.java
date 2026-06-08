@@ -105,27 +105,11 @@ public class StudentService {
         // Lấy firebaseUid từ User vừa tạo trong DB
         String firebaseUid = createdUser.getFirebaseUid();
 
-        // Gọi Firebase SAU KHI DB commit xong (afterCommit)
-        // → Truyền đúng uid vào Firebase → DB và Firebase sẽ dùng cùng UID
+        // Gọi Firebase trực tiếp trong transaction để đảm bảo tính nhất quán dữ liệu (Data Integrity).
+        // Nếu Firebase lỗi, transaction DB sẽ bị rollback, không bị rác dữ liệu.
+        // Nếu DB commit lỗi sau khi Firebase tạo thành công, JIT provisioning sẽ tự động fix ở lần đăng nhập tới.
         String email = savedStudent.getEmail();
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    try {
-                        firebaseService.createAccount(firebaseUid, email, displayName, DEFAULT_PASSWORD);
-                    } catch (Exception e) {
-                        log.warn("Firebase createAccount failed for {}, student still saved in DB", email, e);
-                    }
-                }
-            });
-        } else {
-            try {
-                firebaseService.createAccount(firebaseUid, email, displayName, DEFAULT_PASSWORD);
-            } catch (Exception e) {
-                log.warn("Firebase createAccount failed for {}, student still saved in DB", email, e);
-            }
-        }
+        firebaseService.createAccount(firebaseUid, email, displayName, DEFAULT_PASSWORD);
 
         return convertToDTO(savedStudent);
     }
@@ -166,29 +150,9 @@ public class StudentService {
         
         studentRepository.deleteById(id);
         
-        // Gọi Firebase SAU KHI DB commit xong (afterCommit)
-        // → Nếu DB rollback thì Firebase không bị xóa (đúng)
-        // → Không giữ connection DB trong khi chờ Firebase
+        // Gọi Firebase đồng bộ để nếu lỗi Firebase thì rollback DB
         if (firebaseUid != null) {
-            final String uid = firebaseUid;
-            if (TransactionSynchronizationManager.isSynchronizationActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        try {
-                            firebaseService.deleteAccount(uid);
-                        } catch (Exception e) {
-                            log.warn("Firebase deleteAccount failed for uid {}, but student was already deleted from DB", uid, e);
-                        }
-                    }
-                });
-            } else {
-                try {
-                    firebaseService.deleteAccount(uid);
-                } catch (Exception e) {
-                    log.warn("Firebase deleteAccount failed for uid {}, but student was already deleted from DB", uid, e);
-                }
-            }
+            firebaseService.deleteAccount(firebaseUid);
         }
     }
 
