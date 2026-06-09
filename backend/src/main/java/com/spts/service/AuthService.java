@@ -1,6 +1,6 @@
 package com.spts.service;
 
-import com.google.firebase.auth.FirebaseToken;
+import com.spts.security.FirebaseTokenInfo;
 import com.spts.dto.AuthUserDTO;
 import com.spts.entity.Student;
 import com.spts.entity.User;
@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Service for authentication operations.
@@ -34,7 +35,7 @@ public class AuthService {
      * Auto-links to student record if email matches.
      */
     @Transactional
-    public AuthUserDTO getOrCreateUser(FirebaseToken firebaseToken) {
+    public AuthUserDTO getOrCreateUser(FirebaseTokenInfo firebaseToken) {
         String uid = firebaseToken.getUid();
         String email = firebaseToken.getEmail();
         String displayName = firebaseToken.getName();
@@ -95,7 +96,7 @@ public class AuthService {
      * Mark the current Firebase token as revoked for the authenticated user.
      */
     @Transactional
-    public void revokeCurrentToken(FirebaseToken firebaseToken) {
+    public void revokeCurrentToken(FirebaseTokenInfo firebaseToken) {
         userRepository.findByFirebaseUid(firebaseToken.getUid()).ifPresent(user -> {
             user.setTokenRevokedAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             userRepository.save(user);
@@ -129,45 +130,31 @@ public class AuthService {
     }
 
     /**
-     * Create Firebase user account with default password.
-     * Also creates User record in database and links to student.
-     * 
+     * Create User record in database and links to student.
+     * Firebase account creation is handled synchronously in StudentService, within the same transaction.
+     * Uses a temporary UUID as firebaseUid (will be the same UID if Firebase creates it with setUid).
+     *
      * @param email User email
      * @param displayName Display name
      * @param student Student entity to link
-     * @param defaultPassword Default password for the account
+     * @param defaultPassword Unused here — kept for API compatibility
      * @return Created User entity
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public User createStudentAccount(String email, String displayName, Student student, String defaultPassword) {
-        try {
-            // Try to create Firebase user
-            com.google.firebase.auth.FirebaseAuth firebaseAuth = com.google.firebase.auth.FirebaseAuth.getInstance();
-            
-            com.google.firebase.auth.UserRecord.CreateRequest request = new com.google.firebase.auth.UserRecord.CreateRequest()
-                    .setEmail(email)
-                    .setPassword(defaultPassword)
-                    .setDisplayName(displayName)
-                    .setEmailVerified(false);
-            
-            com.google.firebase.auth.UserRecord userRecord = firebaseAuth.createUser(request);
-            
-            // Create User in database
-            User user = new User();
-            user.setFirebaseUid(userRecord.getUid());
-            user.setEmail(email);
-            user.setDisplayName(displayName);
-            user.setRole(UserRole.STUDENT);
-            user.setStudent(student);
-            
-            return userRepository.save(user);
-        } catch (com.google.firebase.auth.FirebaseAuthException e) {
-            throw new RuntimeException("Failed to create Firebase user: " + e.getMessage(), e);
-        }
+        // Chỉ tạo User trong DB — Firebase được gọi đồng bộ bởi StudentService trong cùng transaction
+        // Dùng UUID tạm, Firebase sẽ dùng uid này khi tạo account (setUid)
+        User user = new User();
+        user.setFirebaseUid(UUID.randomUUID().toString());
+        user.setEmail(email);
+        user.setDisplayName(displayName);
+        user.setRole(UserRole.STUDENT);
+        user.setStudent(student);
+        return userRepository.save(user);
     }
 
     /**
-     * Create Firebase user account (overload without student link).
+     * Create User account (overload without student link).
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public User createStudentAccount(String email, String displayName, String defaultPassword) {
