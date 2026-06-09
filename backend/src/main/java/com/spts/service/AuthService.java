@@ -8,7 +8,6 @@ import com.spts.entity.UserRole;
 import com.spts.repository.StudentRepository;
 import com.spts.repository.UserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -140,7 +139,7 @@ public class AuthService {
      * @param defaultPassword Unused here — kept for API compatibility
      * @return Created User entity
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public User createStudentAccount(String email, String displayName, Student student, String defaultPassword) {
         // Chỉ tạo User trong DB — Firebase được gọi đồng bộ bởi StudentService trong cùng transaction
         // Dùng UUID tạm, Firebase sẽ dùng uid này khi tạo account (setUid)
@@ -156,7 +155,7 @@ public class AuthService {
     /**
      * Create User account (overload without student link).
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public User createStudentAccount(String email, String displayName, String defaultPassword) {
         return createStudentAccount(email, displayName, null, defaultPassword);
     }
