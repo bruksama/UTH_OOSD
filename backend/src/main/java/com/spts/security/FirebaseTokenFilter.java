@@ -17,6 +17,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -25,8 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Base64;
 import java.nio.charset.StandardCharsets;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
 /**
  * Filter to validate Firebase ID tokens from Authorization header.
@@ -41,6 +42,11 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
     private final FirebaseConfig firebaseConfig;
     private final CustomUserDetailsService customUserDetailsService;
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${app.security.allow-mock-token:false}")
+    private boolean allowMockToken;
+
     @Autowired
     public FirebaseTokenFilter(
             @Autowired(required = false) FirebaseAuth firebaseAuth,
@@ -51,7 +57,7 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
         this.customUserDetailsService = customUserDetailsService;
     }
 
-    private static final Map<String, Long> mockTokenAuthTimes = new java.util.concurrent.ConcurrentHashMap<>();
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -63,38 +69,67 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
             String idToken = authHeader.substring(7);
 
             try {
-                FirebaseToken decodedToken;
-                if (firebaseAuth == null || !firebaseConfig.isInitialized() || isMockToken(idToken)) {
+                Object decodedToken = null;
+                if (allowMockToken) {
+                    // Dev/Test: luôn dùng parseMockToken khi flag bật
+                    // → Token thật hết hạn, token rỗng, token mock đều OK
                     decodedToken = parseMockToken(idToken);
-                } else {
+                } else if (firebaseAuth != null && firebaseConfig.isInitialized()) {
+                    // Prod: xác thực bằng Firebase thật
                     decodedToken = firebaseAuth.verifyIdToken(idToken);
+                } else {
+                    logger.error("Firebase is not initialized and mock tokens are disabled.");
                 }
 
                 if (decodedToken != null) {
-                    String uid = decodedToken.getUid();
-                    String email = decodedToken.getEmail();
+                    String uid;
+                    String email;
+                    FirebaseTokenInfo tokenInfo = null;
+                    
+                    if (decodedToken instanceof FirebaseTokenInfo mockInfo) {
+                        uid = mockInfo.getUid();
+                        email = mockInfo.getEmail();
+                        tokenInfo = mockInfo;
+                        // Load user from database
+                        org.springframework.security.core.userdetails.UserDetails userDetails = customUserDetailsService.loadUserByFirebaseToken(mockInfo);
+                        logger.debug("Mock Firebase token verified for uid: {}, email: {}", uid, email);
+                        logger.debug("User loaded with authorities: {}", userDetails.getAuthorities());
+                        
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                userDetails.getUsername(), null, userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    } else if (decodedToken instanceof FirebaseToken realToken) {
+                        uid = realToken.getUid();
+                        email = realToken.getEmail();
+                        // CustomUserDetailsService still needs FirebaseToken method for real tokens,
+                        // but since we updated it to take FirebaseTokenInfo, we need to adapt here:
+                        Object authTimeObj = realToken.getClaims().get("auth_time");
+                        long authTime = (authTimeObj instanceof Number number) ? number.longValue() : 0L;
+                        FirebaseTokenInfo infoAdapter = new FirebaseTokenInfo(
+                            uid, email, realToken.getName(),
+                            authTime
+                        );
+                        tokenInfo = infoAdapter;
+                        org.springframework.security.core.userdetails.UserDetails userDetails = customUserDetailsService.loadUserByFirebaseToken(infoAdapter);
+                        logger.debug("Real Firebase token verified for uid: {}, email: {}", uid, email);
+                        logger.debug("User loaded with authorities: {}", userDetails.getAuthorities());
+                        
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                userDetails.getUsername(), null, userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    } else {
+                        uid = null;
+                        email = null;
+                    }
 
-                    logger.debug("Firebase token verified for uid: {}, email: {}", uid, email);
-
-                    // Load user from database with actual role
-                    org.springframework.security.core.userdetails.UserDetails userDetails = customUserDetailsService.loadUserByFirebaseToken(decodedToken);
-
-                    logger.debug("User loaded with authorities: {}", userDetails.getAuthorities());
-
-                    // Create authentication token with Firebase UID as principal
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userDetails.getUsername(),
-                            null,
-                            userDetails.getAuthorities()
-                    );
-
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-
-                    // Store email in request for later use
-                    request.setAttribute("firebaseEmail", email);
-                    request.setAttribute("firebaseUid", uid);
-                    request.setAttribute("firebaseToken", decodedToken);
+                    if (uid != null && tokenInfo != null) {
+                        // Store email in request for later use
+                        request.setAttribute("firebaseEmail", email);
+                        request.setAttribute("firebaseUid", uid);
+                        request.setAttribute("firebaseToken", tokenInfo);
+                    }
                 }
 
             } catch (FirebaseAuthException e) {
@@ -109,48 +144,48 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private boolean isMockToken(String token) {
-        return token != null && (token.startsWith("mock-") || !token.contains("."));
-    }
 
-    private FirebaseToken parseMockToken(String idToken) {
+    private FirebaseTokenInfo parseMockToken(String idToken) {
         String uid = "mock-uid-123";
         String email = "mock-user@example.com";
         String name = "Mock User";
-        long authTime = mockTokenAuthTimes.computeIfAbsent(idToken, k -> System.currentTimeMillis() / 1000L);
+        long authTime = System.currentTimeMillis() / 1000L;
         
         boolean parsedAsJwt = false;
         try {
             String[] parts = idToken.split("\\.");
             if (parts.length == 3) {
                 String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+                JsonNode payloadNode = objectMapper.readTree(payloadJson);
                 
-                uid = getJsonStringField(payloadJson, "sub");
-                if (uid == null) {
-                    uid = getJsonStringField(payloadJson, "user_id");
-                }
-                email = getJsonStringField(payloadJson, "email");
-                name = getJsonStringField(payloadJson, "name");
+                uid = getJsonField(payloadNode, "sub");
+                if (uid == null) uid = getJsonField(payloadNode, "user_id");
                 
-                String authTimeStr = getJsonNumericField(payloadJson, "auth_time");
+                email = getJsonField(payloadNode, "email");
+                name = getJsonField(payloadNode, "name");
+                
+                String authTimeStr = getJsonField(payloadNode, "auth_time");
                 if (authTimeStr != null) {
-                    authTime = Long.parseLong(authTimeStr);
+                    try {
+                        authTime = Long.parseLong(authTimeStr);
+                    } catch (NumberFormatException e) {
+                        logger.warn("Failed to parse auth_time '{}', using current time", authTimeStr);
+                    }
                 } else {
-                    String iatStr = getJsonNumericField(payloadJson, "iat");
+                    String iatStr = getJsonField(payloadNode, "iat");
                     if (iatStr != null) {
-                        authTime = Long.parseLong(iatStr);
+                        try {
+                            authTime = Long.parseLong(iatStr);
+                        } catch (NumberFormatException e) {
+                            logger.warn("Failed to parse iat '{}', using current time", iatStr);
+                        }
                     }
                 }
                 
-                if (uid == null) {
-                    uid = "mock-uid-123";
-                }
-                if (email == null) {
-                    email = "mock-user@example.com";
-                }
-                if (name == null) {
-                    name = "Mock User";
-                }
+                if (uid == null) uid = "mock-uid-123";
+                if (email == null) email = "mock-user@example.com";
+                if (name == null) name = "Mock User";
+                
                 parsedAsJwt = true;
             }
         } catch (Exception e) {
@@ -165,41 +200,12 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
             }
         }
         
-        try {
-            Constructor<FirebaseToken> constructor = FirebaseToken.class.getDeclaredConstructor(Map.class);
-            constructor.setAccessible(true);
-            
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("sub", uid);
-            claims.put("user_id", uid);
-            claims.put("email", email);
-            claims.put("name", name);
-            claims.put("auth_time", authTime);
-            
-            return constructor.newInstance(claims);
-        } catch (Exception e) {
-            logger.error("Failed to construct mock FirebaseToken", e);
-            return null;
-        }
+        return new FirebaseTokenInfo(uid, email, name, authTime);
     }
 
-    private String getJsonStringField(String json, String field) {
-        String pattern = "\"" + field + "\"\\s*:\\s*\"([^\"]*)\"";
-        Pattern r = Pattern.compile(pattern);
-        Matcher m = r.matcher(json);
-        if (m.find()) {
-            return m.group(1);
-        }
-        return null;
-    }
-
-    private String getJsonNumericField(String json, String field) {
-        String pattern = "\"" + field + "\"\\s*:\\s*(\\d+)";
-        Pattern r = Pattern.compile(pattern);
-        Matcher m = r.matcher(json);
-        if (m.find()) {
-            return m.group(1);
-        }
-        return null;
+    private String getJsonField(JsonNode node, String field) {
+        if (node == null) return null;
+        JsonNode fieldNode = node.get(field);
+        return fieldNode != null && !fieldNode.isNull() ? fieldNode.asText() : null;
     }
 }
