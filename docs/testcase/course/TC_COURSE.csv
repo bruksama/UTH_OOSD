@@ -1,0 +1,11 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_COURSE_01,Course Registration,Đăng ký môn học thành công,Sinh viên đã đăng nhập,"Chọn môn học → Nhấn Đăng ký","Đăng ký thành công",High,Ready 
+TC_COURSE_02,Course Registration,Đăng ký trùng môn,Môn học đã đăng ký,"Đăng ký lại môn học","Hiển thị lỗi trùng môn",High,Ready 
+TC_COURSE_03,Course Registration,Lớp học đã đầy,Lớp học hết chỗ,"Chọn đăng ký môn học","Hệ thống chặn đăng ký",High,Ready 
+TC_COURSE_04,Course Registration,Đăng ký khi chưa đăng nhập,Chưa đăng nhập,"Truy cập trang đăng ký","Chuyển về trang đăng nhập",High,Ready 
+TC_COURSE_05,Course Registration,Hủy đăng ký môn học,Đã đăng ký môn,"Nhấn Hủy đăng ký","Hủy đăng ký thành công",Medium,Ready 
+TC_COURSE_06,Course Registration,Tìm kiếm môn học,Đã đăng nhập,"Nhập từ khóa tìm kiếm","Hiển thị kết quả phù hợp",Low,Ready 
+TC_COURSE_07,Course Registration,Lọc môn học theo học kỳ,Đã đăng nhập,"Chọn học kỳ","Hiển thị đúng danh sách",Low,Ready 
+TC_COURSE_08,Course Registration,Trùng lịch học,Có lịch học trùng,"Đăng ký môn học mới","Hiển thị cảnh báo trùng lịch",High,Ready
+TC_COURSE_09,Course Registration,Hiển thị danh sách môn học,Người dùng đã đăng nhập,"Mở trang Course","Hiển thị đầy đủ danh sách môn học",Medium,Ready 
+TC_COURSE_10,Course Registration,Đăng ký nhiều môn học,Người dùng đã đăng nhập,"Chọn nhiều môn học → Nhấn Đăng ký","Đăng ký tất cả môn hợp lệ thành công",Medium,Ready
