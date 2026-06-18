@@ -169,6 +169,16 @@ npm run test:run                      # All tests
 npm run test:coverage                 # With coverage report
 ```
 
+### Pull Request Gate
+
+GitHub Actions runs the `Backend unit tests` check on pull requests targeting `main`.
+The workflow provisions PostgreSQL 15, sets up Java 17, disables Firebase initialization for CI, and runs:
+
+```bash
+cd backend
+mvn -B test -Dfirebase.enabled=false
+```
+
 ---
 
 ## Code Style
