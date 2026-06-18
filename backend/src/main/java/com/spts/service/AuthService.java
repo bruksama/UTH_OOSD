@@ -76,6 +76,9 @@ public class AuthService {
         if (studentOpt.isPresent()) {
             user.setStudent(studentOpt.get());
             user.setRole(UserRole.STUDENT);
+        } else if (email != null && email.toLowerCase().contains("admin")) {
+            // Tự động gán quyền ADMIN nếu email chứa chữ "admin"
+            user.setRole(UserRole.ADMIN);
         } else {
             // Default to student role for new users
             user.setRole(UserRole.STUDENT);

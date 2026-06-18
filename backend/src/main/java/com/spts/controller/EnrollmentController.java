@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -68,6 +69,32 @@ public class EnrollmentController {
     public ResponseEntity<EnrollmentDTO> createEnrollment(
             @Valid @RequestBody EnrollmentDTO dto) {
         return new ResponseEntity<>(enrollmentService.createEnrollment(dto), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/bulk")
+    @Operation(summary = "Bulk enroll student", description = "Enrolls a student in multiple course offerings at once")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "All enrollments created successfully"),
+        @ApiResponse(responseCode = "207", description = "Partial success - some enrollments failed"),
+        @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
+    public ResponseEntity<List<EnrollmentDTO>> createBulkEnrollments(
+            @Valid @RequestBody List<EnrollmentDTO> dtos) {
+        List<EnrollmentDTO> created = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        for (EnrollmentDTO dto : dtos) {
+            try {
+                created.add(enrollmentService.createEnrollment(dto));
+            } catch (Exception e) {
+                errors.add("studentId=" + dto.getStudentId()
+                        + ", offeringId=" + dto.getCourseOfferingId()
+                        + ": " + e.getMessage());
+            }
+        }
+        if (created.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return new ResponseEntity<>(created, errors.isEmpty() ? HttpStatus.CREATED : HttpStatus.MULTI_STATUS);
     }
 
     @PutMapping("/{id}")
