@@ -40,7 +40,7 @@ const CourseProposalModal = ({
         let hash = 0;
         for (let i = 0; i < nameSeed.length; i++) {
             hash = ((hash << 5) - hash) + nameSeed.charCodeAt(i);
-            hash |= 0;
+            hash = Math.trunc(hash);
         }
         const seed = Math.abs(hash) % 9000 + 1000; // Force 4 digits (1000-9999)
 
