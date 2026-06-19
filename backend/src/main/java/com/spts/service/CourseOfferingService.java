@@ -428,7 +428,7 @@ public class CourseOfferingService {
         dto.setStudentId(enrollment.getStudent().getId());
         dto.setStudentName(enrollment.getStudent().getFullName());
         dto.setStudentCode(enrollment.getStudent().getStudentId());
-        dto.setCourseOfferingId(enrollment.getCourseOffering().getId());
+        dto.setOfferingId(enrollment.getCourseOffering().getId());
         dto.setCourseCode(enrollment.getCourseOffering().getCourse().getCourseCode());
         dto.setCourseName(enrollment.getCourseOffering().getCourse().getCourseName());
         dto.setCredits(enrollment.getCourseOffering().getCourse().getCredits());

@@ -21,7 +21,7 @@ public class EnrollmentDTO {
     private String studentCode;
 
     @NotNull(message = "Course offering ID is required")
-    private Long courseOfferingId;
+    private Long offeringId;
     
     private String courseCode;
     private String courseName;
@@ -82,12 +82,12 @@ public class EnrollmentDTO {
         this.studentCode = studentCode;
     }
 
-    public Long getCourseOfferingId() {
-        return courseOfferingId;
+    public Long getOfferingId() {
+        return offeringId;
     }
 
-    public void setCourseOfferingId(Long courseOfferingId) {
-        this.courseOfferingId = courseOfferingId;
+    public void setOfferingId(Long offeringId) {
+        this.offeringId = offeringId;
     }
 
     public String getCourseCode() {

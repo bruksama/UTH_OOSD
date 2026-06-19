@@ -123,14 +123,14 @@ public class EnrollmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", dto.getStudentId()));
 
         // Validate course offering exists
-        CourseOffering offering = courseOfferingRepository.findById(dto.getCourseOfferingId())
-                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", dto.getCourseOfferingId()));
+        CourseOffering offering = courseOfferingRepository.findById(dto.getOfferingId())
+                .orElseThrow(() -> new ResourceNotFoundException("CourseOffering", "id", dto.getOfferingId()));
 
         // Check if already enrolled
         if (enrollmentRepository.existsByStudentIdAndCourseOfferingId(
-                dto.getStudentId(), dto.getCourseOfferingId())) {
+                dto.getStudentId(), dto.getOfferingId())) {
             throw new DuplicateResourceException("Enrollment", "student/offering", 
-                    dto.getStudentId() + "/" + dto.getCourseOfferingId());
+                    dto.getStudentId() + "/" + dto.getOfferingId());
         }
 
         // Check seat availability
@@ -552,7 +552,7 @@ public class EnrollmentService {
         dto.setStudentId(enrollment.getStudent().getId());
         dto.setStudentName(enrollment.getStudent().getFullName());
         dto.setStudentCode(enrollment.getStudent().getStudentId());
-        dto.setCourseOfferingId(enrollment.getCourseOffering().getId());
+        dto.setOfferingId(enrollment.getCourseOffering().getId());
         dto.setCourseCode(enrollment.getCourseOffering().getCourse().getCourseCode());
         dto.setCourseName(enrollment.getCourseOffering().getCourse().getCourseName());
         dto.setCredits(enrollment.getCourseOffering().getCourse().getCredits());
