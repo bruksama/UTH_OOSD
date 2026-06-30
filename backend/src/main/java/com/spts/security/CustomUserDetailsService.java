@@ -1,6 +1,6 @@
 package com.spts.security;
 
-import com.google.firebase.auth.FirebaseToken;
+import com.spts.security.FirebaseTokenInfo;
 import com.spts.entity.Student;
 import com.spts.entity.StudentStatus;
 import com.spts.entity.User;
@@ -9,13 +9,13 @@ import com.spts.repository.StudentRepository;
 import com.spts.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -42,7 +42,7 @@ public class CustomUserDetailsService {
     }
 
     @Transactional
-    public UserDetails loadUserByFirebaseToken(FirebaseToken token) {
+    public UserDetails loadUserByFirebaseToken(FirebaseTokenInfo token) {
         String uid = token.getUid();
 
         // Find or create user (JIT provisioning)
@@ -69,16 +69,17 @@ public class CustomUserDetailsService {
         );
     }
 
-    private void assertTokenNotRevoked(User user, FirebaseToken token) {
+    private void assertTokenNotRevoked(User user, FirebaseTokenInfo token) {
         LocalDateTime tokenAuthTime = getTokenAuthTime(token);
         LocalDateTime tokenRevokedAt = user.getTokenRevokedAt();
 
         if (tokenRevokedAt != null && (tokenAuthTime == null || !tokenAuthTime.isAfter(tokenRevokedAt))) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token has been revoked");
+            // BadCredentialsException propagates correctly through the security filter chain.
+            throw new BadCredentialsException("Token has been revoked");
         }
     }
 
-    private LocalDateTime getTokenAuthTime(FirebaseToken token) {
+    private LocalDateTime getTokenAuthTime(FirebaseTokenInfo token) {
         Object authTimeClaim = token.getClaims().get("auth_time");
         if (!(authTimeClaim instanceof Number authTimeNumber)) {
             return null;
@@ -90,7 +91,12 @@ public class CustomUserDetailsService {
         ).truncatedTo(ChronoUnit.SECONDS);
     }
 
-    private User createUserFromToken(FirebaseToken token) {
+    private User createUserFromToken(FirebaseTokenInfo token) {
+        if (token.getEmail() == null || token.getEmail().trim().isEmpty()) {
+            // BadCredentialsException is caught by Spring Security and returns proper 401 to the client.
+            // ResponseStatusException would be silently swallowed inside a filter.
+            throw new BadCredentialsException("Email is required for user provisioning");
+        }
         logger.info("Creating new user for email: {}", token.getEmail());
 
         // Check if a student already exists with this email
@@ -131,7 +137,7 @@ public class CustomUserDetailsService {
         return savedUser;
     }
 
-    private Student createStudentFromToken(FirebaseToken token) {
+    private Student createStudentFromToken(FirebaseTokenInfo token) {
         Student student = new Student();
 
         // Generate unique student ID

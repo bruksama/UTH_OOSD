@@ -169,6 +169,64 @@ npm run test:run                      # All tests
 npm run test:coverage                 # With coverage report
 ```
 
+### Frontend Codecept E2E Tests
+
+CodeceptJS runs beside the existing Playwright suite. It drives the live Vite UI through Chromium while the app uses real Firebase auth and the backend `/api/auth/me` flow.
+
+Prerequisites:
+- PostgreSQL running: `docker-compose up -d`
+- Backend running on `http://localhost:8080` with mock tokens disabled:
+
+```bash
+cd backend
+mvn spring-boot:run -Dspring-boot.run.arguments="--app.security.allow-mock-token=false"
+```
+
+- Frontend running on `http://localhost:5173`
+- `frontend/.env` contains Firebase config and `VITE_API_URL=http://localhost:8080/api`
+- Chromium browser installed for the Playwright helper: `npx playwright install chromium`
+- Shell-only test credentials for a backend `student` user with a valid `studentId` are set:
+
+```bash
+export CODECEPT_TEST_EMAIL=<firebase-test-user-email>
+export CODECEPT_TEST_PASSWORD=<firebase-test-user-password>
+```
+
+Commands:
+```bash
+cd frontend
+npm run test:codecept                 # Headless Codecept run
+npm run test:codecept:headed          # Headed Chromium run
+CODECEPT_BASE_URL=http://localhost:5173 npm run test:codecept
+```
+
+Results:
+- Terminal output shows each Codecept step.
+- HTML report is generated at `frontend/output/report/testomatio-report.html`.
+- Screenshots, reports, and failure output stay under ignored `frontend/output/`.
+
+Troubleshooting:
+
+| Symptom | Check |
+|---------|-------|
+| Missing credential error | Export `CODECEPT_TEST_EMAIL` and `CODECEPT_TEST_PASSWORD` in the same shell. |
+| Login stays on `/login` | Confirm Firebase config in `frontend/.env` and test-user password. |
+| Backend profile request returns 401 | Confirm backend is running with Firebase service account configured. |
+| Backend accepts mock login | Start backend with `--app.security.allow-mock-token=false` for Codecept runs. |
+| Profile page shows `Student not found` | Use a backend `student` test account with a valid `studentId`. |
+| Network errors from frontend | Confirm `VITE_API_URL=http://localhost:8080/api` and backend port `8080`. |
+| HTML report missing | Re-run `npm run test:codecept`; report is written after the run finishes. |
+
+### Pull Request Gate
+
+GitHub Actions runs the `Backend unit tests` check on pull requests targeting `main`.
+The workflow provisions PostgreSQL 15, sets up Java 17, disables Firebase initialization for CI, and runs:
+
+```bash
+cd backend
+mvn -B test -Dfirebase.enabled=false
+```
+
 ---
 
 ## Code Style

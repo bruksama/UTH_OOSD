@@ -12,8 +12,13 @@ import com.spts.repository.EnrollmentRepository;
 import com.spts.repository.AlertRepository;
 import com.spts.repository.UserRepository;
 import com.spts.patterns.state.StudentStateManager;
+import com.spts.service.firebase.FirebaseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,6 +26,7 @@ import java.util.stream.Collectors;
 @Service
 public class StudentService {
 
+    private static final Logger log = LoggerFactory.getLogger(StudentService.class);
     private static final String DEFAULT_PASSWORD = "123456";
 
     private final StudentRepository studentRepository;
@@ -29,19 +35,22 @@ public class StudentService {
     private final UserRepository userRepository;
     private final StudentStateManager stateManager;
     private final AuthService authService;
+    private final FirebaseService firebaseService;
 
     public StudentService(StudentRepository studentRepository,
                           EnrollmentRepository enrollmentRepository,
                           AlertRepository alertRepository,
                           UserRepository userRepository,
                           StudentStateManager stateManager,
-                          AuthService authService) {
+                          AuthService authService,
+                          FirebaseService firebaseService) {
         this.studentRepository = studentRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.alertRepository = alertRepository;
         this.userRepository = userRepository;
         this.stateManager = stateManager;
         this.authService = authService;
+        this.firebaseService = firebaseService;
     }
 
     // ==================== CRUD Operations ====================
@@ -84,20 +93,23 @@ public class StudentService {
 
         Student savedStudent = studentRepository.save(student);
 
-        // Create Firebase user account with default password
-        try {
-            String displayName = savedStudent.getFirstName() + " " + savedStudent.getLastName();
-            authService.createStudentAccount(
-                savedStudent.getEmail(),
-                displayName,
-                savedStudent,
-                DEFAULT_PASSWORD
-            );
-        } catch (Exception e) {
-            // Log error but don't fail student creation
-            System.err.println("Warning: Failed to create Firebase account for student " + 
-                savedStudent.getEmail() + ": " + e.getMessage());
-        }
+        // Tạo User record trong DB (cùng transaction → FK hợp lệ)
+        String displayName = savedStudent.getFirstName() + " " + savedStudent.getLastName();
+        com.spts.entity.User createdUser = authService.createStudentAccount(
+            savedStudent.getEmail(),
+            displayName,
+            savedStudent,
+            DEFAULT_PASSWORD
+        );
+
+        // Lấy firebaseUid từ User vừa tạo trong DB
+        String firebaseUid = createdUser.getFirebaseUid();
+
+        // Gọi Firebase trực tiếp trong transaction để đảm bảo tính nhất quán dữ liệu (Data Integrity).
+        // Nếu Firebase lỗi, transaction DB sẽ bị rollback, không bị rác dữ liệu.
+        // Nếu DB commit lỗi sau khi Firebase tạo thành công, JIT provisioning sẽ tự động fix ở lần đăng nhập tới.
+        String email = savedStudent.getEmail();
+        firebaseService.createAccount(firebaseUid, email, displayName, DEFAULT_PASSWORD);
 
         return convertToDTO(savedStudent);
     }
@@ -127,7 +139,21 @@ public class StudentService {
         if (!studentRepository.existsById(id)) {
             throw new ResourceNotFoundException("Student", "id", id);
         }
+        
+        // Lấy firebaseUid trước khi xóa User
+        String firebaseUid = null;
+        java.util.Optional<com.spts.entity.User> userOpt = userRepository.findByStudentId(id);
+        if (userOpt.isPresent()) {
+            firebaseUid = userOpt.get().getFirebaseUid();
+            userRepository.delete(userOpt.get());
+        }
+        
         studentRepository.deleteById(id);
+        
+        // Gọi Firebase đồng bộ để nếu lỗi Firebase thì rollback DB
+        if (firebaseUid != null) {
+            firebaseService.deleteAccount(firebaseUid);
+        }
     }
 
     // ==================== Business Logic ====================

@@ -59,12 +59,12 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
+    public ResponseEntity<ErrorResponse> handleUnreadableMessage(
             HttpMessageNotReadableException ex, WebRequest request) {
         ErrorResponse error = new ErrorResponse(
             HttpStatus.BAD_REQUEST.value(),
             "Bad Request",
-            "Invalid JSON format or unsupported request body structure: " + ex.getMostSpecificCause().getMessage(),
+            "Malformed JSON request or unsupported request body format",
             request.getDescription(false).replace("uri=", "")
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
