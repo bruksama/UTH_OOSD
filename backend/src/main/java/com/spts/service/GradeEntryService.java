@@ -478,16 +478,22 @@ public class GradeEntryService {
                 .collect(Collectors.toList());
 
         double totalWeightedScore = 0.0;
+        double totalWeight = 0.0;
         
         for (GradeEntry entry : rootEntries) {
             Double score = entry.getCalculatedScore();
-            if (score != null) {
+            if (score != null && entry.getWeight() != null) {
                 totalWeightedScore += score * entry.getWeight();
+                totalWeight += entry.getWeight();
             }
         }
         
+        if (totalWeight <= 0) {
+            return;
+        }
+
         // Round to 2 decimal places
-        double finalScore = Math.round(totalWeightedScore * 100.0) / 100.0;
+        double finalScore = Math.round((totalWeightedScore / totalWeight) * 100.0) / 100.0;
         
         // Only update if changed
         if (enrollment.getFinalScore() == null || Math.abs(enrollment.getFinalScore() - finalScore) > 0.001) {
