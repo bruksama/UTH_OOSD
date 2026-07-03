@@ -23,9 +23,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GradeEntryServiceTest {
@@ -90,6 +90,20 @@ class GradeEntryServiceTest {
 
         assertEquals(1.0, result.getWeight());
         assertEquals(5.0, enrollment.getFinalScore(), 0.001);
+    }
+
+    @Test
+    void createGradeEntryClearsStaleEnrollmentGradeWhenTotalWeightIsZero() {
+        enrollment.setFinalScore(7.5);
+        enrollment.setFinalScore(null);
+        enrollment.setLetterGrade("B");
+        enrollment.setGpaValue(3.0);
+
+        assertDoesNotThrow(() -> createGradeEntry(5.0, 0.0));
+
+        assertNull(enrollment.getFinalScore());
+        assertNull(enrollment.getLetterGrade());
+        assertNull(enrollment.getGpaValue());
     }
 
     private GradeEntryDTO createGradeEntry(Double score, Double weight) {
