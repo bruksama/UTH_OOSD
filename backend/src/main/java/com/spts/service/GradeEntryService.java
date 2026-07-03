@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -478,16 +480,32 @@ public class GradeEntryService {
                 .collect(Collectors.toList());
 
         double totalWeightedScore = 0.0;
+        double totalWeight = 0.0;
         
         for (GradeEntry entry : rootEntries) {
             Double score = entry.getCalculatedScore();
-            if (score != null) {
+            if (score != null && entry.getWeight() != null) {
                 totalWeightedScore += score * entry.getWeight();
+                totalWeight += entry.getWeight();
             }
         }
         
+        if (totalWeight <= 0) {
+            if (enrollment.getFinalScore() != null
+                    || enrollment.getLetterGrade() != null
+                    || enrollment.getGpaValue() != null) {
+                enrollment.setFinalScore(null);
+                enrollment.setLetterGrade(null);
+                enrollment.setGpaValue(null);
+                enrollmentRepository.save(enrollment);
+            }
+            return;
+        }
+
         // Round to 2 decimal places
-        double finalScore = Math.round(totalWeightedScore * 100.0) / 100.0;
+        double finalScore = BigDecimal.valueOf(totalWeightedScore / totalWeight)
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
         
         // Only update if changed
         if (enrollment.getFinalScore() == null || Math.abs(enrollment.getFinalScore() - finalScore) > 0.001) {
