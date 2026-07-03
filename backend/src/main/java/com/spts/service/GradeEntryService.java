@@ -113,8 +113,8 @@ public class GradeEntryService {
         GradeEntry gradeEntry = new GradeEntry();
         gradeEntry.setEnrollment(enrollment);
         gradeEntry.setName(dto.getName());
-        gradeEntry.setWeight(dto.getWeight());
-        gradeEntry.setScore(dto.getScore());
+        gradeEntry.setWeight(normalizeWeight(dto.getWeight()));
+        gradeEntry.setScore(normalizeScore(dto.getScore()));
         gradeEntry.setEntryType(dto.getEntryType() != null ? dto.getEntryType() : GradeEntryType.COMPONENT);
         gradeEntry.setRecordedBy(dto.getRecordedBy());
         gradeEntry.setRecordedAt(LocalDateTime.now());
@@ -152,8 +152,8 @@ public class GradeEntryService {
 
         // Update fields
         gradeEntry.setName(dto.getName());
-        gradeEntry.setWeight(dto.getWeight());
-        gradeEntry.setScore(dto.getScore());
+        gradeEntry.setWeight(normalizeWeight(dto.getWeight()));
+        gradeEntry.setScore(normalizeScore(dto.getScore()));
         gradeEntry.setRecordedBy(dto.getRecordedBy());
         gradeEntry.setRecordedAt(LocalDateTime.now());
         gradeEntry.setNotes(dto.getNotes());
@@ -211,8 +211,8 @@ public class GradeEntryService {
         child.setEnrollment(parent.getEnrollment());
         child.setParent(parent);
         child.setName(dto.getName());
-        child.setWeight(dto.getWeight());
-        child.setScore(dto.getScore());
+        child.setWeight(normalizeWeight(dto.getWeight()));
+        child.setScore(normalizeScore(dto.getScore()));
         child.setEntryType(dto.getEntryType() != null ? dto.getEntryType() : GradeEntryType.COMPONENT);
         child.setRecordedBy(dto.getRecordedBy());
         child.setRecordedAt(LocalDateTime.now());
@@ -315,23 +315,7 @@ public class GradeEntryService {
     @Transactional(readOnly = true)
     public Double calculateFinalGrade(Long enrollmentId) {
         List<GradeEntry> rootEntries = gradeEntryRepository.findByEnrollmentIdAndParentIsNull(enrollmentId);
-        
-        if (rootEntries.isEmpty()) {
-            return null;
-        }
-
-        double totalWeightedScore = 0.0;
-        double totalWeight = 0.0;
-
-        for (GradeEntry entry : rootEntries) {
-            Double score = entry.getCalculatedScore();
-            if (score != null && entry.getWeight() != null) {
-                totalWeightedScore += score * entry.getWeight();
-                totalWeight += entry.getWeight();
-            }
-        }
-
-        return totalWeight > 0 ? totalWeightedScore / totalWeight : null;
+        return calculateWeightedAverage(rootEntries);
     }
 
     /**
@@ -436,7 +420,7 @@ public class GradeEntryService {
         GradeEntry gradeEntry = gradeEntryRepository.findById(gradeEntryId)
                 .orElseThrow(() -> new ResourceNotFoundException("GradeEntry", "id", gradeEntryId));
 
-        gradeEntry.setScore(score);
+        gradeEntry.setScore(normalizeScore(score));
         gradeEntry.setRecordedBy(recordedBy);
         gradeEntry.setRecordedAt(LocalDateTime.now());
 
@@ -477,23 +461,59 @@ public class GradeEntryService {
                 .filter(GradeEntry::isRoot)
                 .collect(Collectors.toList());
 
-        double totalWeightedScore = 0.0;
-        
-        for (GradeEntry entry : rootEntries) {
-            Double score = entry.getCalculatedScore();
-            if (score != null) {
-                totalWeightedScore += score * entry.getWeight();
-            }
-        }
-        
-        // Round to 2 decimal places
-        double finalScore = Math.round(totalWeightedScore * 100.0) / 100.0;
-        
+        Double finalScore = calculateWeightedAverage(rootEntries);
+
         // Only update if changed
+        if (finalScore == null) {
+            if (enrollment.getFinalScore() != null) {
+                enrollment.setFinalScore(null);
+                enrollmentRepository.save(enrollment);
+            }
+            return;
+        }
+
         if (enrollment.getFinalScore() == null || Math.abs(enrollment.getFinalScore() - finalScore) > 0.001) {
             enrollment.setFinalScore(finalScore);
             enrollmentRepository.save(enrollment);
         }
+    }
+
+    private Double normalizeScore(Double score) {
+        if (score == null || !Double.isFinite(score)) {
+            return null;
+        }
+        return Math.max(0.0, Math.min(10.0, score));
+    }
+
+    private Double normalizeWeight(Double weight) {
+        if (weight == null || !Double.isFinite(weight)) {
+            return null;
+        }
+        return Math.max(0.0, Math.min(1.0, weight));
+    }
+
+    private Double calculateWeightedAverage(List<GradeEntry> entries) {
+        if (entries == null || entries.isEmpty()) {
+            return null;
+        }
+
+        double totalWeightedScore = 0.0;
+        double totalWeight = 0.0;
+
+        for (GradeEntry entry : entries) {
+            Double score = entry.getCalculatedScore();
+            Double weight = entry.getWeight();
+            if (score != null && weight != null && weight > 0.0) {
+                totalWeightedScore += score * weight;
+                totalWeight += weight;
+            }
+        }
+
+        if (totalWeight <= 0.0) {
+            return null;
+        }
+
+        return Math.round((totalWeightedScore / totalWeight) * 100.0) / 100.0;
     }
 
     // ==================== DTO Conversion Helpers ====================
