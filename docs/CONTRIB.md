@@ -219,8 +219,15 @@ Troubleshooting:
 
 ### Pull Request Gate
 
-GitHub Actions runs the `Backend unit tests` check on pull requests targeting `main`.
-The workflow provisions PostgreSQL 15, sets up Java 17, disables Firebase initialization for CI, and runs:
+GitHub Actions runs backend test checks on pull requests targeting `main`.
+The workflow provisions PostgreSQL 15, sets up Java 17, disables Firebase initialization for CI, and first runs the solved Jira regression classes:
+
+```bash
+cd backend
+mvn -B test -Dfirebase.enabled=false -Dtest=AuthControllerTest,EnrollmentControllerTest,GradeEntryServiceTest
+```
+
+Then it runs the full backend suite:
 
 ```bash
 cd backend
