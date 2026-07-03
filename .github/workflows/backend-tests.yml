@@ -45,6 +45,15 @@ jobs:
           java-version: '17'
           cache: maven
 
+      - name: Run solved Jira regression tests
+        working-directory: backend
+        env:
+          POSTGRES_USER: spts_user
+        run: >
+          mvn -B test
+          -Dfirebase.enabled=false
+          -Dtest=AuthControllerTest,EnrollmentControllerTest,GradeEntryServiceTest
+
       - name: Run backend tests
         working-directory: backend
         env:
