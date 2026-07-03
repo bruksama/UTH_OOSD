@@ -285,3 +285,4 @@ public class DataInitializer implements CommandLineRunner {
         alertRepository.save(a);
     }
 }
+
