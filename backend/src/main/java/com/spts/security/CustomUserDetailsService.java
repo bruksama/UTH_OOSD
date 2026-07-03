@@ -120,12 +120,19 @@ public class CustomUserDetailsService {
         user.setDisplayName(token.getName());
         user.setCreatedAt(LocalDateTime.now());
         user.setStudent(student);
-        user.setRole(UserRole.STUDENT);
+        
+        // Tự động gán quyền ADMIN nếu email chứa chữ "admin"
+        if (token.getEmail() != null && token.getEmail().toLowerCase().contains("admin")) {
+            user.setRole(UserRole.ADMIN);
+        } else {
+            user.setRole(UserRole.STUDENT);
+        }
 
         User savedUser = userRepository.save(user);
-        logger.info("Created new user: id={}, uid={}, email={}, linkedStudentId={}",
+        logger.info("Created new user: id={}, uid={}, email={}, linkedStudentId={}, role={}",
             savedUser.getId(), token.getUid(), token.getEmail(),
-            savedUser.getStudent() != null ? savedUser.getStudent().getId() : "NULL");
+            savedUser.getStudent() != null ? savedUser.getStudent().getId() : "NULL",
+            savedUser.getRole());
 
         return savedUser;
     }
