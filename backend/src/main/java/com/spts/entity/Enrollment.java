@@ -122,15 +122,18 @@ public class Enrollment {
     }
 
     public void setFinalScore(Double finalScore) {
-        if (finalScore != null && (finalScore < 0.0 || finalScore > 10.0)) {
-            throw new IllegalArgumentException("Final score must be between 0 and 10");
+        Double normalizedScore = normalizeScore(finalScore);
+        if (normalizedScore == null) {
+            this.finalScore = null;
+            this.letterGrade = null;
+            this.gpaValue = null;
+            return;
         }
-        this.finalScore = finalScore;
+
+        this.finalScore = normalizedScore;
         // Auto-calculate letter grade and GPA value
-        if (finalScore != null) {
-            this.letterGrade = calculateLetterGrade(finalScore);
-            this.gpaValue = calculateGpaValue(finalScore);
-        }
+        this.letterGrade = calculateLetterGrade(normalizedScore);
+        this.gpaValue = calculateGpaValue(normalizedScore);
     }
 
     public String getLetterGrade() {
@@ -204,6 +207,13 @@ public class Enrollment {
     public void withdraw() {
         this.status = EnrollmentStatus.WITHDRAWN;
         this.completedAt = LocalDateTime.now();
+    }
+
+    private Double normalizeScore(Double score) {
+        if (score == null || !Double.isFinite(score)) {
+            return null;
+        }
+        return Math.max(0.0, Math.min(10.0, score));
     }
 
     /**
