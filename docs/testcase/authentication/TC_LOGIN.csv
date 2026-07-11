@@ -1,0 +1,11 @@
+﻿ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_LOGIN_01,Authentication,Đăng nhập thành công,Người dùng có tài khoản hợp lệ,"Nhập email và mật khẩu đúng → Nhấn Login","Chuyển vào Dashboard",High,Ready 
+TC_LOGIN_02,Authentication,Sai mật khẩu,Tài khoản tồn tại,"Nhập email đúng và mật khẩu sai","Hiển thị thông báo lỗi",High,Ready 
+TC_LOGIN_03,Authentication,Sai email,Email không tồn tại,"Nhập email không tồn tại","Hiển thị lỗi email",High,Ready 
+TC_LOGIN_04,Authentication,Bỏ trống email,Không có,"Để trống email","Hiển thị validation",Medium,Ready 
+TC_LOGIN_05,Authentication,Bỏ trống mật khẩu,Không có,"Để trống mật khẩu","Hiển thị validation",Medium,Ready 
+TC_LOGIN_06,Authentication,Bỏ trống email và mật khẩu,Không có,"Để trống toàn bộ thông tin","Hiển thị validation",Medium,Ready 
+TC_LOGIN_07,Authentication,Email sai định dạng,Không có,"Nhập email không hợp lệ","Hiển thị lỗi email",Medium,Ready 
+TC_LOGIN_08,Authentication,Kiểm tra SQL Injection,Không có,"Nhập chuỗi SQL Injection","Hệ thống chặn đăng nhập",High,Ready 
+TC_LOGIN_09,Authentication,Ghi nhớ đăng nhập,Người dùng hợp lệ,"Tick Remember Me → Đăng nhập","Lưu phiên đăng nhập",Low,Ready 
+TC_LOGIN_10,Authentication,Đăng xuất hệ thống,Đã đăng nhập,"Nhấn Logout","Quay lại trang đăng nhập",Medium,Ready

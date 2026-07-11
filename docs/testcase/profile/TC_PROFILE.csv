@@ -1,0 +1,6 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_PROFILE_01,Profile,Xem hồ sơ thành công,Sinh viên đã đăng nhập,"Mở trang Profile","Hiển thị đúng thông tin hồ sơ",High,Ready 
+TC_PROFILE_02,Profile,Cập nhật hồ sơ thành công,Sinh viên đã đăng nhập,"Sửa thông tin → Nhấn Lưu","Cập nhật hồ sơ thành công",High,Ready 
+TC_PROFILE_03,Profile,Tải ảnh đại diện thành công,Sinh viên đã đăng nhập,"Upload ảnh hợp lệ","Cập nhật avatar thành công",Medium,Ready 
+TC_PROFILE_04,Profile,Tải file ảnh không hợp lệ,Sinh viên đã đăng nhập,"Upload file sai định dạng","Hiển thị lỗi upload",Medium,Ready 
+TC_PROFILE_05,Profile,Bỏ trống trường bắt buộc,Sinh viên đã đăng nhập,"Xóa dữ liệu bắt buộc → Nhấn Lưu","Hiển thị validation",Medium,Ready

@@ -1,0 +1,6 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_ALERT_01,Alert Management,Hiển thị cảnh báo học tập,Sinh viên có cảnh báo,"Mở trang Alert","Hiển thị cảnh báo chính xác",High,Ready 
+TC_ALERT_02,Alert Management,Không có cảnh báo,Sinh viên không có cảnh báo,"Mở trang Alert","Hiển thị không có cảnh báo",Medium,Ready 
+TC_ALERT_03,Alert Management,Thông báo chưa đọc,Có thông báo chưa đọc,"Mở Dashboard","Hiển thị thông báo chưa đọc",Medium,Ready 
+TC_ALERT_04,Alert Management,Đánh dấu đã đọc,Có thông báo chưa đọc,"Nhấn Mark as Read","Thông báo được cập nhật",Low,Ready 
+TC_ALERT_05,Alert Management,Xóa thông báo,Có thông báo tồn tại,"Nhấn Delete","Thông báo bị xóa",Low,Ready

@@ -1,0 +1,16 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_STUDENT_01,Student Management,Hiển thị danh sách sinh viên,Admin đã đăng nhập,"Mở trang Student Management","Hiển thị danh sách sinh viên",High,Ready 
+TC_STUDENT_02,Student Management,Thêm sinh viên thành công,Admin đã đăng nhập,"Nhập thông tin hợp lệ → Nhấn Save","Thêm sinh viên thành công",High,Ready 
+TC_STUDENT_03,Student Management,Email sinh viên đã tồn tại,Email tồn tại trong hệ thống,"Nhập email trùng","Hiển thị lỗi email",High,Ready 
+TC_STUDENT_04,Student Management,Cập nhật thông tin sinh viên,Sinh viên tồn tại,"Sửa thông tin → Nhấn Save","Cập nhật thành công",High,Ready 
+TC_STUDENT_05,Student Management,Xóa sinh viên,Sinh viên tồn tại,"Nhấn Delete","Xóa sinh viên thành công",High,Ready 
+TC_STUDENT_06,Student Management,Tìm kiếm sinh viên,Sinh viên tồn tại,"Nhập tên sinh viên","Hiển thị kết quả phù hợp",Medium,Ready 
+TC_STUDENT_07,Student Management,Xem chi tiết sinh viên,Sinh viên tồn tại,"Nhấn View Details","Hiển thị đúng thông tin",Medium,Ready 
+TC_STUDENT_08,Student Management,Bỏ trống thông tin bắt buộc,Admin đã đăng nhập,"Để trống dữ liệu → Nhấn Save","Hiển thị validation",Medium,Ready 
+TC_STUDENT_09,Student Management,Email sai định dạng,Admin đã đăng nhập,"Nhập email không hợp lệ","Hiển thị lỗi email",Medium,Ready 
+TC_STUDENT_10,Student Management,Phân trang danh sách sinh viên,Có nhiều dữ liệu sinh viên,"Chuyển trang","Hiển thị dữ liệu chính xác",Low,Ready
+TC_STUDENT_11,Student Management,Tải ảnh đại diện sinh viên,Admin đã đăng nhập,"Upload ảnh hợp lệ","Cập nhật avatar thành công",Low,Ready 
+TC_STUDENT_12,Student Management,Phân trang danh sách sinh viên,Có nhiều dữ liệu sinh viên,"Chuyển sang trang khác","Hiển thị dữ liệu chính xác",Low,Ready 
+TC_STUDENT_13,Student Management,Lọc sinh viên theo lớp,Có dữ liệu sinh viên,"Chọn bộ lọc lớp","Hiển thị đúng danh sách sinh viên",Low,Ready 
+TC_STUDENT_14,Student Management,Export danh sách sinh viên,Hệ thống có dữ liệu sinh viên,"Nhấn nút Export","Xuất file danh sách sinh viên thành công",Low,Ready 
+TC_STUDENT_15,Student Management,Sinh viên truy cập trang quản lý sinh viên,Sinh viên đã đăng nhập,"Truy cập trang Student Management","Hệ thống từ chối truy cập",High,Ready

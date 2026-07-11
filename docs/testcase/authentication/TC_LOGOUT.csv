@@ -1,0 +1,4 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_LOGOUT_01,Logout,Logout successfully,User logged in,Click Logout button,Redirect to login page,High,Ready
+TC_LOGOUT_02,Logout,Access protected page after logout,User logged out,Open dashboard URL,Redirect to login page,High,Ready
+TC_LOGOUT_03,Logout,Session cleared after logout,User logged in,Logout and refresh page,Session removed successfully,Medium,Ready

@@ -11,8 +11,10 @@ import com.spts.entity.AlertLevel;
 import com.spts.entity.AlertType;
 import com.spts.entity.GradeEntryType;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,10 @@ public class DataInitializer implements CommandLineRunner {
     private final EnrollmentRepository enrollmentRepository;
     private final GradeEntryRepository gradeEntryRepository;
     private final AlertRepository alertRepository;
+    private final JdbcTemplate jdbcTemplate;
+
+    @Value("${app.data.reset:false}")
+    private boolean resetSeedData;
 
     public DataInitializer(
             StudentRepository studentRepository,
@@ -44,21 +50,27 @@ public class DataInitializer implements CommandLineRunner {
             CourseOfferingRepository courseOfferingRepository,
             EnrollmentRepository enrollmentRepository,
             GradeEntryRepository gradeEntryRepository,
-            AlertRepository alertRepository) {
+            AlertRepository alertRepository,
+            JdbcTemplate jdbcTemplate) {
         this.studentRepository = studentRepository;
         this.courseRepository = courseRepository;
         this.courseOfferingRepository = courseOfferingRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.gradeEntryRepository = gradeEntryRepository;
         this.alertRepository = alertRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     @Transactional
     public void run(String... args) {
-        if (studentRepository.count() > 0) {
-            System.out.println("DataInitializer: Data directory already indexed. Skipping seeding.");
+        if (!resetSeedData && studentRepository.count() > 0) {
+            System.out.println("DataInitializer: Data already exists. Skipping seeding. Set app.data.reset=true to reseed.");
             return;
+        }
+
+        if (resetSeedData) {
+            resetSeedData();
         }
 
         System.out.println("DataInitializer: Generating High-Engagement Test Dataset...");
@@ -186,6 +198,11 @@ public class DataInitializer implements CommandLineRunner {
 
     // ==================== Helper Methods ====================
 
+    private void resetSeedData() {
+        System.out.println("DataInitializer: Resetting existing seed data...");
+        jdbcTemplate.execute("TRUNCATE TABLE alerts, grade_entries, enrollments, course_offerings, courses, students RESTART IDENTITY CASCADE");
+    }
+
     private Student createStudent(String studentId, String fName, String lName, String email, Double gpa, StudentStatus status, int y, int m, int d) {
         Student student = new Student();
         student.setStudentId(studentId);
@@ -268,3 +285,4 @@ public class DataInitializer implements CommandLineRunner {
         alertRepository.save(a);
     }
 }
+

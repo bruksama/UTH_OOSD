@@ -1,0 +1,11 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_GRADE_01,Grade Management,Nhập điểm hợp lệ,Giáo viên đã đăng nhập,"Nhập điểm hợp lệ → Nhấn Lưu","Lưu điểm thành công",High,Ready 
+TC_GRADE_02,Grade Management,Điểm lớn hơn 10,Giáo viên đã đăng nhập,"Nhập điểm 11","Hiển thị lỗi validation",High,Ready 
+TC_GRADE_03,Grade Management,Điểm âm,Giáo viên đã đăng nhập,"Nhập điểm -1","Hiển thị lỗi validation",High,Ready 
+TC_GRADE_04,Grade Management,Bỏ trống điểm,Giáo viên đã đăng nhập,"Để trống ô điểm","Hiển thị validation",Medium,Ready 
+TC_GRADE_05,Grade Management,Cập nhật điểm,Điểm đã tồn tại,"Sửa điểm → Nhấn Lưu","Cập nhật điểm thành công",High,Ready 
+TC_GRADE_06,Grade Management,Xóa điểm,Điểm đã tồn tại,"Nhấn Xóa điểm","Xóa điểm thành công",Medium,Ready 
+TC_GRADE_07,Grade Management,Tính lại GPA,Sinh viên có dữ liệu điểm,"Cập nhật điểm mới","GPA được tính lại chính xác",High,Ready 
+TC_GRADE_08,Grade Management,Xem bảng điểm,Sinh viên đã đăng nhập,"Mở trang My Grades","Hiển thị đúng bảng điểm",High,Ready
+TC_GRADE_09,Grade Management,Sinh viên không có quyền sửa điểm,Sinh viên đã đăng nhập,"Thử chỉnh sửa điểm","Hệ thống từ chối truy cập",High,Ready 
+TC_GRADE_10,Grade Management,Import điểm từ file,Có file điểm hợp lệ,"Upload file điểm","Import điểm thành công",Medium,Ready

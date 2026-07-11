@@ -1,0 +1,11 @@
+ID,Module,Title,Precondition,Test Steps,Expected Result,Priority,Status
+TC_REGISTER_01,Register,Đăng ký thành công,Email chưa tồn tại,"Nhập thông tin hợp lệ → Nhấn Đăng ký","Tạo tài khoản thành công",High,Ready 
+TC_REGISTER_02,Register,Email đã tồn tại,Email tồn tại trong hệ thống,"Nhập email đã tồn tại","Hiển thị lỗi email",High,Ready 
+TC_REGISTER_03,Register,Bỏ trống họ tên,Không có,"Để trống họ tên","Hiển thị validation",Medium,Ready 
+TC_REGISTER_04,Register,Bỏ trống email,Không có,"Để trống email","Hiển thị validation",Medium,Ready 
+TC_REGISTER_05,Register,Email sai định dạng,Không có,"Nhập email không hợp lệ","Hiển thị lỗi email",Medium,Ready 
+TC_REGISTER_06,Register,Bỏ trống mật khẩu,Không có,"Để trống mật khẩu","Hiển thị validation",Medium,Ready 
+TC_REGISTER_07,Register,Mật khẩu yếu,Không có,"Nhập mật khẩu yếu","Hệ thống từ chối",Medium,Ready 
+TC_REGISTER_08,Register,Xác nhận mật khẩu sai,Không có,"Nhập mật khẩu xác nhận khác","Hiển thị lỗi xác nhận mật khẩu",Medium,Ready
+TC_REGISTER_09,Register,Nhập ký tự đặc biệt trong họ tên,Không có,"Nhập họ tên chứa ký tự đặc biệt","Hệ thống xử lý đúng dữ liệu",Low,Ready 
+TC_REGISTER_10,Register,Nhập dữ liệu tối đa ký tự,Không có,"Nhập dữ liệu có độ dài tối đa","Tạo tài khoản thành công",Low,Ready
