@@ -1,6 +1,6 @@
 package com.spts.security;
 
-import com.google.firebase.auth.FirebaseToken;
+import com.spts.security.FirebaseTokenInfo;
 import com.spts.entity.Student;
 import com.spts.entity.StudentStatus;
 import com.spts.entity.User;
@@ -9,15 +9,19 @@ import com.spts.repository.StudentRepository;
 import com.spts.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
@@ -38,12 +42,14 @@ public class CustomUserDetailsService {
     }
 
     @Transactional
-    public UserDetails loadUserByFirebaseToken(FirebaseToken token) {
+    public UserDetails loadUserByFirebaseToken(FirebaseTokenInfo token) {
         String uid = token.getUid();
 
         // Find or create user (JIT provisioning)
         User user = userRepository.findByFirebaseUid(uid)
             .orElseGet(() -> createUserFromToken(token));
+
+        assertTokenNotRevoked(user, token);
 
         // Update last login
         user.setLastLoginAt(LocalDateTime.now());
@@ -63,7 +69,34 @@ public class CustomUserDetailsService {
         );
     }
 
-    private User createUserFromToken(FirebaseToken token) {
+    private void assertTokenNotRevoked(User user, FirebaseTokenInfo token) {
+        LocalDateTime tokenAuthTime = getTokenAuthTime(token);
+        LocalDateTime tokenRevokedAt = user.getTokenRevokedAt();
+
+        if (tokenRevokedAt != null && (tokenAuthTime == null || !tokenAuthTime.isAfter(tokenRevokedAt))) {
+            // BadCredentialsException propagates correctly through the security filter chain.
+            throw new BadCredentialsException("Token has been revoked");
+        }
+    }
+
+    private LocalDateTime getTokenAuthTime(FirebaseTokenInfo token) {
+        Object authTimeClaim = token.getClaims().get("auth_time");
+        if (!(authTimeClaim instanceof Number authTimeNumber)) {
+            return null;
+        }
+
+        return LocalDateTime.ofInstant(
+                Instant.ofEpochSecond(authTimeNumber.longValue()),
+                java.time.ZoneId.systemDefault()
+        ).truncatedTo(ChronoUnit.SECONDS);
+    }
+
+    private User createUserFromToken(FirebaseTokenInfo token) {
+        if (token.getEmail() == null || token.getEmail().trim().isEmpty()) {
+            // BadCredentialsException is caught by Spring Security and returns proper 401 to the client.
+            // ResponseStatusException would be silently swallowed inside a filter.
+            throw new BadCredentialsException("Email is required for user provisioning");
+        }
         logger.info("Creating new user for email: {}", token.getEmail());
 
         // Check if a student already exists with this email
@@ -87,17 +120,24 @@ public class CustomUserDetailsService {
         user.setDisplayName(token.getName());
         user.setCreatedAt(LocalDateTime.now());
         user.setStudent(student);
-        user.setRole(UserRole.STUDENT);
+        
+        // Tự động gán quyền ADMIN nếu email chứa chữ "admin"
+        if (token.getEmail() != null && token.getEmail().toLowerCase().contains("admin")) {
+            user.setRole(UserRole.ADMIN);
+        } else {
+            user.setRole(UserRole.STUDENT);
+        }
 
         User savedUser = userRepository.save(user);
-        logger.info("Created new user: id={}, uid={}, email={}, linkedStudentId={}",
+        logger.info("Created new user: id={}, uid={}, email={}, linkedStudentId={}, role={}",
             savedUser.getId(), token.getUid(), token.getEmail(),
-            savedUser.getStudent() != null ? savedUser.getStudent().getId() : "NULL");
+            savedUser.getStudent() != null ? savedUser.getStudent().getId() : "NULL",
+            savedUser.getRole());
 
         return savedUser;
     }
 
-    private Student createStudentFromToken(FirebaseToken token) {
+    private Student createStudentFromToken(FirebaseTokenInfo token) {
         Student student = new Student();
 
         // Generate unique student ID

@@ -1,5 +1,6 @@
 package com.spts.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.spts.entity.EnrollmentStatus;
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public class EnrollmentDTO {
     private String studentName;
     private String studentCode;
 
+    @JsonAlias("offeringId")
     @NotNull(message = "Course offering ID is required")
     private Long courseOfferingId;
     
@@ -88,6 +90,14 @@ public class EnrollmentDTO {
 
     public void setCourseOfferingId(Long courseOfferingId) {
         this.courseOfferingId = courseOfferingId;
+    }
+
+    public Long getOfferingId() {
+        return courseOfferingId;
+    }
+
+    public void setOfferingId(Long offeringId) {
+        this.courseOfferingId = offeringId;
     }
 
     public String getCourseCode() {

@@ -5,6 +5,7 @@ import com.spts.dto.GradeEntryDTO;
 import com.spts.entity.*;
 import com.spts.exception.ResourceNotFoundException;
 import com.spts.exception.DuplicateResourceException;
+import com.spts.exception.BusinessRuleException;
 import com.spts.patterns.observer.GradeSubject;
 import com.spts.patterns.strategy.GradingStrategyFactory;
 import com.spts.patterns.strategy.IGradingStrategy;
@@ -133,9 +134,23 @@ public class EnrollmentService {
                     dto.getStudentId() + "/" + dto.getCourseOfferingId());
         }
 
+        // Check for schedule conflict (trùng lịch học)
+        List<Enrollment> activeEnrollments = enrollmentRepository.findInProgressByStudent(student.getId());
+        for (Enrollment existing : activeEnrollments) {
+            CourseOffering existingOffering = existing.getCourseOffering();
+            if (existingOffering.getSemester() == offering.getSemester() &&
+                existingOffering.getAcademicYear().equals(offering.getAcademicYear())) {
+                
+                // Giả lập lịch học: 2 môn trùng lịch nếu id chia 7 có cùng số dư
+                if (existingOffering.getId() % 7 == offering.getId() % 7) {
+                    throw new BusinessRuleException("Schedule conflict: Student is already enrolled in another course offering on the same day");
+                }
+            }
+        }
+
         // Check seat availability
         if (!offering.hasAvailableSeats()) {
-            throw new IllegalStateException("No available seats in this course offering");
+            throw new BusinessRuleException("No available seats in this course offering");
         }
 
         // Create enrollment

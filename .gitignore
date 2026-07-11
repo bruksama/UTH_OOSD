@@ -21,4 +21,6 @@ uth-oosd-firebase*
 logs/
 
 # AI agents
-.claude
+.claude"node_modules/"  
+".env"  
+"target/" 

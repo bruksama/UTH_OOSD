@@ -9,10 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
 
 import jakarta.annotation.PostConstruct;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Firebase configuration for authentication.
@@ -50,12 +51,15 @@ public class FirebaseConfig {
 
         try {
             if (FirebaseApp.getApps().isEmpty()) {
-                FileInputStream serviceAccount = new FileInputStream(serviceAccountPath);
-                FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                        .build();
-
-                FirebaseApp.initializeApp(options);
+                // Dùng Resource để hỗ trợ cả classpath: và file: prefix
+                // try-with-resources đảm bảo InputStream luôn được đóng
+                org.springframework.core.io.Resource resource = new org.springframework.core.io.DefaultResourceLoader().getResource(serviceAccountPath);
+                try (InputStream serviceAccount = resource.getInputStream()) {
+                    FirebaseOptions options = FirebaseOptions.builder()
+                            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                            .build();
+                    FirebaseApp.initializeApp(options);
+                }
                 initialized = true;
                 logger.info("Firebase initialized successfully with service account file");
             } else {
