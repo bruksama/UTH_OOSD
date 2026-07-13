@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StudentDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.dto</a> &gt; <span class="el_source">StudentDTO.java</span></div><h1>StudentDTO.java</h1><pre class="source lang-java linenums">package com.spts.dto;
+
+import com.spts.entity.StudentStatus;
+import jakarta.validation.constraints.*;
+import java.time.LocalDate;
+
+/**
+ * Data Transfer Object for Student entity.
+ * Used for API responses and requests.
+ * 
+ * @author SPTS Team
+ */
+public class StudentDTO {
+
+    private Long id;
+
+    @NotBlank(message = &quot;Student ID is required&quot;)
+    @Size(max = 20, message = &quot;Student ID must not exceed 20 characters&quot;)
+    private String studentId;
+
+    @NotBlank(message = &quot;First name is required&quot;)
+    @Size(max = 50, message = &quot;First name must not exceed 50 characters&quot;)
+    private String firstName;
+
+    @NotBlank(message = &quot;Last name is required&quot;)
+    @Size(max = 50, message = &quot;Last name must not exceed 50 characters&quot;)
+    private String lastName;
+
+    @Email(message = &quot;Invalid email format&quot;)
+    @NotBlank(message = &quot;Email is required&quot;)
+    private String email;
+
+    private LocalDate dateOfBirth;
+    private LocalDate enrollmentDate;
+
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;GPA cannot be less than 0.0&quot;)
+    @DecimalMax(value = &quot;4.0&quot;, message = &quot;GPA cannot exceed 4.0&quot;)
+    private Double gpa;
+
+    private Integer totalCredits;
+    private StudentStatus status;
+
+    // Constructors
+<span class="nc" id="L44">    public StudentDTO() {</span>
+<span class="nc" id="L45">    }</span>
+
+<span class="nc" id="L47">    public StudentDTO(String studentId, String firstName, String lastName, String email) {</span>
+<span class="nc" id="L48">        this.studentId = studentId;</span>
+<span class="nc" id="L49">        this.firstName = firstName;</span>
+<span class="nc" id="L50">        this.lastName = lastName;</span>
+<span class="nc" id="L51">        this.email = email;</span>
+<span class="nc" id="L52">    }</span>
+
+    // Getters and Setters
+    public Long getId() {
+<span class="nc" id="L56">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L60">        this.id = id;</span>
+<span class="nc" id="L61">    }</span>
+
+    public String getStudentId() {
+<span class="nc" id="L64">        return studentId;</span>
+    }
+
+    public void setStudentId(String studentId) {
+<span class="nc" id="L68">        this.studentId = studentId;</span>
+<span class="nc" id="L69">    }</span>
+
+    public String getFirstName() {
+<span class="nc" id="L72">        return firstName;</span>
+    }
+
+    public void setFirstName(String firstName) {
+<span class="nc" id="L76">        this.firstName = firstName;</span>
+<span class="nc" id="L77">    }</span>
+
+    public String getLastName() {
+<span class="nc" id="L80">        return lastName;</span>
+    }
+
+    public void setLastName(String lastName) {
+<span class="nc" id="L84">        this.lastName = lastName;</span>
+<span class="nc" id="L85">    }</span>
+
+    public String getFullName() {
+<span class="nc" id="L88">        return firstName + &quot; &quot; + lastName;</span>
+    }
+
+    public String getEmail() {
+<span class="nc" id="L92">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="nc" id="L96">        this.email = email;</span>
+<span class="nc" id="L97">    }</span>
+
+    public LocalDate getDateOfBirth() {
+<span class="nc" id="L100">        return dateOfBirth;</span>
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+<span class="nc" id="L104">        this.dateOfBirth = dateOfBirth;</span>
+<span class="nc" id="L105">    }</span>
+
+    public LocalDate getEnrollmentDate() {
+<span class="nc" id="L108">        return enrollmentDate;</span>
+    }
+
+    public void setEnrollmentDate(LocalDate enrollmentDate) {
+<span class="nc" id="L112">        this.enrollmentDate = enrollmentDate;</span>
+<span class="nc" id="L113">    }</span>
+
+    public Double getGpa() {
+<span class="nc" id="L116">        return gpa;</span>
+    }
+
+    public void setGpa(Double gpa) {
+<span class="nc" id="L120">        this.gpa = gpa;</span>
+<span class="nc" id="L121">    }</span>
+
+    public Integer getTotalCredits() {
+<span class="nc" id="L124">        return totalCredits;</span>
+    }
+
+    public void setTotalCredits(Integer totalCredits) {
+<span class="nc" id="L128">        this.totalCredits = totalCredits;</span>
+<span class="nc" id="L129">    }</span>
+
+    public StudentStatus getStatus() {
+<span class="nc" id="L132">        return status;</span>
+    }
+
+    public void setStatus(StudentStatus status) {
+<span class="nc" id="L136">        this.status = status;</span>
+<span class="nc" id="L137">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

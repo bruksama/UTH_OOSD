@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FirebaseTokenFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.security</a> &gt; <span class="el_source">FirebaseTokenFilter.java</span></div><h1>FirebaseTokenFilter.java</h1><pre class="source lang-java linenums">package com.spts.security;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.FirebaseToken;
+import com.spts.config.FirebaseConfig;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.lang.reflect.Constructor;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Base64;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * Filter to validate Firebase ID tokens from Authorization header.
+ * Gracefully handles cases where Firebase is not configured.
+ */
+@Component
+public class FirebaseTokenFilter extends OncePerRequestFilter {
+
+<span class="fc" id="L39">    private static final Logger logger = LoggerFactory.getLogger(FirebaseTokenFilter.class);</span>
+
+    private final FirebaseAuth firebaseAuth;
+    private final FirebaseConfig firebaseConfig;
+    private final CustomUserDetailsService customUserDetailsService;
+
+<span class="fc" id="L45">    private static final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+    @Value(&quot;${app.security.allow-mock-token:false}&quot;)
+    private boolean allowMockToken;
+
+    @Autowired
+    public FirebaseTokenFilter(
+            @Autowired(required = false) FirebaseAuth firebaseAuth,
+            FirebaseConfig firebaseConfig,
+<span class="fc" id="L54">            CustomUserDetailsService customUserDetailsService) {</span>
+<span class="fc" id="L55">        this.firebaseAuth = firebaseAuth;</span>
+<span class="fc" id="L56">        this.firebaseConfig = firebaseConfig;</span>
+<span class="fc" id="L57">        this.customUserDetailsService = customUserDetailsService;</span>
+<span class="fc" id="L58">    }</span>
+
+
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+<span class="fc" id="L66">        String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
+
+<span class="pc bpc" id="L68" title="1 of 4 branches missed.">        if (authHeader != null &amp;&amp; authHeader.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="fc" id="L69">            String idToken = authHeader.substring(7);</span>
+
+            try {
+<span class="fc" id="L72">                Object decodedToken = null;</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">                if (allowMockToken) {</span>
+                    // Dev/Test: luôn dùng parseMockToken khi flag bật
+                    // → Token thật hết hạn, token rỗng, token mock đều OK
+<span class="fc" id="L76">                    decodedToken = parseMockToken(idToken);</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">                } else if (firebaseAuth != null &amp;&amp; firebaseConfig.isInitialized()) {</span>
+                    // Prod: xác thực bằng Firebase thật
+<span class="nc" id="L79">                    decodedToken = firebaseAuth.verifyIdToken(idToken);</span>
+                } else {
+<span class="nc" id="L81">                    logger.error(&quot;Firebase is not initialized and mock tokens are disabled.&quot;);</span>
+                }
+
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">                if (decodedToken != null) {</span>
+                    String uid;
+                    String email;
+<span class="fc" id="L87">                    FirebaseTokenInfo tokenInfo = null;</span>
+                    
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">                    if (decodedToken instanceof FirebaseTokenInfo mockInfo) {</span>
+<span class="fc" id="L90">                        uid = mockInfo.getUid();</span>
+<span class="fc" id="L91">                        email = mockInfo.getEmail();</span>
+<span class="fc" id="L92">                        tokenInfo = mockInfo;</span>
+                        // Load user from database
+<span class="fc" id="L94">                        org.springframework.security.core.userdetails.UserDetails userDetails = customUserDetailsService.loadUserByFirebaseToken(mockInfo);</span>
+<span class="fc" id="L95">                        logger.debug(&quot;Mock Firebase token verified for uid: {}, email: {}&quot;, uid, email);</span>
+<span class="fc" id="L96">                        logger.debug(&quot;User loaded with authorities: {}&quot;, userDetails.getAuthorities());</span>
+                        
+<span class="fc" id="L98">                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(</span>
+<span class="fc" id="L99">                                userDetails.getUsername(), null, userDetails.getAuthorities());</span>
+<span class="fc" id="L100">                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));</span>
+<span class="fc" id="L101">                        SecurityContextHolder.getContext().setAuthentication(authentication);</span>
+<span class="pc bnc" id="L102" title="All 2 branches missed.">                    } else if (decodedToken instanceof FirebaseToken realToken) {</span>
+<span class="nc" id="L103">                        uid = realToken.getUid();</span>
+<span class="nc" id="L104">                        email = realToken.getEmail();</span>
+                        // CustomUserDetailsService still needs FirebaseToken method for real tokens,
+                        // but since we updated it to take FirebaseTokenInfo, we need to adapt here:
+<span class="nc" id="L107">                        Object authTimeObj = realToken.getClaims().get(&quot;auth_time&quot;);</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">                        long authTime = (authTimeObj instanceof Number number) ? number.longValue() : 0L;</span>
+<span class="nc" id="L109">                        FirebaseTokenInfo infoAdapter = new FirebaseTokenInfo(</span>
+<span class="nc" id="L110">                            uid, email, realToken.getName(),</span>
+                            authTime
+                        );
+<span class="nc" id="L113">                        tokenInfo = infoAdapter;</span>
+<span class="nc" id="L114">                        org.springframework.security.core.userdetails.UserDetails userDetails = customUserDetailsService.loadUserByFirebaseToken(infoAdapter);</span>
+<span class="nc" id="L115">                        logger.debug(&quot;Real Firebase token verified for uid: {}, email: {}&quot;, uid, email);</span>
+<span class="nc" id="L116">                        logger.debug(&quot;User loaded with authorities: {}&quot;, userDetails.getAuthorities());</span>
+                        
+<span class="nc" id="L118">                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(</span>
+<span class="nc" id="L119">                                userDetails.getUsername(), null, userDetails.getAuthorities());</span>
+<span class="nc" id="L120">                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));</span>
+<span class="nc" id="L121">                        SecurityContextHolder.getContext().setAuthentication(authentication);</span>
+<span class="nc" id="L122">                    } else {</span>
+<span class="nc" id="L123">                        uid = null;</span>
+<span class="nc" id="L124">                        email = null;</span>
+                    }
+
+<span class="pc bpc" id="L127" title="2 of 4 branches missed.">                    if (uid != null &amp;&amp; tokenInfo != null) {</span>
+                        // Store email in request for later use
+<span class="fc" id="L129">                        request.setAttribute(&quot;firebaseEmail&quot;, email);</span>
+<span class="fc" id="L130">                        request.setAttribute(&quot;firebaseUid&quot;, uid);</span>
+<span class="fc" id="L131">                        request.setAttribute(&quot;firebaseToken&quot;, tokenInfo);</span>
+                    }
+                }
+
+<span class="nc" id="L135">            } catch (FirebaseAuthException e) {</span>
+<span class="nc" id="L136">                logger.warn(&quot;Invalid Firebase token: {}&quot;, e.getMessage());</span>
+                // Don't set authentication - request will be rejected by security config
+<span class="fc" id="L138">            } catch (Exception e) {</span>
+<span class="fc" id="L139">                logger.error(&quot;Error loading user from database: {}&quot;, e.getMessage(), e);</span>
+                // Don't set authentication - request will be rejected by security config
+<span class="pc" id="L141">            }</span>
+        }
+
+<span class="fc" id="L144">        filterChain.doFilter(request, response);</span>
+<span class="fc" id="L145">    }</span>
+
+
+    private FirebaseTokenInfo parseMockToken(String idToken) {
+<span class="fc" id="L149">        String uid = &quot;mock-uid-123&quot;;</span>
+<span class="fc" id="L150">        String email = &quot;mock-user@example.com&quot;;</span>
+<span class="fc" id="L151">        String name = &quot;Mock User&quot;;</span>
+<span class="fc" id="L152">        long authTime = System.currentTimeMillis() / 1000L;</span>
+        
+<span class="fc" id="L154">        boolean parsedAsJwt = false;</span>
+        try {
+<span class="fc" id="L156">            String[] parts = idToken.split(&quot;\\.&quot;);</span>
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">            if (parts.length == 3) {</span>
+<span class="nc" id="L158">                String payloadJson = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);</span>
+<span class="nc" id="L159">                JsonNode payloadNode = objectMapper.readTree(payloadJson);</span>
+                
+<span class="nc" id="L161">                uid = getJsonField(payloadNode, &quot;sub&quot;);</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                if (uid == null) uid = getJsonField(payloadNode, &quot;user_id&quot;);</span>
+                
+<span class="nc" id="L164">                email = getJsonField(payloadNode, &quot;email&quot;);</span>
+<span class="nc" id="L165">                name = getJsonField(payloadNode, &quot;name&quot;);</span>
+                
+<span class="nc" id="L167">                String authTimeStr = getJsonField(payloadNode, &quot;auth_time&quot;);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                if (authTimeStr != null) {</span>
+                    try {
+<span class="nc" id="L170">                        authTime = Long.parseLong(authTimeStr);</span>
+<span class="nc" id="L171">                    } catch (NumberFormatException e) {</span>
+<span class="nc" id="L172">                        logger.warn(&quot;Failed to parse auth_time '{}', using current time&quot;, authTimeStr);</span>
+<span class="nc" id="L173">                    }</span>
+                } else {
+<span class="nc" id="L175">                    String iatStr = getJsonField(payloadNode, &quot;iat&quot;);</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">                    if (iatStr != null) {</span>
+                        try {
+<span class="nc" id="L178">                            authTime = Long.parseLong(iatStr);</span>
+<span class="nc" id="L179">                        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L180">                            logger.warn(&quot;Failed to parse iat '{}', using current time&quot;, iatStr);</span>
+<span class="nc" id="L181">                        }</span>
+                    }
+                }
+                
+<span class="nc bnc" id="L185" title="All 2 branches missed.">                if (uid == null) uid = &quot;mock-uid-123&quot;;</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">                if (email == null) email = &quot;mock-user@example.com&quot;;</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">                if (name == null) name = &quot;Mock User&quot;;</span>
+                
+<span class="nc" id="L189">                parsedAsJwt = true;</span>
+            }
+<span class="nc" id="L191">        } catch (Exception e) {</span>
+<span class="nc" id="L192">            logger.warn(&quot;Failed to parse mock JWT token (falling back to simple string parsing): {}&quot;, e.getMessage());</span>
+<span class="fc" id="L193">        }</span>
+        
+<span class="pc bpc" id="L195" title="1 of 2 branches missed.">        if (!parsedAsJwt) {</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">            if (idToken.contains(&quot;@&quot;)) {</span>
+<span class="fc" id="L197">                email = idToken;</span>
+<span class="fc" id="L198">                uid = &quot;uid-&quot; + Math.abs(idToken.hashCode());</span>
+<span class="fc" id="L199">                name = idToken.split(&quot;@&quot;)[0];</span>
+            }
+        }
+        
+<span class="fc" id="L203">        return new FirebaseTokenInfo(uid, email, name, authTime);</span>
+    }
+
+    private String getJsonField(JsonNode node, String field) {
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (node == null) return null;</span>
+<span class="nc" id="L208">        JsonNode fieldNode = node.get(field);</span>
+<span class="nc bnc" id="L209" title="All 4 branches missed.">        return fieldNode != null &amp;&amp; !fieldNode.isNull() ? fieldNode.asText() : null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

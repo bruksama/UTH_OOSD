@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StudentService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.service</a> &gt; <span class="el_source">StudentService.java</span></div><h1>StudentService.java</h1><pre class="source lang-java linenums">package com.spts.service;
+
+import com.spts.dto.StudentDTO;
+import com.spts.entity.Student;
+import com.spts.entity.StudentStatus;
+import com.spts.entity.Enrollment;
+import com.spts.entity.EnrollmentStatus;
+import com.spts.exception.ResourceNotFoundException;
+import com.spts.exception.DuplicateResourceException;
+import com.spts.repository.StudentRepository;
+import com.spts.repository.EnrollmentRepository;
+import com.spts.repository.AlertRepository;
+import com.spts.repository.UserRepository;
+import com.spts.patterns.state.StudentStateManager;
+import com.spts.service.firebase.FirebaseService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class StudentService {
+
+<span class="fc" id="L29">    private static final Logger log = LoggerFactory.getLogger(StudentService.class);</span>
+    private static final String DEFAULT_PASSWORD = &quot;123456&quot;;
+
+    private final StudentRepository studentRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final AlertRepository alertRepository;
+    private final UserRepository userRepository;
+    private final StudentStateManager stateManager;
+    private final AuthService authService;
+    private final FirebaseService firebaseService;
+
+    public StudentService(StudentRepository studentRepository,
+                          EnrollmentRepository enrollmentRepository,
+                          AlertRepository alertRepository,
+                          UserRepository userRepository,
+                          StudentStateManager stateManager,
+                          AuthService authService,
+<span class="fc" id="L46">                          FirebaseService firebaseService) {</span>
+<span class="fc" id="L47">        this.studentRepository = studentRepository;</span>
+<span class="fc" id="L48">        this.enrollmentRepository = enrollmentRepository;</span>
+<span class="fc" id="L49">        this.alertRepository = alertRepository;</span>
+<span class="fc" id="L50">        this.userRepository = userRepository;</span>
+<span class="fc" id="L51">        this.stateManager = stateManager;</span>
+<span class="fc" id="L52">        this.authService = authService;</span>
+<span class="fc" id="L53">        this.firebaseService = firebaseService;</span>
+<span class="fc" id="L54">    }</span>
+
+    // ==================== CRUD Operations ====================
+
+    @Transactional(readOnly = true)
+    public List&lt;StudentDTO&gt; getAllStudents() {
+<span class="nc" id="L60">        return studentRepository.findAll().stream()</span>
+<span class="nc" id="L61">                .map(this::convertToDTO)</span>
+<span class="nc" id="L62">                .collect(Collectors.toList());</span>
+    }
+
+    @Transactional(readOnly = true)
+    public StudentDTO getStudentById(Long id) {
+<span class="nc" id="L67">        Student student = studentRepository.findById(id)</span>
+<span class="nc" id="L68">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Student&quot;, &quot;id&quot;, id));</span>
+<span class="nc" id="L69">        return convertToDTO(student);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public StudentDTO getStudentByStudentId(String studentId) {
+<span class="nc" id="L74">        Student student = studentRepository.findByStudentId(studentId)</span>
+<span class="nc" id="L75">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Student&quot;, &quot;studentId&quot;, studentId));</span>
+<span class="nc" id="L76">        return convertToDTO(student);</span>
+    }
+
+    @Transactional
+    public StudentDTO createStudent(StudentDTO dto) {
+        // Check for duplicates
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (studentRepository.existsByStudentId(dto.getStudentId())) {</span>
+<span class="nc" id="L83">            throw new DuplicateResourceException(&quot;Student&quot;, &quot;studentId&quot;, dto.getStudentId());</span>
+        }
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (studentRepository.existsByEmail(dto.getEmail())) {</span>
+<span class="nc" id="L86">            throw new DuplicateResourceException(&quot;Student&quot;, &quot;email&quot;, dto.getEmail());</span>
+        }
+
+<span class="nc" id="L89">        Student student = convertToEntity(dto);</span>
+<span class="nc" id="L90">        student.setStatus(StudentStatus.NORMAL);</span>
+<span class="nc" id="L91">        student.setGpa(null); // New student has no GPA yet</span>
+<span class="nc" id="L92">        student.setTotalCredits(0);</span>
+
+<span class="nc" id="L94">        Student savedStudent = studentRepository.save(student);</span>
+
+        // Tạo User record trong DB (cùng transaction → FK hợp lệ)
+<span class="nc" id="L97">        String displayName = savedStudent.getFirstName() + &quot; &quot; + savedStudent.getLastName();</span>
+<span class="nc" id="L98">        com.spts.entity.User createdUser = authService.createStudentAccount(</span>
+<span class="nc" id="L99">            savedStudent.getEmail(),</span>
+            displayName,
+            savedStudent,
+            DEFAULT_PASSWORD
+        );
+
+        // Lấy firebaseUid từ User vừa tạo trong DB
+<span class="nc" id="L106">        String firebaseUid = createdUser.getFirebaseUid();</span>
+
+        // Gọi Firebase trực tiếp trong transaction để đảm bảo tính nhất quán dữ liệu (Data Integrity).
+        // Nếu Firebase lỗi, transaction DB sẽ bị rollback, không bị rác dữ liệu.
+        // Nếu DB commit lỗi sau khi Firebase tạo thành công, JIT provisioning sẽ tự động fix ở lần đăng nhập tới.
+<span class="nc" id="L111">        String email = savedStudent.getEmail();</span>
+<span class="nc" id="L112">        firebaseService.createAccount(firebaseUid, email, displayName, DEFAULT_PASSWORD);</span>
+
+<span class="nc" id="L114">        return convertToDTO(savedStudent);</span>
+    }
+
+    @Transactional
+    public StudentDTO updateStudent(Long id, StudentDTO dto) {
+<span class="nc" id="L119">        Student student = studentRepository.findById(id)</span>
+<span class="nc" id="L120">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Student&quot;, &quot;id&quot;, id));</span>
+
+        // Update fields
+<span class="nc" id="L123">        student.setFirstName(dto.getFirstName());</span>
+<span class="nc" id="L124">        student.setLastName(dto.getLastName());</span>
+<span class="nc" id="L125">        student.setEmail(dto.getEmail());</span>
+<span class="nc" id="L126">        student.setDateOfBirth(dto.getDateOfBirth());</span>
+
+        // Sync with associated User if name changed
+<span class="nc" id="L129">        userRepository.findByEmail(student.getEmail()).ifPresent(u -&gt; {</span>
+<span class="nc" id="L130">            u.setDisplayName(student.getFirstName() + &quot; &quot; + student.getLastName());</span>
+<span class="nc" id="L131">            userRepository.save(u);</span>
+<span class="nc" id="L132">        });</span>
+
+<span class="nc" id="L134">        return convertToDTO(studentRepository.save(student));</span>
+    }
+
+    @Transactional
+    public void deleteStudent(Long id) {
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (!studentRepository.existsById(id)) {</span>
+<span class="nc" id="L140">            throw new ResourceNotFoundException(&quot;Student&quot;, &quot;id&quot;, id);</span>
+        }
+        
+        // Lấy firebaseUid trước khi xóa User
+<span class="nc" id="L144">        String firebaseUid = null;</span>
+<span class="nc" id="L145">        java.util.Optional&lt;com.spts.entity.User&gt; userOpt = userRepository.findByStudentId(id);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        if (userOpt.isPresent()) {</span>
+<span class="nc" id="L147">            firebaseUid = userOpt.get().getFirebaseUid();</span>
+<span class="nc" id="L148">            userRepository.delete(userOpt.get());</span>
+        }
+        
+<span class="nc" id="L151">        studentRepository.deleteById(id);</span>
+        
+        // Gọi Firebase đồng bộ để nếu lỗi Firebase thì rollback DB
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (firebaseUid != null) {</span>
+<span class="nc" id="L155">            firebaseService.deleteAccount(firebaseUid);</span>
+        }
+<span class="nc" id="L157">    }</span>
+
+    // ==================== Business Logic ====================
+
+    @Transactional(readOnly = true)
+    public List&lt;StudentDTO&gt; getStudentsAtRisk() {
+<span class="nc" id="L163">        return studentRepository.findByStatusIn(List.of(StudentStatus.AT_RISK, StudentStatus.PROBATION))</span>
+<span class="nc" id="L164">                .stream()</span>
+<span class="nc" id="L165">                .map(this::convertToDTO)</span>
+<span class="nc" id="L166">                .collect(Collectors.toList());</span>
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;StudentDTO&gt; searchByName(String name) {
+<span class="nc" id="L171">        return studentRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(name, name)</span>
+<span class="nc" id="L172">                .stream()</span>
+<span class="nc" id="L173">                .map(this::convertToDTO)</span>
+<span class="nc" id="L174">                .collect(Collectors.toList());</span>
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;StudentDTO&gt; getStudentsWithGpaBelow(Double threshold) {
+<span class="nc" id="L179">        return studentRepository.findByGpaLessThan(threshold)</span>
+<span class="nc" id="L180">                .stream()</span>
+<span class="nc" id="L181">                .map(this::convertToDTO)</span>
+<span class="nc" id="L182">                .collect(Collectors.toList());</span>
+    }
+
+    @Transactional
+    public void graduateStudent(Long id) {
+<span class="nc" id="L187">        Student student = studentRepository.findById(id)</span>
+<span class="nc" id="L188">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Student&quot;, &quot;id&quot;, id));</span>
+
+        // Business logic for graduation (e.g., total credits &gt;= 120, gpa &gt;= 2.0)
+<span class="nc bnc" id="L191" title="All 4 branches missed.">        if (student.getTotalCredits() != null &amp;&amp; student.getTotalCredits() &gt;= 120 &amp;&amp; </span>
+<span class="nc bnc" id="L192" title="All 4 branches missed.">            student.getGpa() != null &amp;&amp; student.getGpa() &gt;= 2.0) {</span>
+<span class="nc" id="L193">            student.setStatus(StudentStatus.GRADUATED);</span>
+<span class="nc" id="L194">            studentRepository.save(student);</span>
+        } else {
+<span class="nc" id="L196">            throw new IllegalStateException(&quot;Student does not meet graduation requirements&quot;);</span>
+        }
+<span class="nc" id="L198">    }</span>
+
+    // ==================== GPA Calculation ====================
+
+    /**
+     * Calculate cumulative GPA for a student from completed enrollments.
+     * Uses weighted average: Sum(gpaValue * credits) / totalCredits
+     * 
+     * @param studentId Student database ID
+     * @return Calculated GPA or null if no completed enrollments
+     */
+    @Transactional(readOnly = true)
+    public Double calculateGpa(Long studentId) {
+<span class="nc" id="L211">        Student student = studentRepository.findById(studentId)</span>
+<span class="nc" id="L212">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Student&quot;, &quot;id&quot;, studentId));</span>
+
+        // Get all enrollments for this student
+<span class="nc" id="L215">        List&lt;Enrollment&gt; enrollments = enrollmentRepository.findByStudentId(studentId);</span>
+        
+        // Filter those that have a final score and GPA value
+<span class="nc" id="L218">        List&lt;Enrollment&gt; gradedEnrollments = enrollments.stream()</span>
+<span class="nc bnc" id="L219" title="All 4 branches missed.">                .filter(e -&gt; e.getFinalScore() != null &amp;&amp; e.getGpaValue() != null)</span>
+<span class="nc" id="L220">                .collect(Collectors.toList());</span>
+
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (gradedEnrollments.isEmpty()) {</span>
+<span class="nc" id="L223">            return null;</span>
+        }
+
+<span class="nc" id="L226">        double totalWeightedGpa = 0.0;</span>
+<span class="nc" id="L227">        int totalCreditsCount = 0;</span>
+
+<span class="nc bnc" id="L229" title="All 2 branches missed.">        for (Enrollment enrollment : gradedEnrollments) {</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">            if (enrollment.getCredits() != null) {</span>
+<span class="nc" id="L231">                totalWeightedGpa += enrollment.getGpaValue() * enrollment.getCredits();</span>
+<span class="nc" id="L232">                totalCreditsCount += enrollment.getCredits();</span>
+            }
+<span class="nc" id="L234">        }</span>
+
+<span class="nc bnc" id="L236" title="All 2 branches missed.">        return totalCreditsCount &gt; 0 ? totalWeightedGpa / totalCreditsCount : null;</span>
+    }
+
+    /**
+     * Recalculate and persist GPA for a student.
+     * Also updates total credits and triggers status update.
+     * 
+     * @param studentId Student database ID
+     */
+    public void recalculateAndUpdateGpa(Long studentId) {
+<span class="nc" id="L246">        Student student = studentRepository.findById(studentId)</span>
+<span class="nc" id="L247">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Student&quot;, &quot;id&quot;, studentId));</span>
+
+<span class="nc" id="L249">        Double newGpa = calculateGpa(studentId);</span>
+<span class="nc" id="L250">        Integer totalCredits = calculateTotalCredits(studentId);</span>
+
+        // Update student record
+<span class="nc" id="L253">        student.setGpa(newGpa);</span>
+<span class="nc" id="L254">        student.setTotalCredits(totalCredits);</span>
+
+        // Update status based on new GPA (State Pattern integration)
+<span class="nc bnc" id="L257" title="All 2 branches missed.">        if (newGpa != null) {</span>
+<span class="nc" id="L258">            updateStudentStatus(student, newGpa);</span>
+        }
+
+<span class="nc" id="L261">        studentRepository.save(student);</span>
+<span class="nc" id="L262">    }</span>
+
+    /**
+     * Calculate total earned credits for a student.
+     * Only counts completed enrollments with passing grade (GPA &gt;= 1.0)
+     * 
+     * @param studentId Student database ID
+     * @return Total credits earned
+     */
+    @Transactional(readOnly = true)
+    public Integer calculateTotalCredits(Long studentId) {
+        // Find all graded enrollments for this student with a passing grade
+<span class="nc" id="L274">        List&lt;Enrollment&gt; enrollments = enrollmentRepository.findByStudentId(studentId);</span>
+        
+<span class="nc" id="L276">        return enrollments.stream()</span>
+<span class="nc bnc" id="L277" title="All 6 branches missed.">                .filter(e -&gt; e.getFinalScore() != null &amp;&amp; e.getGpaValue() != null &amp;&amp; e.getGpaValue() &gt;= 1.0)</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">                .mapToInt(e -&gt; e.getCredits() != null ? e.getCredits() : 0)</span>
+<span class="nc" id="L279">                .sum();</span>
+    }
+
+    // ==================== Helpers ====================
+
+    /**
+     * Update student status using the State Design Pattern logic.
+     * Delegates decision to the StudentStateManager.
+     */
+    private void updateStudentStatus(Student student, Double currentGpa) {
+<span class="nc" id="L289">        StudentStatus newStatus = stateManager.handleStateTransition(student, currentGpa);</span>
+<span class="nc" id="L290">        student.setStatus(newStatus);</span>
+<span class="nc" id="L291">    }</span>
+
+    /**
+     * Convert StudentDTO to Student entity
+     */
+    private Student convertToEntity(StudentDTO dto) {
+<span class="nc" id="L297">        Student student = new Student();</span>
+<span class="nc" id="L298">        student.setStudentId(dto.getStudentId());</span>
+<span class="nc" id="L299">        student.setFirstName(dto.getFirstName());</span>
+<span class="nc" id="L300">        student.setLastName(dto.getLastName());</span>
+<span class="nc" id="L301">        student.setEmail(dto.getEmail());</span>
+<span class="nc" id="L302">        student.setDateOfBirth(dto.getDateOfBirth());</span>
+<span class="nc" id="L303">        student.setEnrollmentDate(dto.getEnrollmentDate());</span>
+        // status, gpa, and credits are handled by services/logic
+<span class="nc" id="L305">        return student;</span>
+    }
+
+    /**
+     * Convert Student entity to StudentDTO
+     */
+    private StudentDTO convertToDTO(Student student) {
+<span class="nc" id="L312">        StudentDTO dto = new StudentDTO();</span>
+<span class="nc" id="L313">        dto.setId(student.getId());</span>
+<span class="nc" id="L314">        dto.setStudentId(student.getStudentId());</span>
+<span class="nc" id="L315">        dto.setFirstName(student.getFirstName());</span>
+<span class="nc" id="L316">        dto.setLastName(student.getLastName());</span>
+<span class="nc" id="L317">        dto.setEmail(student.getEmail());</span>
+<span class="nc" id="L318">        dto.setDateOfBirth(student.getDateOfBirth());</span>
+<span class="nc" id="L319">        dto.setEnrollmentDate(student.getEnrollmentDate());</span>
+<span class="nc" id="L320">        dto.setGpa(student.getGpa());</span>
+<span class="nc" id="L321">        dto.setTotalCredits(student.getTotalCredits());</span>
+<span class="nc" id="L322">        dto.setStatus(student.getStatus());</span>
+<span class="nc" id="L323">        return dto;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

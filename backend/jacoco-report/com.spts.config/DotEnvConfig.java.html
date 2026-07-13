@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DotEnvConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.config</a> &gt; <span class="el_source">DotEnvConfig.java</span></div><h1>DotEnvConfig.java</h1><pre class="source lang-java linenums">package com.spts.config;
+
+import io.github.cdimascio.dotenv.Dotenv;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.MapPropertySource;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Environment post-processor to load .env file before Spring Boot reads application.properties.
+ * 
+ * This allows Spring Boot to read values from .env file located in project root.
+ * The .env file is gitignored for security.
+ * 
+ * @author SPTS Team
+ */
+<span class="fc" id="L22">public class DotEnvConfig implements EnvironmentPostProcessor {</span>
+
+<span class="fc" id="L24">    private static final Logger logger = LoggerFactory.getLogger(DotEnvConfig.class);</span>
+
+    @Override
+    public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
+        try {
+            // Load .env file from project root
+            // Try multiple locations: current dir, parent dir (for IDE), or project root
+<span class="fc" id="L31">            Dotenv dotenv = null;</span>
+            
+            // Try parent directory first (when running from backend/ folder in IDE)
+            try {
+<span class="fc" id="L35">                dotenv = Dotenv.configure()</span>
+<span class="fc" id="L36">                        .directory(&quot;../&quot;)</span>
+<span class="fc" id="L37">                        .ignoreIfMissing()</span>
+<span class="fc" id="L38">                        .load();</span>
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">                if (dotenv.get(&quot;POSTGRES_DB&quot;) != null) {</span>
+<span class="nc" id="L40">                    logger.debug(&quot;Found .env file in parent directory&quot;);</span>
+                } else {
+<span class="fc" id="L42">                    dotenv = null; // Try next location</span>
+                }
+<span class="nc" id="L44">            } catch (Exception e) {</span>
+                // Try next location
+<span class="fc" id="L46">            }</span>
+            
+            // Try current directory (when running from project root or JAR)
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">            if (dotenv == null) {</span>
+<span class="fc" id="L50">                dotenv = Dotenv.configure()</span>
+<span class="fc" id="L51">                        .directory(&quot;.&quot;)</span>
+<span class="fc" id="L52">                        .ignoreIfMissing()</span>
+<span class="fc" id="L53">                        .load();</span>
+<span class="pc bpc" id="L54" title="1 of 2 branches missed.">                if (dotenv.get(&quot;POSTGRES_DB&quot;) != null) {</span>
+<span class="nc" id="L55">                    logger.debug(&quot;Found .env file in current directory&quot;);</span>
+                }
+            }
+            
+<span class="pc bpc" id="L59" title="2 of 4 branches missed.">            if (dotenv == null || dotenv.get(&quot;POSTGRES_DB&quot;) == null) {</span>
+<span class="fc" id="L60">                logger.warn(&quot;.env file not found. Make sure .env exists in project root.&quot;);</span>
+<span class="fc" id="L61">                return;</span>
+            }
+
+<span class="nc" id="L64">            Map&lt;String, Object&gt; envMap = new HashMap&lt;&gt;();</span>
+            
+            // Add all .env values to Spring environment
+<span class="nc" id="L67">            dotenv.entries().forEach(entry -&gt; {</span>
+<span class="nc" id="L68">                String key = entry.getKey();</span>
+<span class="nc" id="L69">                String value = entry.getValue();</span>
+                
+                // Only add if not already set (don't override existing env vars)
+<span class="nc bnc" id="L72" title="All 2 branches missed.">                if (environment.getProperty(key) == null) {</span>
+<span class="nc" id="L73">                    envMap.put(key, value);</span>
+<span class="nc" id="L74">                    logger.debug(&quot;Loaded from .env: {} = {}&quot;, key, maskPassword(key, value));</span>
+                } else {
+<span class="nc" id="L76">                    logger.debug(&quot;Skipping .env value for {} (already set)&quot;, key);</span>
+                }
+<span class="nc" id="L78">            });</span>
+
+<span class="nc bnc" id="L80" title="All 2 branches missed.">            if (!envMap.isEmpty()) {</span>
+<span class="nc" id="L81">                environment.getPropertySources().addFirst(</span>
+                    new MapPropertySource(&quot;dotenv&quot;, envMap)
+                );
+<span class="nc" id="L84">                logger.info(&quot;Successfully loaded {} properties from .env file&quot;, envMap.size());</span>
+            }
+<span class="nc" id="L86">        } catch (Exception e) {</span>
+<span class="nc" id="L87">            logger.warn(&quot;Failed to load .env file: {}. Using default values or environment variables.&quot;, e.getMessage());</span>
+<span class="nc" id="L88">        }</span>
+<span class="nc" id="L89">    }</span>
+
+    /**
+     * Mask password values in logs for security
+     */
+    private String maskPassword(String key, String value) {
+<span class="nc bnc" id="L95" title="All 4 branches missed.">        if (key.toLowerCase().contains(&quot;password&quot;) || key.toLowerCase().contains(&quot;secret&quot;)) {</span>
+<span class="nc" id="L96">            return &quot;***&quot;;</span>
+        }
+<span class="nc" id="L98">        return value;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

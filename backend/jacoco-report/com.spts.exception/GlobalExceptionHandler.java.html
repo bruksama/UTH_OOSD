@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package com.spts.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
+
+import jakarta.validation.ConstraintViolationException;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Global exception handler for REST API.
+ * Provides consistent error responses across all controllers.
+ * 
+ * @author SPTS Team
+ */
+@ControllerAdvice
+<span class="fc" id="L23">public class GlobalExceptionHandler {</span>
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleResourceNotFound(
+            ResourceNotFoundException ex, WebRequest request) {
+<span class="nc" id="L28">        ErrorResponse error = new ErrorResponse(</span>
+<span class="nc" id="L29">            HttpStatus.NOT_FOUND.value(),</span>
+            &quot;Not Found&quot;,
+<span class="nc" id="L31">            ex.getMessage(),</span>
+<span class="nc" id="L32">            request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)</span>
+        );
+<span class="nc" id="L34">        return new ResponseEntity&lt;&gt;(error, HttpStatus.NOT_FOUND);</span>
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleDuplicateResource(
+            DuplicateResourceException ex, WebRequest request) {
+<span class="nc" id="L40">        ErrorResponse error = new ErrorResponse(</span>
+<span class="nc" id="L41">            HttpStatus.CONFLICT.value(),</span>
+            &quot;Conflict&quot;,
+<span class="nc" id="L43">            ex.getMessage(),</span>
+<span class="nc" id="L44">            request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)</span>
+        );
+<span class="nc" id="L46">        return new ResponseEntity&lt;&gt;(error, HttpStatus.CONFLICT);</span>
+    }
+
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleBusinessRule(
+            BusinessRuleException ex, WebRequest request) {
+<span class="nc" id="L52">        ErrorResponse error = new ErrorResponse(</span>
+<span class="nc" id="L53">            HttpStatus.BAD_REQUEST.value(),</span>
+            &quot;Bad Request&quot;,
+<span class="nc" id="L55">            ex.getMessage(),</span>
+<span class="nc" id="L56">            request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)</span>
+        );
+<span class="nc" id="L58">        return new ResponseEntity&lt;&gt;(error, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleUnreadableMessage(
+            HttpMessageNotReadableException ex, WebRequest request) {
+<span class="fc" id="L64">        ErrorResponse error = new ErrorResponse(</span>
+<span class="fc" id="L65">            HttpStatus.BAD_REQUEST.value(),</span>
+            &quot;Bad Request&quot;,
+            &quot;Malformed JSON request or unsupported request body format&quot;,
+<span class="fc" id="L68">            request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)</span>
+        );
+<span class="fc" id="L70">        return new ResponseEntity&lt;&gt;(error, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleValidation(
+            MethodArgumentNotValidException ex, WebRequest request) {
+<span class="nc" id="L76">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L77">        ex.getBindingResult().getFieldErrors().forEach(err -&gt; </span>
+<span class="nc" id="L78">            errors.put(err.getField(), err.getDefaultMessage())</span>
+        );
+<span class="nc" id="L80">        ErrorResponse error = new ErrorResponse(</span>
+<span class="nc" id="L81">            HttpStatus.BAD_REQUEST.value(),</span>
+            &quot;Validation Failed&quot;,
+            &quot;Invalid input data&quot;,
+<span class="nc" id="L84">            request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)</span>
+        );
+<span class="nc" id="L86">        error.setValidationErrors(errors);</span>
+<span class="nc" id="L87">        return new ResponseEntity&lt;&gt;(error, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleConstraintViolation(
+            ConstraintViolationException ex, WebRequest request) {
+<span class="nc" id="L93">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L94">        ex.getConstraintViolations().forEach(violation -&gt; </span>
+<span class="nc" id="L95">            errors.put(violation.getPropertyPath().toString(), violation.getMessage())</span>
+        );
+<span class="nc" id="L97">        ErrorResponse error = new ErrorResponse(</span>
+<span class="nc" id="L98">            HttpStatus.BAD_REQUEST.value(),</span>
+            &quot;Validation Failed&quot;,
+            &quot;Constraint violation&quot;,
+<span class="nc" id="L101">            request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)</span>
+        );
+<span class="nc" id="L103">        error.setValidationErrors(errors);</span>
+<span class="nc" id="L104">        return new ResponseEntity&lt;&gt;(error, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleIllegalArgument(
+            IllegalArgumentException ex, WebRequest request) {
+<span class="nc" id="L110">        ErrorResponse error = new ErrorResponse(</span>
+<span class="nc" id="L111">            HttpStatus.BAD_REQUEST.value(),</span>
+            &quot;Bad Request&quot;,
+<span class="nc" id="L113">            ex.getMessage(),</span>
+<span class="nc" id="L114">            request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)</span>
+        );
+<span class="nc" id="L116">        return new ResponseEntity&lt;&gt;(error, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleTypeMismatch(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex, WebRequest request) {
+<span class="nc" id="L122">        String message = String.format(&quot;Parameter '%s' should be of type '%s'&quot;, ex.getName(), </span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">                ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : &quot;required type&quot;);</span>
+<span class="nc" id="L124">        ErrorResponse error = new ErrorResponse(</span>
+<span class="nc" id="L125">            HttpStatus.BAD_REQUEST.value(),</span>
+            &quot;Bad Request&quot;,
+            message,
+<span class="nc" id="L128">            request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)</span>
+        );
+<span class="nc" id="L130">        return new ResponseEntity&lt;&gt;(error, HttpStatus.BAD_REQUEST);</span>
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleGeneral(
+            Exception ex, WebRequest request) {
+<span class="nc" id="L136">        ErrorResponse error = new ErrorResponse(</span>
+<span class="nc" id="L137">            HttpStatus.INTERNAL_SERVER_ERROR.value(),</span>
+            &quot;Internal Server Error&quot;,
+<span class="nc" id="L139">            ex.getMessage(),</span>
+<span class="nc" id="L140">            request.getDescription(false).replace(&quot;uri=&quot;, &quot;&quot;)</span>
+        );
+<span class="nc" id="L142">        return new ResponseEntity&lt;&gt;(error, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

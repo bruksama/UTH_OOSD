@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CourseOfferingService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.service</a> &gt; <span class="el_source">CourseOfferingService.java</span></div><h1>CourseOfferingService.java</h1><pre class="source lang-java linenums">package com.spts.service;
+
+import com.spts.dto.CourseOfferingDTO;
+import com.spts.dto.EnrollmentDTO;
+import com.spts.entity.Course;
+import com.spts.entity.CourseOffering;
+import com.spts.entity.Enrollment;
+import com.spts.entity.Semester;
+import com.spts.exception.ResourceNotFoundException;
+import com.spts.exception.DuplicateResourceException;
+import com.spts.repository.CourseOfferingRepository;
+import com.spts.repository.CourseRepository;
+import com.spts.repository.EnrollmentRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Service class for CourseOffering entity.
+ * Provides CRUD operations and enrollment management.
+ * 
+ * CourseOffering represents the Occurrence in Abstraction-Occurrence Pattern.
+ * Each CourseOffering is a specific instance of a Course in a particular semester.
+ * 
+ * Reference: OOSD Chapter 6 - Abstraction-Occurrence Pattern
+ * 
+ * @author SPTS Team
+ */
+@Service
+@Transactional
+public class CourseOfferingService {
+
+    private final CourseOfferingRepository courseOfferingRepository;
+    private final CourseRepository courseRepository;
+    private final EnrollmentRepository enrollmentRepository;
+
+    public CourseOfferingService(CourseOfferingRepository courseOfferingRepository,
+                                  CourseRepository courseRepository,
+<span class="fc" id="L41">                                  EnrollmentRepository enrollmentRepository) {</span>
+<span class="fc" id="L42">        this.courseOfferingRepository = courseOfferingRepository;</span>
+<span class="fc" id="L43">        this.courseRepository = courseRepository;</span>
+<span class="fc" id="L44">        this.enrollmentRepository = enrollmentRepository;</span>
+<span class="fc" id="L45">    }</span>
+
+    // ==================== CRUD Operations ====================
+
+    /**
+     * Get all course offerings
+     * 
+     * @return List of all course offerings as DTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;CourseOfferingDTO&gt; getAllOfferings() {
+<span class="nc" id="L56">        return getAllOfferingsFiltered(null, &quot;admin&quot;); // Default to admin for internal use</span>
+    }
+
+    /**
+     * Get offerings filtered by visibility rules:
+     * - Admin: Sees all
+     * - Creator: Sees their own (even if PENDING/REJECTED)
+     * - Student: Sees APPROVED only
+     */
+    @Transactional(readOnly = true)
+    public List&lt;CourseOfferingDTO&gt; getAllOfferingsFiltered(String userEmail, String role) {
+<span class="nc" id="L67">        List&lt;CourseOffering&gt; offerings = courseOfferingRepository.findAll();</span>
+        
+<span class="nc" id="L69">        return offerings.stream()</span>
+<span class="nc" id="L70">                .filter(o -&gt; {</span>
+<span class="nc" id="L71">                    com.spts.entity.Course course = o.getCourse();</span>
+                    
+                    // 1. Admin sees everything
+<span class="nc bnc" id="L74" title="All 2 branches missed.">                    if (&quot;admin&quot;.equalsIgnoreCase(role)) return true;</span>
+                    
+                    // 2. Creator sees their own courses regardless of status
+<span class="nc bnc" id="L77" title="All 4 branches missed.">                    if (userEmail != null &amp;&amp; userEmail.equalsIgnoreCase(course.getCreatorEmail())) {</span>
+<span class="nc" id="L78">                        return true;</span>
+                    }
+                    
+                    // 3. Others only see APPROVED courses
+<span class="nc bnc" id="L82" title="All 2 branches missed.">                    return course.getStatus() == com.spts.entity.ApprovalStatus.APPROVED;</span>
+                })
+<span class="nc" id="L84">                .map(this::convertToDTO)</span>
+<span class="nc" id="L85">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get course offering by ID
+     * 
+     * @param id CourseOffering database ID
+     * @return CourseOfferingDTO
+     * @throws RuntimeException if offering not found
+     */
+    @Transactional(readOnly = true)
+    public CourseOfferingDTO getOfferingById(Long id) {
+<span class="nc" id="L97">        CourseOffering offering = courseOfferingRepository.findById(id)</span>
+<span class="nc" id="L98">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, id));</span>
+<span class="nc" id="L99">        return convertToDTO(offering);</span>
+    }
+
+    /**
+     * Create a new course offering
+     * 
+     * @param dto CourseOfferingDTO with offering data
+     * @return Created CourseOfferingDTO with generated ID
+     * @throws RuntimeException if course not found or duplicate offering exists
+     */
+    public CourseOfferingDTO createOffering(CourseOfferingDTO dto) {
+        // Validate course exists
+<span class="nc" id="L111">        Course course = courseRepository.findById(dto.getCourseId())</span>
+<span class="nc" id="L112">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Course&quot;, &quot;id&quot;, dto.getCourseId()));</span>
+
+<span class="nc" id="L114">        return convertToDTO(createOfferingEntity(course, dto.getSemester(), dto.getAcademicYear(), dto.getInstructor(), dto.getMaxEnrollment(), dto.getGradingScale()));</span>
+    }
+
+    /**
+     * Create a default offering for a course (e.g. on approval)
+     */
+    public void createDefaultOffering(Course course) {
+        // Rule: Only create if no offerings exist to avoid duplicates during re-approval
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (courseOfferingRepository.findByCourseId(course.getId()).isEmpty()) {</span>
+<span class="nc" id="L123">            createOfferingEntity(course, Semester.SPRING, 2026, &quot;To be assigned&quot;, 60, &quot;SCALE_10&quot;);</span>
+        }
+<span class="nc" id="L125">    }</span>
+
+    private CourseOffering createOfferingEntity(Course course, Semester semester, Integer year, String instructor, Integer max, String scale) {
+        // Check for duplicate offering (same course, semester, year)
+<span class="nc" id="L129">        if (courseOfferingRepository.findByCourseIdAndSemesterAndAcademicYear(</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">                course.getId(), semester, year).isPresent()) {</span>
+<span class="nc" id="L131">            throw new DuplicateResourceException(&quot;CourseOffering&quot;, </span>
+<span class="nc" id="L132">                    &quot;course/semester/year&quot;, course.getId() + &quot;/&quot; + semester + &quot;/&quot; + year);</span>
+        }
+
+<span class="nc" id="L135">        CourseOffering offering = new CourseOffering();</span>
+<span class="nc" id="L136">        offering.setCourse(course);</span>
+<span class="nc" id="L137">        offering.setSemester(semester);</span>
+<span class="nc" id="L138">        offering.setAcademicYear(year);</span>
+<span class="nc" id="L139">        offering.setInstructor(instructor);</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        offering.setMaxEnrollment(max != null ? max : 60);</span>
+<span class="nc" id="L141">        offering.setCurrentEnrollment(0);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        offering.setGradingScale(scale != null ? scale : &quot;SCALE_10&quot;);</span>
+
+<span class="nc" id="L144">        return courseOfferingRepository.save(offering);</span>
+    }
+
+    /**
+     * Update an existing course offering
+     * 
+     * @param id  CourseOffering database ID
+     * @param dto CourseOfferingDTO with updated data
+     * @return Updated CourseOfferingDTO
+     * @throws RuntimeException if offering not found or duplicate exists
+     */
+    public CourseOfferingDTO updateOffering(Long id, CourseOfferingDTO dto) {
+<span class="nc" id="L156">        CourseOffering offering = courseOfferingRepository.findById(id)</span>
+<span class="nc" id="L157">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, id));</span>
+
+        // Check if changing to a combination that already exists
+<span class="nc bnc" id="L160" title="All 2 branches missed.">        if (!offering.getCourse().getId().equals(dto.getCourseId()) ||</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">            !offering.getSemester().equals(dto.getSemester()) ||</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">            !offering.getAcademicYear().equals(dto.getAcademicYear())) {</span>
+            
+<span class="nc" id="L164">            if (courseOfferingRepository.findByCourseIdAndSemesterAndAcademicYear(</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">                    dto.getCourseId(), dto.getSemester(), dto.getAcademicYear()).isPresent()) {</span>
+<span class="nc" id="L166">                throw new DuplicateResourceException(&quot;CourseOffering&quot;, </span>
+<span class="nc" id="L167">                        &quot;course/semester/year&quot;, dto.getCourseId() + &quot;/&quot; + dto.getSemester() + &quot;/&quot; + dto.getAcademicYear());</span>
+            }
+        }
+
+        // Update course if changed
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (!offering.getCourse().getId().equals(dto.getCourseId())) {</span>
+<span class="nc" id="L173">            Course course = courseRepository.findById(dto.getCourseId())</span>
+<span class="nc" id="L174">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Course&quot;, &quot;id&quot;, dto.getCourseId()));</span>
+<span class="nc" id="L175">            offering.setCourse(course);</span>
+        }
+
+        // Update fields
+<span class="nc" id="L179">        offering.setSemester(dto.getSemester());</span>
+<span class="nc" id="L180">        offering.setAcademicYear(dto.getAcademicYear());</span>
+<span class="nc" id="L181">        offering.setInstructor(dto.getInstructor());</span>
+<span class="nc" id="L182">        offering.setMaxEnrollment(dto.getMaxEnrollment());</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">        if (dto.getGradingScale() != null) {</span>
+<span class="nc" id="L184">            offering.setGradingScale(dto.getGradingScale());</span>
+        }
+        // Note: currentEnrollment is managed by the system
+
+<span class="nc" id="L188">        CourseOffering savedOffering = courseOfferingRepository.save(offering);</span>
+<span class="nc" id="L189">        return convertToDTO(savedOffering);</span>
+    }
+
+    /**
+     * Delete a course offering
+     * 
+     * @param id CourseOffering database ID
+     * @throws RuntimeException if offering not found or has enrollments
+     */
+    public void deleteOffering(Long id) {
+<span class="nc" id="L199">        CourseOffering offering = courseOfferingRepository.findById(id)</span>
+<span class="nc" id="L200">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, id));</span>
+
+<span class="nc" id="L202">        validateOfferingCanBeDeleted(offering);</span>
+<span class="nc" id="L203">        courseOfferingRepository.deleteById(id);</span>
+<span class="nc" id="L204">    }</span>
+
+    /**
+     * Delete all offerings for a course if they have no enrollments
+     */
+    public void deleteOfferingsByCourseId(Long courseId) {
+<span class="nc" id="L210">        List&lt;CourseOffering&gt; offerings = courseOfferingRepository.findByCourseId(courseId);</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">        for (CourseOffering offering : offerings) {</span>
+<span class="nc" id="L212">            validateOfferingCanBeDeleted(offering);</span>
+<span class="nc" id="L213">        }</span>
+<span class="nc" id="L214">        courseOfferingRepository.deleteAll(offerings);</span>
+<span class="nc" id="L215">    }</span>
+
+    private void validateOfferingCanBeDeleted(CourseOffering offering) {
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (offering.getCurrentEnrollment() &gt; 0) {</span>
+<span class="nc" id="L219">            throw new IllegalStateException(&quot;Cannot delete offering '&quot; + offering.getDisplayName() + </span>
+<span class="nc" id="L220">                &quot;' because it has &quot; + offering.getCurrentEnrollment() + &quot; active enrollments.&quot;);</span>
+        }
+<span class="nc" id="L222">    }</span>
+
+    // ==================== Enrollment Management ====================
+
+    /**
+     * Get all enrollments for a course offering
+     * 
+     * @param offeringId CourseOffering database ID
+     * @return List of EnrollmentDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;EnrollmentDTO&gt; getOfferingEnrollments(Long offeringId) {
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (!courseOfferingRepository.existsById(offeringId)) {</span>
+<span class="nc" id="L235">            throw new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, offeringId);</span>
+        }
+
+<span class="nc" id="L238">        return enrollmentRepository.findByCourseOfferingId(offeringId).stream()</span>
+<span class="nc" id="L239">                .map(this::convertEnrollmentToDTO)</span>
+<span class="nc" id="L240">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Check if offering has available seats
+     * 
+     * @param offeringId CourseOffering database ID
+     * @return true if seats are available
+     */
+    @Transactional(readOnly = true)
+    public boolean hasAvailableSeats(Long offeringId) {
+<span class="nc" id="L251">        CourseOffering offering = courseOfferingRepository.findById(offeringId)</span>
+<span class="nc" id="L252">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, offeringId));</span>
+<span class="nc" id="L253">        return offering.hasAvailableSeats();</span>
+    }
+
+    /**
+     * Get available seats count
+     * 
+     * @param offeringId CourseOffering database ID
+     * @return Number of available seats, or null if unlimited
+     */
+    @Transactional(readOnly = true)
+    public Integer getAvailableSeats(Long offeringId) {
+<span class="nc" id="L264">        CourseOffering offering = courseOfferingRepository.findById(offeringId)</span>
+<span class="nc" id="L265">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, offeringId));</span>
+<span class="nc" id="L266">        return offering.getAvailableSeats();</span>
+    }
+
+    /**
+     * Synchronize enrollment count with actual enrollments.
+     * Called after enrollment changes to ensure consistency.
+     * 
+     * @param offeringId CourseOffering database ID
+     */
+    public void syncEnrollmentCount(Long offeringId) {
+<span class="nc" id="L276">        CourseOffering offering = courseOfferingRepository.findById(offeringId)</span>
+<span class="nc" id="L277">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, offeringId));</span>
+
+<span class="nc" id="L279">        int actualCount = enrollmentRepository.findByCourseOfferingId(offeringId).size();</span>
+<span class="nc" id="L280">        offering.setCurrentEnrollment(actualCount);</span>
+<span class="nc" id="L281">        courseOfferingRepository.save(offering);</span>
+<span class="nc" id="L282">    }</span>
+
+    /**
+     * Increment enrollment count (called when student enrolls)
+     * 
+     * @param offeringId CourseOffering database ID
+     * @throws RuntimeException if no seats available
+     */
+    public void incrementEnrollmentCount(Long offeringId) {
+<span class="nc" id="L291">        CourseOffering offering = courseOfferingRepository.findById(offeringId)</span>
+<span class="nc" id="L292">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, offeringId));</span>
+
+<span class="nc bnc" id="L294" title="All 2 branches missed.">        if (!offering.hasAvailableSeats()) {</span>
+<span class="nc" id="L295">            throw new IllegalStateException(&quot;No available seats in this offering&quot;);</span>
+        }
+
+<span class="nc" id="L298">        offering.setCurrentEnrollment(offering.getCurrentEnrollment() + 1);</span>
+<span class="nc" id="L299">        courseOfferingRepository.save(offering);</span>
+<span class="nc" id="L300">    }</span>
+
+    /**
+     * Decrement enrollment count (called when student withdraws)
+     * 
+     * @param offeringId CourseOffering database ID
+     */
+    public void decrementEnrollmentCount(Long offeringId) {
+<span class="nc" id="L308">        CourseOffering offering = courseOfferingRepository.findById(offeringId)</span>
+<span class="nc" id="L309">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, offeringId));</span>
+
+<span class="nc bnc" id="L311" title="All 2 branches missed.">        if (offering.getCurrentEnrollment() &gt; 0) {</span>
+<span class="nc" id="L312">            offering.setCurrentEnrollment(offering.getCurrentEnrollment() - 1);</span>
+<span class="nc" id="L313">            courseOfferingRepository.save(offering);</span>
+        }
+<span class="nc" id="L315">    }</span>
+
+    // ==================== Search and Filter ====================
+
+    /**
+     * Get offerings by semester and academic year
+     * 
+     * @param semester Semester enum value
+     * @param academicYear Academic year
+     * @return List of CourseOfferingDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;CourseOfferingDTO&gt; getOfferingsBySemesterAndYear(Semester semester, Integer academicYear) {
+<span class="nc" id="L328">        return courseOfferingRepository.findBySemesterAndAcademicYear(semester, academicYear).stream()</span>
+<span class="nc" id="L329">                .map(this::convertToDTO)</span>
+<span class="nc" id="L330">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get offerings by academic year
+     * 
+     * @param academicYear Academic year
+     * @return List of CourseOfferingDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;CourseOfferingDTO&gt; getOfferingsByYear(Integer academicYear) {
+<span class="nc" id="L341">        return courseOfferingRepository.findByAcademicYear(academicYear).stream()</span>
+<span class="nc" id="L342">                .map(this::convertToDTO)</span>
+<span class="nc" id="L343">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get offerings by instructor
+     * 
+     * @param instructor Instructor name
+     * @return List of CourseOfferingDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;CourseOfferingDTO&gt; getOfferingsByInstructor(String instructor) {
+<span class="nc" id="L354">        return courseOfferingRepository.findByInstructor(instructor).stream()</span>
+<span class="nc" id="L355">                .map(this::convertToDTO)</span>
+<span class="nc" id="L356">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get offerings with available seats
+     * 
+     * @return List of CourseOfferingDTOs with open seats
+     */
+    @Transactional(readOnly = true)
+    public List&lt;CourseOfferingDTO&gt; getOfferingsWithAvailableSeats() {
+<span class="nc" id="L366">        return courseOfferingRepository.findOfferingsWithAvailableSeats().stream()</span>
+<span class="nc" id="L367">                .map(this::convertToDTO)</span>
+<span class="nc" id="L368">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get current semester offerings
+     * 
+     * @param semester Current semester
+     * @param year Current academic year
+     * @return List of CourseOfferingDTOs for current semester
+     */
+    @Transactional(readOnly = true)
+    public List&lt;CourseOfferingDTO&gt; getCurrentOfferings(Semester semester, Integer year) {
+<span class="nc" id="L380">        return courseOfferingRepository.findCurrentOfferings(semester, year).stream()</span>
+<span class="nc" id="L381">                .map(this::convertToDTO)</span>
+<span class="nc" id="L382">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get all distinct instructors
+     * 
+     * @return List of instructor names
+     */
+    @Transactional(readOnly = true)
+    public List&lt;String&gt; getAllInstructors() {
+<span class="nc" id="L392">        return courseOfferingRepository.findAll().stream()</span>
+<span class="nc" id="L393">                .map(CourseOffering::getInstructor)</span>
+<span class="nc bnc" id="L394" title="All 4 branches missed.">                .filter(instructor -&gt; instructor != null &amp;&amp; !instructor.isEmpty())</span>
+<span class="nc" id="L395">                .distinct()</span>
+<span class="nc" id="L396">                .sorted()</span>
+<span class="nc" id="L397">                .collect(Collectors.toList());</span>
+    }
+
+    // ==================== DTO Conversion Helpers ====================
+
+    /**
+     * Convert CourseOffering entity to CourseOfferingDTO
+     */
+    private CourseOfferingDTO convertToDTO(CourseOffering offering) {
+<span class="nc" id="L406">        CourseOfferingDTO dto = new CourseOfferingDTO();</span>
+<span class="nc" id="L407">        dto.setId(offering.getId());</span>
+<span class="nc" id="L408">        dto.setCourseId(offering.getCourse().getId());</span>
+<span class="nc" id="L409">        dto.setCourseCode(offering.getCourse().getCourseCode());</span>
+<span class="nc" id="L410">        dto.setCourseName(offering.getCourse().getCourseName());</span>
+<span class="nc" id="L411">        dto.setCredits(offering.getCourse().getCredits());</span>
+<span class="nc" id="L412">        dto.setDepartment(offering.getCourse().getDepartment());</span>
+<span class="nc" id="L413">        dto.setSemester(offering.getSemester());</span>
+<span class="nc" id="L414">        dto.setAcademicYear(offering.getAcademicYear());</span>
+<span class="nc" id="L415">        dto.setInstructor(offering.getInstructor());</span>
+<span class="nc" id="L416">        dto.setMaxEnrollment(offering.getMaxEnrollment());</span>
+<span class="nc" id="L417">        dto.setCurrentEnrollment(offering.getCurrentEnrollment());</span>
+<span class="nc" id="L418">        dto.setGradingScale(offering.getGradingScale());</span>
+<span class="nc" id="L419">        return dto;</span>
+    }
+
+    /**
+     * Convert Enrollment entity to EnrollmentDTO
+     */
+    private EnrollmentDTO convertEnrollmentToDTO(Enrollment enrollment) {
+<span class="nc" id="L426">        EnrollmentDTO dto = new EnrollmentDTO();</span>
+<span class="nc" id="L427">        dto.setId(enrollment.getId());</span>
+<span class="nc" id="L428">        dto.setStudentId(enrollment.getStudent().getId());</span>
+<span class="nc" id="L429">        dto.setStudentName(enrollment.getStudent().getFullName());</span>
+<span class="nc" id="L430">        dto.setStudentCode(enrollment.getStudent().getStudentId());</span>
+<span class="nc" id="L431">        dto.setCourseOfferingId(enrollment.getCourseOffering().getId());</span>
+<span class="nc" id="L432">        dto.setCourseCode(enrollment.getCourseOffering().getCourse().getCourseCode());</span>
+<span class="nc" id="L433">        dto.setCourseName(enrollment.getCourseOffering().getCourse().getCourseName());</span>
+<span class="nc" id="L434">        dto.setCredits(enrollment.getCourseOffering().getCourse().getCredits());</span>
+<span class="nc" id="L435">        dto.setSemester(enrollment.getCourseOffering().getSemester().getDisplayName());</span>
+<span class="nc" id="L436">        dto.setAcademicYear(enrollment.getCourseOffering().getAcademicYear());</span>
+<span class="nc" id="L437">        dto.setFinalScore(enrollment.getFinalScore());</span>
+<span class="nc" id="L438">        dto.setLetterGrade(enrollment.getLetterGrade());</span>
+<span class="nc" id="L439">        dto.setGpaValue(enrollment.getGpaValue());</span>
+<span class="nc" id="L440">        dto.setStatus(enrollment.getStatus());</span>
+<span class="nc" id="L441">        dto.setEnrolledAt(enrollment.getEnrolledAt());</span>
+<span class="nc" id="L442">        dto.setCompletedAt(enrollment.getCompletedAt());</span>
+<span class="nc" id="L443">        return dto;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

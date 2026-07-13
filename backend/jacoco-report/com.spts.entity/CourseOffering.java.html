@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CourseOffering.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.entity</a> &gt; <span class="el_source">CourseOffering.java</span></div><h1>CourseOffering.java</h1><pre class="source lang-java linenums">package com.spts.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * CourseOffering entity - Occurrence in Abstraction-Occurrence Pattern.
+ * 
+ * Represents a specific offering of a course in a particular semester.
+ * Example: &quot;Introduction to Software Engineering - Fall 2024&quot;
+ * 
+ * Reference: OOSD Chapter 6 - Abstraction-Occurrence Pattern
+ * 
+ * @author SPTS Team
+ */
+@Entity
+@Table(name = &quot;course_offerings&quot;, 
+       uniqueConstraints = @UniqueConstraint(columnNames = {&quot;course_id&quot;, &quot;semester&quot;, &quot;academic_year&quot;}))
+public class CourseOffering {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /**
+     * Reference to the abstract Course definition
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;course_id&quot;, nullable = false)
+    @NotNull(message = &quot;Course reference is required&quot;)
+    private Course course;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;semester&quot;, nullable = false)
+    @NotNull(message = &quot;Semester is required&quot;)
+    private Semester semester;
+
+    @Column(name = &quot;academic_year&quot;, nullable = false)
+    @NotNull(message = &quot;Academic year is required&quot;)
+    @Min(value = 2000, message = &quot;Academic year must be 2000 or later&quot;)
+    @Max(value = 2100, message = &quot;Academic year must be before 2100&quot;)
+    private Integer academicYear;
+
+    @Column(name = &quot;instructor&quot;, length = 100)
+    @Size(max = 100, message = &quot;Instructor name must not exceed 100 characters&quot;)
+    private String instructor;
+
+    @Column(name = &quot;max_enrollment&quot;)
+    @Min(value = 1, message = &quot;Max enrollment must be at least 1&quot;)
+    private Integer maxEnrollment;
+
+<span class="fc" id="L54">    @Column(name = &quot;current_enrollment&quot;)</span>
+    @Min(value = 0, message = &quot;Current enrollment cannot be negative&quot;)
+<span class="fc" id="L56">    private Integer currentEnrollment = 0;</span>
+
+    /**
+     * Grading scale for this course offering.
+     * Supports Strategy Pattern for dynamic grading.
+     * Values: SCALE_10 (default), SCALE_4, PASS_FAIL
+     */
+<span class="fc" id="L63">    @Column(name = &quot;grading_scale&quot;, length = 20)</span>
+    private String gradingScale = &quot;SCALE_10&quot;;
+
+    /**
+     * Enrollments in this course offering
+     */
+<span class="fc" id="L69">    @OneToMany(mappedBy = &quot;courseOffering&quot;, cascade = CascadeType.ALL, fetch = FetchType.LAZY)</span>
+    private List&lt;Enrollment&gt; enrollments = new ArrayList&lt;&gt;();
+
+    // Constructors
+<span class="fc" id="L73">    public CourseOffering() {</span>
+<span class="fc" id="L74">    }</span>
+
+<span class="fc" id="L76">    public CourseOffering(Course course, Semester semester, Integer academicYear) {</span>
+<span class="fc" id="L77">        this.course = course;</span>
+<span class="fc" id="L78">        this.semester = semester;</span>
+<span class="fc" id="L79">        this.academicYear = academicYear;</span>
+<span class="fc" id="L80">    }</span>
+
+    // Getters and Setters
+    public Long getId() {
+<span class="nc" id="L84">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="fc" id="L88">        this.id = id;</span>
+<span class="fc" id="L89">    }</span>
+
+    public Course getCourse() {
+<span class="fc" id="L92">        return course;</span>
+    }
+
+    public void setCourse(Course course) {
+<span class="nc" id="L96">        this.course = course;</span>
+<span class="nc" id="L97">    }</span>
+
+    public Semester getSemester() {
+<span class="nc" id="L100">        return semester;</span>
+    }
+
+    public void setSemester(Semester semester) {
+<span class="nc" id="L104">        this.semester = semester;</span>
+<span class="nc" id="L105">    }</span>
+
+    public Integer getAcademicYear() {
+<span class="nc" id="L108">        return academicYear;</span>
+    }
+
+    public void setAcademicYear(Integer academicYear) {
+<span class="nc" id="L112">        this.academicYear = academicYear;</span>
+<span class="nc" id="L113">    }</span>
+
+    public String getInstructor() {
+<span class="nc" id="L116">        return instructor;</span>
+    }
+
+    public void setInstructor(String instructor) {
+<span class="nc" id="L120">        this.instructor = instructor;</span>
+<span class="nc" id="L121">    }</span>
+
+    public Integer getMaxEnrollment() {
+<span class="nc" id="L124">        return maxEnrollment;</span>
+    }
+
+    public void setMaxEnrollment(Integer maxEnrollment) {
+<span class="nc" id="L128">        this.maxEnrollment = maxEnrollment;</span>
+<span class="nc" id="L129">    }</span>
+
+    public Integer getCurrentEnrollment() {
+<span class="nc" id="L132">        return currentEnrollment;</span>
+    }
+
+    public void setCurrentEnrollment(Integer currentEnrollment) {
+<span class="nc" id="L136">        this.currentEnrollment = currentEnrollment;</span>
+<span class="nc" id="L137">    }</span>
+
+    public List&lt;Enrollment&gt; getEnrollments() {
+<span class="nc" id="L140">        return enrollments;</span>
+    }
+
+    public void setEnrollments(List&lt;Enrollment&gt; enrollments) {
+<span class="nc" id="L144">        this.enrollments = enrollments;</span>
+<span class="nc" id="L145">    }</span>
+
+    public String getGradingScale() {
+<span class="nc" id="L148">        return gradingScale;</span>
+    }
+
+    public void setGradingScale(String gradingScale) {
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        this.gradingScale = gradingScale != null ? gradingScale : &quot;SCALE_10&quot;;</span>
+<span class="nc" id="L153">    }</span>
+
+    public void addEnrollment(Enrollment enrollment) {
+<span class="nc" id="L156">        enrollments.add(enrollment);</span>
+<span class="nc" id="L157">        enrollment.setCourseOffering(this);</span>
+<span class="nc" id="L158">        this.currentEnrollment = enrollments.size();</span>
+<span class="nc" id="L159">    }</span>
+
+    /**
+     * Get the display name combining course info and semester/year
+     */
+    public String getDisplayName() {
+<span class="nc" id="L165">        return course.getCourseName() + &quot; - &quot; + semester.getDisplayName() + &quot; &quot; + academicYear;</span>
+    }
+
+    /**
+     * Check if there are available seats
+     */
+    public boolean hasAvailableSeats() {
+<span class="nc bnc" id="L172" title="All 4 branches missed.">        return maxEnrollment == null || currentEnrollment &lt; maxEnrollment;</span>
+    }
+
+    /**
+     * Get available seats count
+     */
+    public Integer getAvailableSeats() {
+<span class="nc bnc" id="L179" title="All 2 branches missed.">        return maxEnrollment != null ? maxEnrollment - currentEnrollment : null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

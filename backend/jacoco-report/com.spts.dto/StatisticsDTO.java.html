@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StatisticsDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.dto</a> &gt; <span class="el_source">StatisticsDTO.java</span></div><h1>StatisticsDTO.java</h1><pre class="source lang-java linenums">package com.spts.dto;
+
+import java.util.List;
+
+/**
+ * DTOs for advanced statistics in Admin Dashboard
+ * 
+ * @author SPTS Team
+ */
+<span class="nc" id="L10">public class StatisticsDTO {</span>
+
+    /**
+     * Course enrollment statistics
+     */
+    public static class CourseEnrollmentStats {
+        private String courseCode;
+        private String courseName;
+        private String department;
+        private Integer credits;
+        private Long totalEnrollments;
+        private Long completedEnrollments;
+        private Double averageScore;
+
+<span class="nc" id="L24">        public CourseEnrollmentStats() {}</span>
+
+        public CourseEnrollmentStats(String courseCode, String courseName, String department, 
+<span class="nc" id="L27">                                      Integer credits, Long totalEnrollments) {</span>
+<span class="nc" id="L28">            this.courseCode = courseCode;</span>
+<span class="nc" id="L29">            this.courseName = courseName;</span>
+<span class="nc" id="L30">            this.department = department;</span>
+<span class="nc" id="L31">            this.credits = credits;</span>
+<span class="nc" id="L32">            this.totalEnrollments = totalEnrollments;</span>
+<span class="nc" id="L33">        }</span>
+
+        // Getters and Setters
+<span class="nc" id="L36">        public String getCourseCode() { return courseCode; }</span>
+<span class="nc" id="L37">        public void setCourseCode(String courseCode) { this.courseCode = courseCode; }</span>
+<span class="nc" id="L38">        public String getCourseName() { return courseName; }</span>
+<span class="nc" id="L39">        public void setCourseName(String courseName) { this.courseName = courseName; }</span>
+<span class="nc" id="L40">        public String getDepartment() { return department; }</span>
+<span class="nc" id="L41">        public void setDepartment(String department) { this.department = department; }</span>
+<span class="nc" id="L42">        public Integer getCredits() { return credits; }</span>
+<span class="nc" id="L43">        public void setCredits(Integer credits) { this.credits = credits; }</span>
+<span class="nc" id="L44">        public Long getTotalEnrollments() { return totalEnrollments; }</span>
+<span class="nc" id="L45">        public void setTotalEnrollments(Long totalEnrollments) { this.totalEnrollments = totalEnrollments; }</span>
+<span class="nc" id="L46">        public Long getCompletedEnrollments() { return completedEnrollments; }</span>
+<span class="nc" id="L47">        public void setCompletedEnrollments(Long completedEnrollments) { this.completedEnrollments = completedEnrollments; }</span>
+<span class="nc" id="L48">        public Double getAverageScore() { return averageScore; }</span>
+<span class="nc" id="L49">        public void setAverageScore(Double averageScore) { this.averageScore = averageScore; }</span>
+    }
+
+    /**
+     * Department statistics
+     */
+    public static class DepartmentStats {
+        private String department;
+        private Long totalCourses;
+        private Long totalEnrollments;
+        private Long totalStudents;
+        private Double averageGpa;
+
+<span class="nc" id="L62">        public DepartmentStats() {}</span>
+
+<span class="nc" id="L64">        public DepartmentStats(String department, Long totalCourses, Long totalEnrollments) {</span>
+<span class="nc" id="L65">            this.department = department;</span>
+<span class="nc" id="L66">            this.totalCourses = totalCourses;</span>
+<span class="nc" id="L67">            this.totalEnrollments = totalEnrollments;</span>
+<span class="nc" id="L68">        }</span>
+
+        // Getters and Setters
+<span class="nc" id="L71">        public String getDepartment() { return department; }</span>
+<span class="nc" id="L72">        public void setDepartment(String department) { this.department = department; }</span>
+<span class="nc" id="L73">        public Long getTotalCourses() { return totalCourses; }</span>
+<span class="nc" id="L74">        public void setTotalCourses(Long totalCourses) { this.totalCourses = totalCourses; }</span>
+<span class="nc" id="L75">        public Long getTotalEnrollments() { return totalEnrollments; }</span>
+<span class="nc" id="L76">        public void setTotalEnrollments(Long totalEnrollments) { this.totalEnrollments = totalEnrollments; }</span>
+<span class="nc" id="L77">        public Long getTotalStudents() { return totalStudents; }</span>
+<span class="nc" id="L78">        public void setTotalStudents(Long totalStudents) { this.totalStudents = totalStudents; }</span>
+<span class="nc" id="L79">        public Double getAverageGpa() { return averageGpa; }</span>
+<span class="nc" id="L80">        public void setAverageGpa(Double averageGpa) { this.averageGpa = averageGpa; }</span>
+    }
+
+    /**
+     * Enrollment trend by semester/year
+     */
+    public static class EnrollmentTrend {
+        private String semester;
+        private Integer academicYear;
+        private String period; // e.g., &quot;Fall 2024&quot;
+        private Long enrollmentCount;
+        private Long completedCount;
+        private Double averageScore;
+
+<span class="nc" id="L94">        public EnrollmentTrend() {}</span>
+
+<span class="nc" id="L96">        public EnrollmentTrend(String semester, Integer academicYear, Long enrollmentCount) {</span>
+<span class="nc" id="L97">            this.semester = semester;</span>
+<span class="nc" id="L98">            this.academicYear = academicYear;</span>
+<span class="nc" id="L99">            this.period = semester + &quot; &quot; + academicYear;</span>
+<span class="nc" id="L100">            this.enrollmentCount = enrollmentCount;</span>
+<span class="nc" id="L101">        }</span>
+
+        // Getters and Setters
+<span class="nc" id="L104">        public String getSemester() { return semester; }</span>
+<span class="nc" id="L105">        public void setSemester(String semester) { this.semester = semester; }</span>
+<span class="nc" id="L106">        public Integer getAcademicYear() { return academicYear; }</span>
+<span class="nc" id="L107">        public void setAcademicYear(Integer academicYear) { this.academicYear = academicYear; }</span>
+<span class="nc" id="L108">        public String getPeriod() { return period; }</span>
+<span class="nc" id="L109">        public void setPeriod(String period) { this.period = period; }</span>
+<span class="nc" id="L110">        public Long getEnrollmentCount() { return enrollmentCount; }</span>
+<span class="nc" id="L111">        public void setEnrollmentCount(Long enrollmentCount) { this.enrollmentCount = enrollmentCount; }</span>
+<span class="nc" id="L112">        public Long getCompletedCount() { return completedCount; }</span>
+<span class="nc" id="L113">        public void setCompletedCount(Long completedCount) { this.completedCount = completedCount; }</span>
+<span class="nc" id="L114">        public Double getAverageScore() { return averageScore; }</span>
+<span class="nc" id="L115">        public void setAverageScore(Double averageScore) { this.averageScore = averageScore; }</span>
+    }
+
+    /**
+     * Credit distribution statistics
+     */
+    public static class CreditDistribution {
+        private Integer credits;
+        private Long courseCount;
+        private Long enrollmentCount;
+
+<span class="nc" id="L126">        public CreditDistribution() {}</span>
+
+<span class="nc" id="L128">        public CreditDistribution(Integer credits, Long courseCount, Long enrollmentCount) {</span>
+<span class="nc" id="L129">            this.credits = credits;</span>
+<span class="nc" id="L130">            this.courseCount = courseCount;</span>
+<span class="nc" id="L131">            this.enrollmentCount = enrollmentCount;</span>
+<span class="nc" id="L132">        }</span>
+
+        // Getters and Setters
+<span class="nc" id="L135">        public Integer getCredits() { return credits; }</span>
+<span class="nc" id="L136">        public void setCredits(Integer credits) { this.credits = credits; }</span>
+<span class="nc" id="L137">        public Long getCourseCount() { return courseCount; }</span>
+<span class="nc" id="L138">        public void setCourseCount(Long courseCount) { this.courseCount = courseCount; }</span>
+<span class="nc" id="L139">        public Long getEnrollmentCount() { return enrollmentCount; }</span>
+<span class="nc" id="L140">        public void setEnrollmentCount(Long enrollmentCount) { this.enrollmentCount = enrollmentCount; }</span>
+    }
+
+    /**
+     * Complete dashboard statistics response
+     */
+    public static class AdminDashboardStats {
+        private List&lt;CourseEnrollmentStats&gt; topCourses;
+        private List&lt;DepartmentStats&gt; departmentStats;
+        private List&lt;EnrollmentTrend&gt; enrollmentTrends;
+        private List&lt;CreditDistribution&gt; creditDistribution;
+        
+        // Summary stats
+        private Long totalEnrollments;
+        private Long activeEnrollments;
+        private Long completedEnrollments;
+        private Double overallAverageGpa;
+
+<span class="nc" id="L158">        public AdminDashboardStats() {}</span>
+
+        // Getters and Setters
+<span class="nc" id="L161">        public List&lt;CourseEnrollmentStats&gt; getTopCourses() { return topCourses; }</span>
+<span class="nc" id="L162">        public void setTopCourses(List&lt;CourseEnrollmentStats&gt; topCourses) { this.topCourses = topCourses; }</span>
+<span class="nc" id="L163">        public List&lt;DepartmentStats&gt; getDepartmentStats() { return departmentStats; }</span>
+<span class="nc" id="L164">        public void setDepartmentStats(List&lt;DepartmentStats&gt; departmentStats) { this.departmentStats = departmentStats; }</span>
+<span class="nc" id="L165">        public List&lt;EnrollmentTrend&gt; getEnrollmentTrends() { return enrollmentTrends; }</span>
+<span class="nc" id="L166">        public void setEnrollmentTrends(List&lt;EnrollmentTrend&gt; enrollmentTrends) { this.enrollmentTrends = enrollmentTrends; }</span>
+<span class="nc" id="L167">        public List&lt;CreditDistribution&gt; getCreditDistribution() { return creditDistribution; }</span>
+<span class="nc" id="L168">        public void setCreditDistribution(List&lt;CreditDistribution&gt; creditDistribution) { this.creditDistribution = creditDistribution; }</span>
+<span class="nc" id="L169">        public Long getTotalEnrollments() { return totalEnrollments; }</span>
+<span class="nc" id="L170">        public void setTotalEnrollments(Long totalEnrollments) { this.totalEnrollments = totalEnrollments; }</span>
+<span class="nc" id="L171">        public Long getActiveEnrollments() { return activeEnrollments; }</span>
+<span class="nc" id="L172">        public void setActiveEnrollments(Long activeEnrollments) { this.activeEnrollments = activeEnrollments; }</span>
+<span class="nc" id="L173">        public Long getCompletedEnrollments() { return completedEnrollments; }</span>
+<span class="nc" id="L174">        public void setCompletedEnrollments(Long completedEnrollments) { this.completedEnrollments = completedEnrollments; }</span>
+<span class="nc" id="L175">        public Double getOverallAverageGpa() { return overallAverageGpa; }</span>
+<span class="nc" id="L176">        public void setOverallAverageGpa(Double overallAverageGpa) { this.overallAverageGpa = overallAverageGpa; }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

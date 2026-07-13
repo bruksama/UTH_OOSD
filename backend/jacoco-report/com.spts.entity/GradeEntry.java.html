@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GradeEntry.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.entity</a> &gt; <span class="el_source">GradeEntry.java</span></div><h1>GradeEntry.java</h1><pre class="source lang-java linenums">package com.spts.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * GradeEntry entity - Individual grade record with Composite Pattern support.
+ * 
+ * Supports hierarchical grade structure through self-referencing parent_id:
+ * - Root entries have parent_id = null
+ * - Child entries reference their parent (e.g., Lab -&gt; Quiz1, Quiz2)
+ * 
+ * All raw data is normalized to 10-point scale.
+ * 
+ * OCL Constraints:
+ * - score &gt;= 0 AND score &lt;= 10 (normalized to 10-point scale)
+ * - weight &gt;= 0 AND weight &lt;= 1
+ * 
+ * @author SPTS Team
+ */
+@Entity
+@Table(name = &quot;grade_entries&quot;)
+public class GradeEntry {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /**
+     * Reference to the enrollment (student + course offering)
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;enrollment_id&quot;, nullable = false)
+    @NotNull(message = &quot;Enrollment is required&quot;)
+    private Enrollment enrollment;
+
+    /**
+     * Self-reference for Composite Pattern
+     * NULL for root grade entries, points to parent for child entries
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;parent_id&quot;)
+    private GradeEntry parent;
+
+    /**
+     * Child grade entries (for Composite Pattern)
+     */
+<span class="pc" id="L51">    @OneToMany(mappedBy = &quot;parent&quot;, cascade = CascadeType.ALL, fetch = FetchType.LAZY)</span>
+    private List&lt;GradeEntry&gt; children = new ArrayList&lt;&gt;();
+
+    /**
+     * Name of the grade component (e.g., Midterm, Lab, Quiz1)
+     */
+    @Column(name = &quot;name&quot;, nullable = false, length = 100)
+    @NotBlank(message = &quot;Grade entry name is required&quot;)
+    @Size(max = 100, message = &quot;Name must not exceed 100 characters&quot;)
+    private String name;
+
+    /**
+     * Weight for this grade component (0.0 to 1.0)
+     * OCL: weight &gt;= 0 AND weight &lt;= 1
+     */
+    @Column(name = &quot;weight&quot;, nullable = false)
+    @NotNull(message = &quot;Weight is required&quot;)
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;Weight cannot be less than 0&quot;)
+    @DecimalMax(value = &quot;1.0&quot;, message = &quot;Weight cannot exceed 1&quot;)
+    private Double weight;
+
+    /**
+     * Score value on 10-point scale
+     * OCL: score &gt;= 0 AND score &lt;= 10
+     */
+    @Column(name = &quot;score&quot;)
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;Score cannot be less than 0&quot;)
+    @DecimalMax(value = &quot;10.0&quot;, message = &quot;Score cannot exceed 10&quot;)
+    private Double score;
+
+    /**
+     * Type of grade entry: COMPONENT or FINAL
+     */
+<span class="pc" id="L84">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;entry_type&quot;, nullable = false)
+    @NotNull(message = &quot;Entry type is required&quot;)
+    private GradeEntryType entryType = GradeEntryType.COMPONENT;
+
+<span class="pc" id="L89">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;status&quot;, nullable = true, columnDefinition = &quot;varchar(255) default 'APPROVED'&quot;)
+    private ApprovalStatus status = ApprovalStatus.APPROVED;
+
+    @Column(name = &quot;recorded_by&quot;, length = 100)
+    private String recordedBy;
+
+    @Column(name = &quot;recorded_at&quot;)
+    private LocalDateTime recordedAt;
+
+    @Column(name = &quot;notes&quot;, columnDefinition = &quot;TEXT&quot;)
+    private String notes;
+
+    // Constructors
+<span class="fc" id="L103">    public GradeEntry() {</span>
+<span class="fc" id="L104">        this.recordedAt = LocalDateTime.now();</span>
+<span class="fc" id="L105">    }</span>
+
+<span class="nc" id="L107">    public GradeEntry(Enrollment enrollment, String name, Double weight) {</span>
+<span class="nc" id="L108">        this.enrollment = enrollment;</span>
+<span class="nc" id="L109">        this.name = name;</span>
+<span class="nc" id="L110">        this.weight = weight;</span>
+<span class="nc" id="L111">        this.entryType = GradeEntryType.COMPONENT;</span>
+<span class="nc" id="L112">        this.recordedAt = LocalDateTime.now();</span>
+<span class="nc" id="L113">    }</span>
+
+    // Getters and Setters
+    public Long getId() {
+<span class="fc" id="L117">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="fc" id="L121">        this.id = id;</span>
+<span class="fc" id="L122">    }</span>
+
+    public Enrollment getEnrollment() {
+<span class="fc" id="L125">        return enrollment;</span>
+    }
+
+    public void setEnrollment(Enrollment enrollment) {
+<span class="fc" id="L129">        this.enrollment = enrollment;</span>
+<span class="fc" id="L130">    }</span>
+
+    public GradeEntry getParent() {
+<span class="fc" id="L133">        return parent;</span>
+    }
+
+    public void setParent(GradeEntry parent) {
+<span class="fc" id="L137">        this.parent = parent;</span>
+<span class="fc" id="L138">    }</span>
+
+    public List&lt;GradeEntry&gt; getChildren() {
+<span class="fc" id="L141">        return children;</span>
+    }
+
+    public void setChildren(List&lt;GradeEntry&gt; children) {
+<span class="nc" id="L145">        this.children = children;</span>
+<span class="nc" id="L146">    }</span>
+
+    /**
+     * Add a child grade entry (Composite Pattern)
+     */
+    public void addChild(GradeEntry child) {
+<span class="fc" id="L152">        children.add(child);</span>
+<span class="fc" id="L153">        child.setParent(this);</span>
+<span class="fc" id="L154">        child.setEnrollment(this.enrollment);</span>
+<span class="fc" id="L155">    }</span>
+
+    /**
+     * Remove a child grade entry
+     */
+    public void removeChild(GradeEntry child) {
+<span class="fc" id="L161">        children.remove(child);</span>
+<span class="fc" id="L162">        child.setParent(null);</span>
+<span class="fc" id="L163">    }</span>
+
+    public String getName() {
+<span class="fc" id="L166">        return name;</span>
+    }
+
+    public void setName(String name) {
+<span class="fc" id="L170">        this.name = name;</span>
+<span class="fc" id="L171">    }</span>
+
+    public Double getWeight() {
+<span class="fc" id="L174">        return weight;</span>
+    }
+
+    public void setWeight(Double weight) {
+<span class="pc bpc" id="L178" title="1 of 6 branches missed.">        if (weight != null &amp;&amp; (weight &lt; 0.0 || weight &gt; 1.0)) {</span>
+<span class="fc" id="L179">            throw new IllegalArgumentException(&quot;Weight must be between 0 and 1&quot;);</span>
+        }
+<span class="fc" id="L181">        this.weight = weight;</span>
+<span class="fc" id="L182">    }</span>
+
+    public Double getScore() {
+<span class="fc" id="L185">        return score;</span>
+    }
+
+    /**
+     * Set score with OCL constraint enforcement
+     */
+    public void setScore(Double score) {
+<span class="fc bfc" id="L192" title="All 6 branches covered.">        if (score != null &amp;&amp; (score &lt; 0.0 || score &gt; 10.0)) {</span>
+<span class="fc" id="L193">            throw new IllegalArgumentException(&quot;Score must be between 0 and 10&quot;);</span>
+        }
+<span class="fc" id="L195">        this.score = score;</span>
+<span class="fc" id="L196">    }</span>
+
+    public GradeEntryType getEntryType() {
+<span class="fc" id="L199">        return entryType;</span>
+    }
+
+    public void setEntryType(GradeEntryType entryType) {
+<span class="fc" id="L203">        this.entryType = entryType;</span>
+<span class="fc" id="L204">    }</span>
+
+    public ApprovalStatus getStatus() {
+<span class="fc" id="L207">        return status;</span>
+    }
+
+    public void setStatus(ApprovalStatus status) {
+<span class="nc" id="L211">        this.status = status;</span>
+<span class="nc" id="L212">    }</span>
+
+    public String getRecordedBy() {
+<span class="fc" id="L215">        return recordedBy;</span>
+    }
+
+    public void setRecordedBy(String recordedBy) {
+<span class="fc" id="L219">        this.recordedBy = recordedBy;</span>
+<span class="fc" id="L220">    }</span>
+
+    public LocalDateTime getRecordedAt() {
+<span class="fc" id="L223">        return recordedAt;</span>
+    }
+
+    public void setRecordedAt(LocalDateTime recordedAt) {
+<span class="fc" id="L227">        this.recordedAt = recordedAt;</span>
+<span class="fc" id="L228">    }</span>
+
+    public String getNotes() {
+<span class="fc" id="L231">        return notes;</span>
+    }
+
+    public void setNotes(String notes) {
+<span class="fc" id="L235">        this.notes = notes;</span>
+<span class="fc" id="L236">    }</span>
+
+    /**
+     * Check if this is a leaf node (no children)
+     */
+    public boolean isLeaf() {
+<span class="pc bpc" id="L242" title="1 of 4 branches missed.">        return children == null || children.isEmpty();</span>
+    }
+
+    /**
+     * Check if this is a root node (no parent)
+     */
+    public boolean isRoot() {
+<span class="fc bfc" id="L249" title="All 2 branches covered.">        return parent == null;</span>
+    }
+
+    /**
+     * Calculate weighted score for this entry
+     * For composite entries, recursively calculates from children
+     */
+    public Double calculateWeightedScore() {
+<span class="fc bfc" id="L257" title="All 2 branches covered.">        if (isLeaf()) {</span>
+            // Leaf node: return direct weighted score
+<span class="fc bfc" id="L259" title="All 2 branches covered.">            return score != null ? score * weight : null;</span>
+        } else {
+            // Composite node: calculate from children
+<span class="fc" id="L262">            double totalWeightedScore = 0.0;</span>
+<span class="fc" id="L263">            double totalWeight = 0.0;</span>
+            
+<span class="fc bfc" id="L265" title="All 2 branches covered.">            for (GradeEntry child : children) {</span>
+<span class="fc" id="L266">                Double childScore = child.calculateWeightedScore();</span>
+<span class="pc bpc" id="L267" title="1 of 2 branches missed.">                if (childScore != null) {</span>
+<span class="fc" id="L268">                    totalWeightedScore += childScore;</span>
+<span class="fc" id="L269">                    totalWeight += child.getWeight();</span>
+                }
+<span class="fc" id="L271">            }</span>
+            
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">            if (totalWeight &gt; 0) {</span>
+                // Normalize and apply this entry's weight
+<span class="fc" id="L275">                return (totalWeightedScore / totalWeight) * weight;</span>
+            }
+<span class="nc" id="L277">            return null;</span>
+        }
+    }
+
+    /**
+     * Get the calculated score (for composite, calculated from children)
+     */
+    public Double getCalculatedScore() {
+<span class="fc bfc" id="L285" title="All 2 branches covered.">        if (isLeaf()) {</span>
+<span class="fc" id="L286">            return score;</span>
+        } else {
+<span class="fc" id="L288">            double totalWeightedScore = 0.0;</span>
+<span class="fc" id="L289">            double totalWeight = 0.0;</span>
+            
+<span class="fc bfc" id="L291" title="All 2 branches covered.">            for (GradeEntry child : children) {</span>
+<span class="fc" id="L292">                Double childScore = child.getCalculatedScore();</span>
+<span class="fc bfc" id="L293" title="All 2 branches covered.">                if (childScore != null) {</span>
+<span class="fc" id="L294">                    totalWeightedScore += childScore * child.getWeight();</span>
+<span class="fc" id="L295">                    totalWeight += child.getWeight();</span>
+                }
+<span class="fc" id="L297">            }</span>
+            
+<span class="fc bfc" id="L299" title="All 2 branches covered.">            return totalWeight &gt; 0 ? totalWeightedScore / totalWeight : null;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

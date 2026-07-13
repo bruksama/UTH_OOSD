@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GradeEntryService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.service</a> &gt; <span class="el_source">GradeEntryService.java</span></div><h1>GradeEntryService.java</h1><pre class="source lang-java linenums">package com.spts.service;
+
+import com.spts.dto.GradeEntryDTO;
+import com.spts.entity.*;
+import com.spts.exception.ResourceNotFoundException;
+import com.spts.patterns.observer.GradeSubject;
+import com.spts.repository.EnrollmentRepository;
+import com.spts.repository.GradeEntryRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Service class for GradeEntry entity.
+ * Provides CRUD operations and Composite Pattern support for hierarchical grades.
+ * 
+ * Implements Composite Pattern:
+ * - Root entries (parent = null) represent main grade components (Midterm, Final, Lab)
+ * - Child entries represent sub-components (Lab -&gt; Quiz1, Quiz2, Assignment)
+ * - Scores can be calculated recursively from children
+ * 
+ * Integrates with:
+ * - EnrollmentService: Updates enrollment grade when final score calculated
+ * - Observer Pattern: Notifies observers on grade changes (hook for Member 3)
+ * 
+ * Reference: OOSD Chapter 6 - Composite Pattern
+ * 
+ * @author SPTS Team
+ */
+@Service
+@Transactional
+public class GradeEntryService {
+
+<span class="fc" id="L41">    private static final Logger logger = LoggerFactory.getLogger(GradeEntryService.class);</span>
+
+    private final GradeEntryRepository gradeEntryRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final GradeSubject gradeSubject;
+
+    public GradeEntryService(GradeEntryRepository gradeEntryRepository,
+                              EnrollmentRepository enrollmentRepository,
+<span class="fc" id="L49">                              GradeSubject gradeSubject) {</span>
+<span class="fc" id="L50">        this.gradeEntryRepository = gradeEntryRepository;</span>
+<span class="fc" id="L51">        this.enrollmentRepository = enrollmentRepository;</span>
+<span class="fc" id="L52">        this.gradeSubject = gradeSubject;</span>
+<span class="fc" id="L53">    }</span>
+
+    // ==================== Observer Pattern Helper ====================
+
+    /**
+     * Notify all registered observers about a grade change.
+     * This triggers GPA recalculation and risk detection.
+     * 
+     * @param gradeEntry The grade entry that was created/updated
+     */
+    private void notifyGradeObservers(GradeEntry gradeEntry) {
+<span class="pc bpc" id="L64" title="2 of 4 branches missed.">        if (gradeEntry == null || gradeEntry.getEnrollment() == null) {</span>
+<span class="nc" id="L65">            return;</span>
+        }
+        
+<span class="fc" id="L68">        Enrollment enrollment = gradeEntry.getEnrollment();</span>
+<span class="fc" id="L69">        Student student = enrollment.getStudent();</span>
+        
+<span class="fc" id="L71">        logger.debug(&quot;Notifying observers about grade change for student: {}&quot;, student.getStudentId());</span>
+<span class="fc" id="L72">        gradeSubject.notifyObservers(student, enrollment, gradeEntry);</span>
+<span class="fc" id="L73">    }</span>
+
+    // ==================== CRUD Operations ====================
+
+    /**
+     * Get all grade entries
+     * 
+     * @return List of all grade entries as DTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;GradeEntryDTO&gt; getAllGradeEntries() {
+<span class="nc" id="L84">        return gradeEntryRepository.findAll().stream()</span>
+<span class="nc" id="L85">                .map(this::convertToDTO)</span>
+<span class="nc" id="L86">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get grade entry by ID
+     * 
+     * @param id GradeEntry database ID
+     * @return GradeEntryDTO
+     * @throws RuntimeException if entry not found
+     */
+    @Transactional(readOnly = true)
+    public GradeEntryDTO getGradeEntryById(Long id) {
+<span class="nc" id="L98">        GradeEntry gradeEntry = gradeEntryRepository.findById(id)</span>
+<span class="nc" id="L99">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;GradeEntry&quot;, &quot;id&quot;, id));</span>
+<span class="nc" id="L100">        return convertToDTO(gradeEntry);</span>
+    }
+
+    /**
+     * Create a new grade entry
+     * 
+     * @param dto GradeEntryDTO with entry data
+     * @return Created GradeEntryDTO with generated ID
+     * @throws RuntimeException if enrollment not found
+     */
+    public GradeEntryDTO createGradeEntry(GradeEntryDTO dto) {
+        // Validate enrollment exists
+<span class="fc" id="L112">        Enrollment enrollment = enrollmentRepository.findById(dto.getEnrollmentId())</span>
+<span class="pc" id="L113">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, dto.getEnrollmentId()));</span>
+
+<span class="fc" id="L115">        GradeEntry gradeEntry = new GradeEntry();</span>
+<span class="fc" id="L116">        gradeEntry.setEnrollment(enrollment);</span>
+<span class="fc" id="L117">        gradeEntry.setName(dto.getName());</span>
+<span class="fc" id="L118">        gradeEntry.setWeight(dto.getWeight());</span>
+<span class="fc" id="L119">        gradeEntry.setScore(dto.getScore());</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">        gradeEntry.setEntryType(dto.getEntryType() != null ? dto.getEntryType() : GradeEntryType.COMPONENT);</span>
+<span class="fc" id="L121">        gradeEntry.setRecordedBy(dto.getRecordedBy());</span>
+<span class="fc" id="L122">        gradeEntry.setRecordedAt(LocalDateTime.now());</span>
+<span class="fc" id="L123">        gradeEntry.setNotes(dto.getNotes());</span>
+
+        // Set parent if specified (Composite Pattern)
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        if (dto.getParentId() != null) {</span>
+<span class="nc" id="L127">            GradeEntry parent = gradeEntryRepository.findById(dto.getParentId())</span>
+<span class="nc" id="L128">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;GradeEntry&quot;, &quot;id&quot;, dto.getParentId()));</span>
+<span class="nc" id="L129">            gradeEntry.setParent(parent);</span>
+        }
+
+<span class="fc" id="L132">        GradeEntry savedEntry = gradeEntryRepository.save(gradeEntry);</span>
+
+        // Update enrollment final grade
+<span class="fc" id="L135">        updateEnrollmentGrade(enrollment.getId());</span>
+
+        // Notify observers about grade creation (Observer Pattern - Member 3)
+<span class="fc" id="L138">        notifyGradeObservers(savedEntry);</span>
+
+<span class="fc" id="L140">        return convertToDTO(savedEntry);</span>
+    }
+
+    /**
+     * Update an existing grade entry
+     * 
+     * @param id  GradeEntry database ID
+     * @param dto GradeEntryDTO with updated data
+     * @return Updated GradeEntryDTO
+     * @throws RuntimeException if entry not found
+     */
+    public GradeEntryDTO updateGradeEntry(Long id, GradeEntryDTO dto) {
+<span class="nc" id="L152">        GradeEntry gradeEntry = gradeEntryRepository.findById(id)</span>
+<span class="nc" id="L153">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;GradeEntry&quot;, &quot;id&quot;, id));</span>
+
+        // Update fields
+<span class="nc" id="L156">        gradeEntry.setName(dto.getName());</span>
+<span class="nc" id="L157">        gradeEntry.setWeight(dto.getWeight());</span>
+<span class="nc" id="L158">        gradeEntry.setScore(dto.getScore());</span>
+<span class="nc" id="L159">        gradeEntry.setRecordedBy(dto.getRecordedBy());</span>
+<span class="nc" id="L160">        gradeEntry.setRecordedAt(LocalDateTime.now());</span>
+<span class="nc" id="L161">        gradeEntry.setNotes(dto.getNotes());</span>
+
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (dto.getEntryType() != null) {</span>
+<span class="nc" id="L164">            gradeEntry.setEntryType(dto.getEntryType());</span>
+        }
+
+<span class="nc" id="L167">        GradeEntry savedEntry = gradeEntryRepository.save(gradeEntry);</span>
+        
+        // Update enrollment final grade
+<span class="nc" id="L170">        updateEnrollmentGrade(savedEntry.getEnrollment().getId());</span>
+
+        // Notify observers about grade update (Observer Pattern - Member 3)
+<span class="nc" id="L173">        notifyGradeObservers(savedEntry);</span>
+
+<span class="nc" id="L175">        return convertToDTO(savedEntry);</span>
+    }
+
+    /**
+     * Delete a grade entry
+     * Note: Deleting a parent will cascade delete all children
+     * 
+     * @param id GradeEntry database ID
+     * @throws RuntimeException if entry not found
+     */
+    public void deleteGradeEntry(Long id) {
+<span class="nc" id="L186">        GradeEntry entry = gradeEntryRepository.findById(id)</span>
+<span class="nc" id="L187">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;GradeEntry&quot;, &quot;id&quot;, id));</span>
+        
+<span class="nc" id="L189">        Long enrollmentId = entry.getEnrollment().getId();</span>
+<span class="nc" id="L190">        gradeEntryRepository.deleteById(id);</span>
+        
+        // Update enrollment final grade
+<span class="nc" id="L193">        updateEnrollmentGrade(enrollmentId);</span>
+<span class="nc" id="L194">    }</span>
+
+    // ==================== Composite Pattern Operations ====================
+
+    /**
+     * Add a child grade entry to a parent (Composite Pattern).
+     * 
+     * Example: Adding Quiz1 as a child of Lab component
+     * 
+     * @param parentId Parent GradeEntry database ID
+     * @param dto      GradeEntryDTO for the child entry
+     * @return Created child GradeEntryDTO
+     * @throws RuntimeException if parent not found
+     */
+    public GradeEntryDTO addChildGradeEntry(Long parentId, GradeEntryDTO dto) {
+<span class="nc" id="L209">        GradeEntry parent = gradeEntryRepository.findById(parentId)</span>
+<span class="nc" id="L210">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;GradeEntry&quot;, &quot;id&quot;, parentId));</span>
+
+<span class="nc" id="L212">        GradeEntry child = new GradeEntry();</span>
+<span class="nc" id="L213">        child.setEnrollment(parent.getEnrollment());</span>
+<span class="nc" id="L214">        child.setParent(parent);</span>
+<span class="nc" id="L215">        child.setName(dto.getName());</span>
+<span class="nc" id="L216">        child.setWeight(dto.getWeight());</span>
+<span class="nc" id="L217">        child.setScore(dto.getScore());</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        child.setEntryType(dto.getEntryType() != null ? dto.getEntryType() : GradeEntryType.COMPONENT);</span>
+<span class="nc" id="L219">        child.setRecordedBy(dto.getRecordedBy());</span>
+<span class="nc" id="L220">        child.setRecordedAt(LocalDateTime.now());</span>
+<span class="nc" id="L221">        child.setNotes(dto.getNotes());</span>
+
+<span class="nc" id="L223">        GradeEntry savedChild = gradeEntryRepository.save(child);</span>
+        
+        // Update enrollment final grade
+<span class="nc" id="L226">        updateEnrollmentGrade(parent.getEnrollment().getId());</span>
+
+<span class="nc" id="L228">        return convertToDTO(savedChild);</span>
+    }
+
+    /**
+     * Get children of a grade entry (Composite Pattern)
+     * 
+     * @param parentId Parent GradeEntry database ID
+     * @return List of child GradeEntryDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;GradeEntryDTO&gt; getChildren(Long parentId) {
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        if (!gradeEntryRepository.existsById(parentId)) {</span>
+<span class="nc" id="L240">            throw new ResourceNotFoundException(&quot;GradeEntry&quot;, &quot;id&quot;, parentId);</span>
+        }
+<span class="nc" id="L242">        return gradeEntryRepository.findByParentId(parentId).stream()</span>
+<span class="nc" id="L243">                .map(this::convertToDTO)</span>
+<span class="nc" id="L244">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get root grade entries for an enrollment (entries without parent)
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @return List of root GradeEntryDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;GradeEntryDTO&gt; getRootEntriesByEnrollment(Long enrollmentId) {
+<span class="nc bnc" id="L255" title="All 2 branches missed.">        if (!enrollmentRepository.existsById(enrollmentId)) {</span>
+<span class="nc" id="L256">            throw new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, enrollmentId);</span>
+        }
+<span class="nc" id="L258">        return gradeEntryRepository.findByEnrollmentIdAndParentIsNull(enrollmentId).stream()</span>
+<span class="nc" id="L259">                .map(this::convertToDTO)</span>
+<span class="nc" id="L260">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get hierarchical grade structure for an enrollment.
+     * Returns root entries with nested children.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @return List of root GradeEntryDTOs with children populated
+     */
+    @Transactional(readOnly = true)
+    public List&lt;GradeEntryDTO&gt; getHierarchicalGrades(Long enrollmentId) {
+<span class="nc bnc" id="L272" title="All 2 branches missed.">        if (!enrollmentRepository.existsById(enrollmentId)) {</span>
+<span class="nc" id="L273">            throw new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, enrollmentId);</span>
+        }
+        
+        // Get root entries and convert with children recursively
+<span class="nc" id="L277">        return gradeEntryRepository.findByEnrollmentIdAndParentIsNull(enrollmentId).stream()</span>
+<span class="nc" id="L278">                .map(this::convertToDTOWithChildren)</span>
+<span class="nc" id="L279">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Calculate composite score for a grade entry.
+     * For leaf nodes, returns the direct score.
+     * For composite nodes, recursively calculates weighted average from children.
+     * 
+     * @param gradeEntryId GradeEntry database ID
+     * @return Calculated score (0-10 scale)
+     */
+    @Transactional(readOnly = true)
+    public Double calculateCompositeScore(Long gradeEntryId) {
+<span class="nc" id="L292">        GradeEntry gradeEntry = gradeEntryRepository.findById(gradeEntryId)</span>
+<span class="nc" id="L293">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;GradeEntry&quot;, &quot;id&quot;, gradeEntryId));</span>
+<span class="nc" id="L294">        return gradeEntry.getCalculatedScore();</span>
+    }
+
+    /**
+     * Calculate weighted score for a grade entry (score * weight).
+     * For composite nodes, calculates from children first.
+     * 
+     * @param gradeEntryId GradeEntry database ID
+     * @return Weighted score
+     */
+    @Transactional(readOnly = true)
+    public Double calculateWeightedScore(Long gradeEntryId) {
+<span class="nc" id="L306">        GradeEntry gradeEntry = gradeEntryRepository.findById(gradeEntryId)</span>
+<span class="nc" id="L307">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;GradeEntry&quot;, &quot;id&quot;, gradeEntryId));</span>
+<span class="nc" id="L308">        return gradeEntry.calculateWeightedScore();</span>
+    }
+
+    /**
+     * Calculate final grade for an enrollment from all root components.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @return Calculated final grade (0-10 scale)
+     */
+    @Transactional(readOnly = true)
+    public Double calculateFinalGrade(Long enrollmentId) {
+<span class="nc" id="L319">        List&lt;GradeEntry&gt; rootEntries = gradeEntryRepository.findByEnrollmentIdAndParentIsNull(enrollmentId);</span>
+        
+<span class="nc bnc" id="L321" title="All 2 branches missed.">        if (rootEntries.isEmpty()) {</span>
+<span class="nc" id="L322">            return null;</span>
+        }
+
+<span class="nc" id="L325">        double totalWeightedScore = 0.0;</span>
+<span class="nc" id="L326">        double totalWeight = 0.0;</span>
+
+<span class="nc bnc" id="L328" title="All 2 branches missed.">        for (GradeEntry entry : rootEntries) {</span>
+<span class="nc" id="L329">            Double score = entry.getCalculatedScore();</span>
+<span class="nc bnc" id="L330" title="All 4 branches missed.">            if (score != null &amp;&amp; entry.getWeight() != null) {</span>
+<span class="nc" id="L331">                totalWeightedScore += score * entry.getWeight();</span>
+<span class="nc" id="L332">                totalWeight += entry.getWeight();</span>
+            }
+<span class="nc" id="L334">        }</span>
+
+<span class="nc bnc" id="L336" title="All 2 branches missed.">        return totalWeight &gt; 0 ? totalWeightedScore / totalWeight : null;</span>
+    }
+
+    /**
+     * Validate that weights sum to 1.0 for root entries of an enrollment.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @return true if weights are valid
+     */
+    @Transactional(readOnly = true)
+    public boolean validateWeights(Long enrollmentId) {
+<span class="nc" id="L347">        List&lt;GradeEntry&gt; rootEntries = gradeEntryRepository.findByEnrollmentIdAndParentIsNull(enrollmentId);</span>
+        
+<span class="nc" id="L349">        double totalWeight = rootEntries.stream()</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">                .filter(e -&gt; e.getWeight() != null)</span>
+<span class="nc" id="L351">                .mapToDouble(GradeEntry::getWeight)</span>
+<span class="nc" id="L352">                .sum();</span>
+
+        // Allow small tolerance for floating point
+<span class="nc bnc" id="L355" title="All 2 branches missed.">        return Math.abs(totalWeight - 1.0) &lt; 0.001;</span>
+    }
+
+    // ==================== Search and Filter ====================
+
+    /**
+     * Get all grade entries for an enrollment
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @return List of GradeEntryDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;GradeEntryDTO&gt; getEntriesByEnrollment(Long enrollmentId) {
+<span class="nc bnc" id="L368" title="All 2 branches missed.">        if (!enrollmentRepository.existsById(enrollmentId)) {</span>
+<span class="nc" id="L369">            throw new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, enrollmentId);</span>
+        }
+<span class="nc" id="L371">        return gradeEntryRepository.findByEnrollmentId(enrollmentId).stream()</span>
+<span class="nc" id="L372">                .map(this::convertToDTO)</span>
+<span class="nc" id="L373">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get all grade entries for a student across all enrollments
+     * 
+     * @param studentId Student database ID
+     * @return List of GradeEntryDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;GradeEntryDTO&gt; getEntriesByStudent(Long studentId) {
+<span class="nc" id="L384">        return gradeEntryRepository.findByStudentId(studentId).stream()</span>
+<span class="nc" id="L385">                .map(this::convertToDTO)</span>
+<span class="nc" id="L386">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get grade entries by type
+     * 
+     * @param entryType GradeEntryType enum value
+     * @return List of GradeEntryDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;GradeEntryDTO&gt; getEntriesByType(GradeEntryType entryType) {
+<span class="nc" id="L397">        return gradeEntryRepository.findByEntryType(entryType).stream()</span>
+<span class="nc" id="L398">                .map(this::convertToDTO)</span>
+<span class="nc" id="L399">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get grade entries for a student in a specific course offering
+     * 
+     * @param studentId       Student database ID
+     * @param courseOfferingId CourseOffering database ID
+     * @return List of GradeEntryDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;GradeEntryDTO&gt; getEntriesByStudentAndOffering(Long studentId, Long courseOfferingId) {
+<span class="nc" id="L411">        return gradeEntryRepository.findByStudentAndCourseOffering(studentId, courseOfferingId).stream()</span>
+<span class="nc" id="L412">                .map(this::convertToDTO)</span>
+<span class="nc" id="L413">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get leaf entries (entries without children) for an enrollment
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @return List of leaf GradeEntryDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;GradeEntryDTO&gt; getLeafEntries(Long enrollmentId) {
+<span class="nc" id="L424">        return gradeEntryRepository.findLeafEntries(enrollmentId).stream()</span>
+<span class="nc" id="L425">                .map(this::convertToDTO)</span>
+<span class="nc" id="L426">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Update score for a grade entry
+     * 
+     * @param gradeEntryId GradeEntry database ID
+     * @param score        New score (0-10 scale)
+     * @param recordedBy   Username of person recording
+     * @return Updated GradeEntryDTO
+     */
+    public GradeEntryDTO updateScore(Long gradeEntryId, Double score, String recordedBy) {
+<span class="nc" id="L438">        GradeEntry gradeEntry = gradeEntryRepository.findById(gradeEntryId)</span>
+<span class="nc" id="L439">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;GradeEntry&quot;, &quot;id&quot;, gradeEntryId));</span>
+
+<span class="nc" id="L441">        gradeEntry.setScore(score);</span>
+<span class="nc" id="L442">        gradeEntry.setRecordedBy(recordedBy);</span>
+<span class="nc" id="L443">        gradeEntry.setRecordedAt(LocalDateTime.now());</span>
+
+<span class="nc" id="L445">        GradeEntry savedEntry = gradeEntryRepository.save(gradeEntry);</span>
+        
+        // Update enrollment final grade
+<span class="nc" id="L448">        updateEnrollmentGrade(savedEntry.getEnrollment().getId());</span>
+
+        // Notify observers about score update (Observer Pattern - Member 3)
+<span class="nc" id="L451">        notifyGradeObservers(savedEntry);</span>
+
+<span class="nc" id="L453">        return convertToDTO(savedEntry);</span>
+    }
+
+    /**
+     * Count grade entries for an enrollment
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @return Number of grade entries
+     */
+    @Transactional(readOnly = true)
+    public Long countEntriesByEnrollment(Long enrollmentId) {
+<span class="nc" id="L464">        return gradeEntryRepository.countByEnrollmentId(enrollmentId);</span>
+    }
+
+    /**
+     * Recalculate and update the Enrollment's final grade based on root grade entries.
+     * Should be called after any modification to grade entries.
+     * 
+     * @param enrollmentId The enrollment ID to update
+     */
+    private void updateEnrollmentGrade(Long enrollmentId) {
+<span class="fc" id="L474">        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)</span>
+<span class="pc" id="L475">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, enrollmentId));</span>
+
+<span class="fc" id="L477">        List&lt;GradeEntry&gt; allEntries = gradeEntryRepository.findByEnrollmentId(enrollmentId);</span>
+<span class="fc" id="L478">        List&lt;GradeEntry&gt; rootEntries = allEntries.stream()</span>
+<span class="fc" id="L479">                .filter(GradeEntry::isRoot)</span>
+<span class="fc" id="L480">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L482">        double totalWeightedScore = 0.0;</span>
+<span class="fc" id="L483">        double totalWeight = 0.0;</span>
+        
+<span class="fc bfc" id="L485" title="All 2 branches covered.">        for (GradeEntry entry : rootEntries) {</span>
+<span class="fc" id="L486">            Double score = entry.getCalculatedScore();</span>
+<span class="pc bpc" id="L487" title="2 of 4 branches missed.">            if (score != null &amp;&amp; entry.getWeight() != null) {</span>
+<span class="fc" id="L488">                totalWeightedScore += score * entry.getWeight();</span>
+<span class="fc" id="L489">                totalWeight += entry.getWeight();</span>
+            }
+<span class="fc" id="L491">        }</span>
+        
+<span class="fc bfc" id="L493" title="All 2 branches covered.">        if (totalWeight &lt;= 0) {</span>
+<span class="pc bpc" id="L494" title="1 of 2 branches missed.">            if (enrollment.getFinalScore() != null</span>
+<span class="pc bpc" id="L495" title="1 of 2 branches missed.">                    || enrollment.getLetterGrade() != null</span>
+<span class="nc bnc" id="L496" title="All 2 branches missed.">                    || enrollment.getGpaValue() != null) {</span>
+<span class="fc" id="L497">                enrollment.setFinalScore(null);</span>
+<span class="fc" id="L498">                enrollment.setLetterGrade(null);</span>
+<span class="fc" id="L499">                enrollment.setGpaValue(null);</span>
+<span class="fc" id="L500">                enrollmentRepository.save(enrollment);</span>
+            }
+<span class="fc" id="L502">            return;</span>
+        }
+
+        // Round to 2 decimal places
+<span class="fc" id="L506">        double finalScore = BigDecimal.valueOf(totalWeightedScore / totalWeight)</span>
+<span class="fc" id="L507">                .setScale(2, RoundingMode.HALF_UP)</span>
+<span class="fc" id="L508">                .doubleValue();</span>
+        
+        // Only update if changed
+<span class="fc bfc" id="L511" title="All 4 branches covered.">        if (enrollment.getFinalScore() == null || Math.abs(enrollment.getFinalScore() - finalScore) &gt; 0.001) {</span>
+<span class="fc" id="L512">            enrollment.setFinalScore(finalScore);</span>
+<span class="fc" id="L513">            enrollmentRepository.save(enrollment);</span>
+        }
+<span class="fc" id="L515">    }</span>
+
+    // ==================== DTO Conversion Helpers ====================
+
+    /**
+     * Convert GradeEntry entity to GradeEntryDTO (without children)
+     */
+    private GradeEntryDTO convertToDTO(GradeEntry gradeEntry) {
+<span class="fc" id="L523">        GradeEntryDTO dto = new GradeEntryDTO();</span>
+<span class="fc" id="L524">        dto.setId(gradeEntry.getId());</span>
+<span class="fc" id="L525">        dto.setEnrollmentId(gradeEntry.getEnrollment().getId());</span>
+<span class="fc" id="L526">        dto.setName(gradeEntry.getName());</span>
+<span class="fc" id="L527">        dto.setWeight(gradeEntry.getWeight());</span>
+<span class="fc" id="L528">        dto.setScore(gradeEntry.getScore());</span>
+<span class="fc" id="L529">        dto.setCalculatedScore(gradeEntry.getCalculatedScore());</span>
+<span class="fc" id="L530">        dto.setEntryType(gradeEntry.getEntryType());</span>
+<span class="fc" id="L531">        dto.setRecordedBy(gradeEntry.getRecordedBy());</span>
+<span class="fc" id="L532">        dto.setRecordedAt(gradeEntry.getRecordedAt());</span>
+<span class="fc" id="L533">        dto.setNotes(gradeEntry.getNotes());</span>
+<span class="fc" id="L534">        dto.setStatus(gradeEntry.getStatus());</span>
+
+        // Set parent ID if exists
+<span class="pc bpc" id="L537" title="1 of 2 branches missed.">        if (gradeEntry.getParent() != null) {</span>
+<span class="nc" id="L538">            dto.setParentId(gradeEntry.getParent().getId());</span>
+        }
+
+        // Set course and student info from enrollment
+<span class="fc" id="L542">        Enrollment enrollment = gradeEntry.getEnrollment();</span>
+<span class="fc" id="L543">        dto.setCourseCode(enrollment.getCourseOffering().getCourse().getCourseCode());</span>
+<span class="fc" id="L544">        dto.setCourseName(enrollment.getCourseOffering().getCourse().getCourseName());</span>
+<span class="fc" id="L545">        dto.setStudentName(enrollment.getStudent().getFullName());</span>
+
+<span class="fc" id="L547">        return dto;</span>
+    }
+
+    /**
+     * Convert GradeEntry entity to GradeEntryDTO with nested children (recursive)
+     */
+    private GradeEntryDTO convertToDTOWithChildren(GradeEntry gradeEntry) {
+<span class="nc" id="L554">        GradeEntryDTO dto = convertToDTO(gradeEntry);</span>
+
+        // Recursively convert children
+<span class="nc bnc" id="L557" title="All 4 branches missed.">        if (gradeEntry.getChildren() != null &amp;&amp; !gradeEntry.getChildren().isEmpty()) {</span>
+<span class="nc" id="L558">            List&lt;GradeEntryDTO&gt; childDTOs = gradeEntry.getChildren().stream()</span>
+<span class="nc" id="L559">                    .map(this::convertToDTOWithChildren)</span>
+<span class="nc" id="L560">                    .collect(Collectors.toList());</span>
+<span class="nc" id="L561">            dto.setChildren(childDTOs);</span>
+        }
+
+<span class="nc" id="L564">        return dto;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

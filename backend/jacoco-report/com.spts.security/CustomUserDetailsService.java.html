@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomUserDetailsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.security</a> &gt; <span class="el_source">CustomUserDetailsService.java</span></div><h1>CustomUserDetailsService.java</h1><pre class="source lang-java linenums">package com.spts.security;
+
+import com.spts.security.FirebaseTokenInfo;
+import com.spts.entity.Student;
+import com.spts.entity.StudentStatus;
+import com.spts.entity.User;
+import com.spts.entity.UserRole;
+import com.spts.repository.StudentRepository;
+import com.spts.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
+/**
+ * Custom service to load user details from database based on Firebase token.
+ * Handles JIT provisioning and role synchronization.
+ */
+@Service
+public class CustomUserDetailsService {
+
+<span class="fc" id="L34">    private static final Logger logger = LoggerFactory.getLogger(CustomUserDetailsService.class);</span>
+
+    private final UserRepository userRepository;
+    private final StudentRepository studentRepository;
+
+<span class="fc" id="L39">    public CustomUserDetailsService(UserRepository userRepository, StudentRepository studentRepository) {</span>
+<span class="fc" id="L40">        this.userRepository = userRepository;</span>
+<span class="fc" id="L41">        this.studentRepository = studentRepository;</span>
+<span class="fc" id="L42">    }</span>
+
+    @Transactional
+    public UserDetails loadUserByFirebaseToken(FirebaseTokenInfo token) {
+<span class="fc" id="L46">        String uid = token.getUid();</span>
+
+        // Find or create user (JIT provisioning)
+<span class="fc" id="L49">        User user = userRepository.findByFirebaseUid(uid)</span>
+<span class="pc" id="L50">            .orElseGet(() -&gt; createUserFromToken(token));</span>
+
+<span class="fc" id="L52">        assertTokenNotRevoked(user, token);</span>
+
+        // Update last login
+<span class="fc" id="L55">        user.setLastLoginAt(LocalDateTime.now());</span>
+<span class="fc" id="L56">        user = userRepository.save(user);</span>
+
+<span class="fc" id="L58">        logger.info(&quot;User authenticated: uid={}, email={}, role={}&quot;, uid, user.getEmail(), user.getRole());</span>
+
+        // Build Spring Security UserDetails with actual role
+<span class="fc" id="L61">        List&lt;GrantedAuthority&gt; authorities = List.of(</span>
+<span class="fc" id="L62">            new SimpleGrantedAuthority(&quot;ROLE_&quot; + user.getRole().name())</span>
+        );
+
+<span class="fc" id="L65">        return new org.springframework.security.core.userdetails.User(</span>
+            uid,           // username = Firebase UID
+            &quot;&quot;,            // password (not used for Firebase auth)
+            authorities    // actual role from database
+        );
+    }
+
+    private void assertTokenNotRevoked(User user, FirebaseTokenInfo token) {
+<span class="fc" id="L73">        LocalDateTime tokenAuthTime = getTokenAuthTime(token);</span>
+<span class="fc" id="L74">        LocalDateTime tokenRevokedAt = user.getTokenRevokedAt();</span>
+
+<span class="pc bpc" id="L76" title="1 of 6 branches missed.">        if (tokenRevokedAt != null &amp;&amp; (tokenAuthTime == null || !tokenAuthTime.isAfter(tokenRevokedAt))) {</span>
+            // BadCredentialsException propagates correctly through the security filter chain.
+<span class="fc" id="L78">            throw new BadCredentialsException(&quot;Token has been revoked&quot;);</span>
+        }
+<span class="fc" id="L80">    }</span>
+
+    private LocalDateTime getTokenAuthTime(FirebaseTokenInfo token) {
+<span class="fc" id="L83">        Object authTimeClaim = token.getClaims().get(&quot;auth_time&quot;);</span>
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (!(authTimeClaim instanceof Number authTimeNumber)) {</span>
+<span class="nc" id="L85">            return null;</span>
+        }
+
+<span class="fc" id="L88">        return LocalDateTime.ofInstant(</span>
+<span class="fc" id="L89">                Instant.ofEpochSecond(authTimeNumber.longValue()),</span>
+<span class="fc" id="L90">                java.time.ZoneId.systemDefault()</span>
+<span class="fc" id="L91">        ).truncatedTo(ChronoUnit.SECONDS);</span>
+    }
+
+    private User createUserFromToken(FirebaseTokenInfo token) {
+<span class="nc bnc" id="L95" title="All 4 branches missed.">        if (token.getEmail() == null || token.getEmail().trim().isEmpty()) {</span>
+            // BadCredentialsException is caught by Spring Security and returns proper 401 to the client.
+            // ResponseStatusException would be silently swallowed inside a filter.
+<span class="nc" id="L98">            throw new BadCredentialsException(&quot;Email is required for user provisioning&quot;);</span>
+        }
+<span class="nc" id="L100">        logger.info(&quot;Creating new user for email: {}&quot;, token.getEmail());</span>
+
+        // Check if a student already exists with this email
+<span class="nc" id="L103">        Student student = studentRepository.findByEmail(token.getEmail())</span>
+<span class="nc" id="L104">            .orElse(null);</span>
+
+        // If no student exists, create one
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (student == null) {</span>
+<span class="nc" id="L108">            student = createStudentFromToken(token);</span>
+<span class="nc" id="L109">            logger.info(&quot;Created and saved new student: id={}, studentId={}&quot;,</span>
+<span class="nc" id="L110">                student.getId(), student.getStudentId());</span>
+        } else {
+<span class="nc" id="L112">            logger.info(&quot;Found existing student: id={}, studentId={}&quot;,</span>
+<span class="nc" id="L113">                student.getId(), student.getStudentId());</span>
+        }
+
+        // Now create the user and link to the student
+<span class="nc" id="L117">        User user = new User();</span>
+<span class="nc" id="L118">        user.setFirebaseUid(token.getUid());</span>
+<span class="nc" id="L119">        user.setEmail(token.getEmail());</span>
+<span class="nc" id="L120">        user.setDisplayName(token.getName());</span>
+<span class="nc" id="L121">        user.setCreatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L122">        user.setStudent(student);</span>
+        
+        // Tự động gán quyền ADMIN nếu email chứa chữ &quot;admin&quot;
+<span class="nc bnc" id="L125" title="All 4 branches missed.">        if (token.getEmail() != null &amp;&amp; token.getEmail().toLowerCase().contains(&quot;admin&quot;)) {</span>
+<span class="nc" id="L126">            user.setRole(UserRole.ADMIN);</span>
+        } else {
+<span class="nc" id="L128">            user.setRole(UserRole.STUDENT);</span>
+        }
+
+<span class="nc" id="L131">        User savedUser = userRepository.save(user);</span>
+<span class="nc" id="L132">        logger.info(&quot;Created new user: id={}, uid={}, email={}, linkedStudentId={}, role={}&quot;,</span>
+<span class="nc" id="L133">            savedUser.getId(), token.getUid(), token.getEmail(),</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">            savedUser.getStudent() != null ? savedUser.getStudent().getId() : &quot;NULL&quot;,</span>
+<span class="nc" id="L135">            savedUser.getRole());</span>
+
+<span class="nc" id="L137">        return savedUser;</span>
+    }
+
+    private Student createStudentFromToken(FirebaseTokenInfo token) {
+<span class="nc" id="L141">        Student student = new Student();</span>
+
+        // Generate unique student ID
+<span class="nc" id="L144">        String studentId = generateStudentId();</span>
+<span class="nc" id="L145">        student.setStudentId(studentId);</span>
+
+        // Parse first and last name from display name
+<span class="nc" id="L148">        String displayName = token.getName();</span>
+<span class="nc bnc" id="L149" title="All 4 branches missed.">        if (displayName != null &amp;&amp; !displayName.trim().isEmpty()) {</span>
+<span class="nc" id="L150">            String[] nameParts = displayName.trim().split(&quot;\\s+&quot;, 2);</span>
+<span class="nc" id="L151">            student.setFirstName(nameParts[0]);</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">            student.setLastName(nameParts.length &gt; 1 ? nameParts[1] : nameParts[0]);</span>
+<span class="nc" id="L153">        } else {</span>
+            // Fallback if no display name
+<span class="nc" id="L155">            student.setFirstName(&quot;Student&quot;);</span>
+<span class="nc" id="L156">            student.setLastName(token.getEmail().split(&quot;@&quot;)[0]);</span>
+        }
+
+<span class="nc" id="L159">        student.setEmail(token.getEmail());</span>
+<span class="nc" id="L160">        student.setEnrollmentDate(LocalDate.now());</span>
+<span class="nc" id="L161">        student.setStatus(StudentStatus.NORMAL);</span>
+<span class="nc" id="L162">        student.setGpa(0.0);</span>
+<span class="nc" id="L163">        student.setTotalCredits(0);</span>
+
+<span class="nc" id="L165">        logger.info(&quot;Created new student: studentId={}, email={}, name={} {}&quot;,</span>
+<span class="nc" id="L166">            studentId, student.getEmail(), student.getFirstName(), student.getLastName());</span>
+
+<span class="nc" id="L168">        return studentRepository.save(student);</span>
+    }
+
+    private String generateStudentId() {
+        // Generate student ID using timestamp format: STU-YYYYMMDD-XXXXX
+<span class="nc" id="L173">        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(&quot;yyyyMMdd&quot;));</span>
+
+        // Find the highest student ID created today
+<span class="nc" id="L176">        String prefix = &quot;STU-&quot; + timestamp + &quot;-&quot;;</span>
+<span class="nc" id="L177">        List&lt;Student&gt; todayStudents = studentRepository.findAll().stream()</span>
+<span class="nc" id="L178">            .filter(s -&gt; s.getStudentId().startsWith(prefix))</span>
+<span class="nc" id="L179">            .toList();</span>
+
+<span class="nc" id="L181">        int nextSequence = todayStudents.size() + 1;</span>
+<span class="nc" id="L182">        return String.format(&quot;%s%05d&quot;, prefix, nextSequence);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

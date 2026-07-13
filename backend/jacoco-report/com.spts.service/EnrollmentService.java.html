@@ -1,0 +1,632 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnrollmentService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.service</a> &gt; <span class="el_source">EnrollmentService.java</span></div><h1>EnrollmentService.java</h1><pre class="source lang-java linenums">package com.spts.service;
+
+import com.spts.dto.EnrollmentDTO;
+import com.spts.dto.GradeEntryDTO;
+import com.spts.entity.*;
+import com.spts.exception.ResourceNotFoundException;
+import com.spts.exception.DuplicateResourceException;
+import com.spts.exception.BusinessRuleException;
+import com.spts.patterns.observer.GradeSubject;
+import com.spts.patterns.strategy.GradingStrategyFactory;
+import com.spts.patterns.strategy.IGradingStrategy;
+import com.spts.repository.CourseOfferingRepository;
+import com.spts.repository.EnrollmentRepository;
+import com.spts.repository.StudentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Service class for Enrollment entity.
+ * Provides CRUD operations, grade submission, and GPA calculation.
+ * 
+ * Enrollment represents the junction between Student and CourseOffering,
+ * storing the final grade and enrollment status.
+ * 
+ * Integrates with:
+ * - StudentService: Triggers GPA recalculation after grade changes
+ * - CourseOfferingService: Updates enrollment counts
+ * - Observer Pattern: Hook for grade change notifications (Member 3)
+ * 
+ * @author SPTS Team
+ */
+@Service
+@Transactional
+public class EnrollmentService {
+
+<span class="fc" id="L42">    private static final Logger logger = LoggerFactory.getLogger(EnrollmentService.class);</span>
+
+    private final EnrollmentRepository enrollmentRepository;
+    private final StudentRepository studentRepository;
+    private final CourseOfferingRepository courseOfferingRepository;
+    private final StudentService studentService;
+    private final GradingStrategyFactory gradingStrategyFactory;
+    private final GradeSubject gradeSubject;
+
+    public EnrollmentService(EnrollmentRepository enrollmentRepository,
+                              StudentRepository studentRepository,
+                              CourseOfferingRepository courseOfferingRepository,
+                              StudentService studentService,
+                              GradingStrategyFactory gradingStrategyFactory,
+<span class="fc" id="L56">                              GradeSubject gradeSubject) {</span>
+<span class="fc" id="L57">        this.enrollmentRepository = enrollmentRepository;</span>
+<span class="fc" id="L58">        this.studentRepository = studentRepository;</span>
+<span class="fc" id="L59">        this.courseOfferingRepository = courseOfferingRepository;</span>
+<span class="fc" id="L60">        this.studentService = studentService;</span>
+<span class="fc" id="L61">        this.gradingStrategyFactory = gradingStrategyFactory;</span>
+<span class="fc" id="L62">        this.gradeSubject = gradeSubject;</span>
+<span class="fc" id="L63">    }</span>
+
+    // ==================== Observer Pattern Helper ====================
+
+    /**
+     * Notify all registered observers about an enrollment completion.
+     * This triggers GPA recalculation and risk detection for the student.
+     * 
+     * @param enrollment The enrollment that was completed
+     */
+    private void notifyEnrollmentObservers(Enrollment enrollment) {
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (enrollment == null) {</span>
+<span class="nc" id="L75">            return;</span>
+        }
+        
+<span class="nc" id="L78">        Student student = enrollment.getStudent();</span>
+<span class="nc" id="L79">        logger.debug(&quot;Notifying observers about enrollment completion for student: {}&quot;, </span>
+<span class="nc" id="L80">                student.getStudentId());</span>
+        
+        // Notify with null gradeEntry since this is enrollment-level notification
+<span class="nc" id="L83">        gradeSubject.notifyObservers(student, enrollment, null);</span>
+<span class="nc" id="L84">    }</span>
+
+    // ==================== CRUD Operations ====================
+
+    /**
+     * Get all enrollments
+     * 
+     * @return List of all enrollments as DTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;EnrollmentDTO&gt; getAllEnrollments() {
+<span class="nc" id="L95">        return enrollmentRepository.findAll().stream()</span>
+<span class="nc" id="L96">                .map(this::convertToDTO)</span>
+<span class="nc" id="L97">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get enrollment by ID
+     * 
+     * @param id Enrollment database ID
+     * @return EnrollmentDTO
+     * @throws RuntimeException if enrollment not found
+     */
+    @Transactional(readOnly = true)
+    public EnrollmentDTO getEnrollmentById(Long id) {
+<span class="nc" id="L109">        Enrollment enrollment = enrollmentRepository.findById(id)</span>
+<span class="nc" id="L110">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, id));</span>
+<span class="nc" id="L111">        return convertToDTO(enrollment);</span>
+    }
+
+    /**
+     * Create a new enrollment (enroll student in course offering)
+     * 
+     * @param dto EnrollmentDTO with student and offering IDs
+     * @return Created EnrollmentDTO with generated ID
+     * @throws RuntimeException if student/offering not found, already enrolled, or no seats
+     */
+    public EnrollmentDTO createEnrollment(EnrollmentDTO dto) {
+        // Validate student exists
+<span class="nc" id="L123">        Student student = studentRepository.findById(dto.getStudentId())</span>
+<span class="nc" id="L124">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Student&quot;, &quot;id&quot;, dto.getStudentId()));</span>
+
+        // Validate course offering exists
+<span class="nc" id="L127">        CourseOffering offering = courseOfferingRepository.findById(dto.getCourseOfferingId())</span>
+<span class="nc" id="L128">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, dto.getCourseOfferingId()));</span>
+
+        // Check if already enrolled
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (enrollmentRepository.existsByStudentIdAndCourseOfferingId(</span>
+<span class="nc" id="L132">                dto.getStudentId(), dto.getCourseOfferingId())) {</span>
+<span class="nc" id="L133">            throw new DuplicateResourceException(&quot;Enrollment&quot;, &quot;student/offering&quot;, </span>
+<span class="nc" id="L134">                    dto.getStudentId() + &quot;/&quot; + dto.getCourseOfferingId());</span>
+        }
+
+        // Check for schedule conflict (trùng lịch học)
+<span class="nc" id="L138">        List&lt;Enrollment&gt; activeEnrollments = enrollmentRepository.findInProgressByStudent(student.getId());</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        for (Enrollment existing : activeEnrollments) {</span>
+<span class="nc" id="L140">            CourseOffering existingOffering = existing.getCourseOffering();</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">            if (existingOffering.getSemester() == offering.getSemester() &amp;&amp;</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">                existingOffering.getAcademicYear().equals(offering.getAcademicYear())) {</span>
+                
+                // Giả lập lịch học: 2 môn trùng lịch nếu id chia 7 có cùng số dư
+<span class="nc bnc" id="L145" title="All 2 branches missed.">                if (existingOffering.getId() % 7 == offering.getId() % 7) {</span>
+<span class="nc" id="L146">                    throw new BusinessRuleException(&quot;Schedule conflict: Student is already enrolled in another course offering on the same day&quot;);</span>
+                }
+            }
+<span class="nc" id="L149">        }</span>
+
+        // Check seat availability
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        if (!offering.hasAvailableSeats()) {</span>
+<span class="nc" id="L153">            throw new BusinessRuleException(&quot;No available seats in this course offering&quot;);</span>
+        }
+
+        // Create enrollment
+<span class="nc" id="L157">        Enrollment enrollment = new Enrollment(student, offering);</span>
+<span class="nc" id="L158">        enrollment.setStatus(EnrollmentStatus.IN_PROGRESS);</span>
+<span class="nc" id="L159">        enrollment.setEnrolledAt(LocalDateTime.now());</span>
+
+<span class="nc" id="L161">        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);</span>
+
+        // Update offering enrollment count
+<span class="nc" id="L164">        offering.setCurrentEnrollment(offering.getCurrentEnrollment() + 1);</span>
+<span class="nc" id="L165">        courseOfferingRepository.save(offering);</span>
+
+<span class="nc" id="L167">        return convertToDTO(savedEnrollment);</span>
+    }
+
+    /**
+     * Update an existing enrollment
+     * Note: Cannot change student or offering after creation
+     * 
+     * @param id  Enrollment database ID
+     * @param dto EnrollmentDTO with updated data
+     * @return Updated EnrollmentDTO
+     * @throws RuntimeException if enrollment not found
+     */
+    public EnrollmentDTO updateEnrollment(Long id, EnrollmentDTO dto) {
+<span class="nc" id="L180">        Enrollment enrollment = enrollmentRepository.findById(id)</span>
+<span class="nc" id="L181">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, id));</span>
+
+        // Note: Student and CourseOffering cannot be changed after creation
+        // Only status and grades can be updated
+
+<span class="nc bnc" id="L186" title="All 2 branches missed.">        if (dto.getFinalScore() != null) {</span>
+<span class="nc" id="L187">            enrollment.setFinalScore(dto.getFinalScore());</span>
+            // letterGrade and gpaValue are auto-calculated in setFinalScore
+        }
+
+<span class="nc bnc" id="L191" title="All 2 branches missed.">        if (dto.getStatus() != null) {</span>
+<span class="nc" id="L192">            enrollment.setStatus(dto.getStatus());</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">            if (dto.getStatus() == EnrollmentStatus.COMPLETED || </span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">                dto.getStatus() == EnrollmentStatus.WITHDRAWN) {</span>
+<span class="nc" id="L195">                enrollment.setCompletedAt(LocalDateTime.now());</span>
+            }
+        }
+
+<span class="nc" id="L199">        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);</span>
+
+        // Use the established Observer Pattern to trigger GPA updates and Risk Detection
+        // This ensures all behavioral updates (GPA, Risk, Alerts) happen in the correct order
+<span class="nc bnc" id="L203" title="All 2 branches missed.">        if (savedEnrollment.getFinalScore() != null) {</span>
+<span class="nc" id="L204">            notifyEnrollmentObservers(savedEnrollment);</span>
+        }
+
+<span class="nc" id="L207">        return convertToDTO(savedEnrollment);</span>
+    }
+
+    /**
+     * Delete an enrollment
+     * 
+     * @param id Enrollment database ID
+     * @throws RuntimeException if enrollment not found
+     */
+    public void deleteEnrollment(Long id) {
+<span class="nc" id="L217">        Enrollment enrollment = enrollmentRepository.findById(id)</span>
+<span class="nc" id="L218">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, id));</span>
+
+<span class="nc" id="L220">        Long studentId = enrollment.getStudent().getId();</span>
+<span class="nc" id="L221">        Long offeringId = enrollment.getCourseOffering().getId();</span>
+
+<span class="nc" id="L223">        enrollmentRepository.deleteById(id);</span>
+
+        // Update offering enrollment count
+<span class="nc" id="L226">        CourseOffering offering = courseOfferingRepository.findById(offeringId).orElse(null);</span>
+<span class="nc bnc" id="L227" title="All 4 branches missed.">        if (offering != null &amp;&amp; offering.getCurrentEnrollment() &gt; 0) {</span>
+<span class="nc" id="L228">            offering.setCurrentEnrollment(offering.getCurrentEnrollment() - 1);</span>
+<span class="nc" id="L229">            courseOfferingRepository.save(offering);</span>
+        }
+
+        // Recalculate student GPA
+<span class="nc" id="L233">        studentService.recalculateAndUpdateGpa(studentId);</span>
+<span class="nc" id="L234">    }</span>
+
+    // ==================== Grade Submission ====================
+
+    /**
+     * Complete enrollment with final grade.
+     * Auto-calculates letter grade and GPA value.
+     * Triggers student GPA recalculation.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @param finalScore Final score (0-10 scale)
+     * @return Updated EnrollmentDTO
+     * @throws RuntimeException if enrollment not found or already completed
+     */
+    public EnrollmentDTO completeEnrollment(Long enrollmentId, Double finalScore) {
+<span class="nc" id="L249">        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)</span>
+<span class="nc" id="L250">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, enrollmentId));</span>
+
+<span class="nc bnc" id="L252" title="All 2 branches missed.">        if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {</span>
+<span class="nc" id="L253">            throw new IllegalStateException(&quot;Enrollment is already completed&quot;);</span>
+        }
+
+<span class="nc bnc" id="L256" title="All 2 branches missed.">        if (enrollment.getStatus() == EnrollmentStatus.WITHDRAWN) {</span>
+<span class="nc" id="L257">            throw new IllegalStateException(&quot;Cannot complete a withdrawn enrollment&quot;);</span>
+        }
+
+        // Complete the enrollment (auto-calculates letterGrade and gpaValue)
+<span class="nc" id="L261">        enrollment.complete(finalScore);</span>
+<span class="nc" id="L262">        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);</span>
+
+        // Trigger student GPA recalculation
+<span class="nc" id="L265">        studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());</span>
+
+        // Notify observers about enrollment completion (Observer Pattern - Member 3)
+<span class="nc" id="L268">        notifyEnrollmentObservers(enrollment);</span>
+
+<span class="nc" id="L270">        return convertToDTO(savedEnrollment);</span>
+    }
+
+    /**
+     * Submit or update grade for an enrollment.
+     * Does not change status - use completeEnrollment for that.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @param score Score (0-10 scale)
+     * @return Updated EnrollmentDTO
+     */
+    public EnrollmentDTO submitGrade(Long enrollmentId, Double score) {
+<span class="nc" id="L282">        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)</span>
+<span class="nc" id="L283">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, enrollmentId));</span>
+
+<span class="nc" id="L285">        enrollment.setFinalScore(score);</span>
+<span class="nc" id="L286">        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);</span>
+
+        // Unified trigger via Observer Pattern
+<span class="nc" id="L289">        notifyEnrollmentObservers(savedEnrollment);</span>
+
+<span class="nc" id="L291">        return convertToDTO(savedEnrollment);</span>
+    }
+
+    /**
+     * Withdraw student from enrollment.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @return Updated EnrollmentDTO
+     * @throws RuntimeException if enrollment not found or already completed
+     */
+    public EnrollmentDTO withdrawEnrollment(Long enrollmentId) {
+<span class="nc" id="L302">        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)</span>
+<span class="nc" id="L303">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, enrollmentId));</span>
+
+<span class="nc bnc" id="L305" title="All 2 branches missed.">        if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {</span>
+<span class="nc" id="L306">            throw new IllegalStateException(&quot;Cannot withdraw from a completed enrollment&quot;);</span>
+        }
+
+<span class="nc bnc" id="L309" title="All 2 branches missed.">        if (enrollment.getStatus() == EnrollmentStatus.WITHDRAWN) {</span>
+<span class="nc" id="L310">            throw new IllegalStateException(&quot;Enrollment is already withdrawn&quot;);</span>
+        }
+
+<span class="nc" id="L313">        enrollment.withdraw();</span>
+<span class="nc" id="L314">        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);</span>
+
+        // Update offering enrollment count
+<span class="nc" id="L317">        CourseOffering offering = enrollment.getCourseOffering();</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">        if (offering.getCurrentEnrollment() &gt; 0) {</span>
+<span class="nc" id="L319">            offering.setCurrentEnrollment(offering.getCurrentEnrollment() - 1);</span>
+<span class="nc" id="L320">            courseOfferingRepository.save(offering);</span>
+        }
+
+<span class="nc" id="L323">        return convertToDTO(savedEnrollment);</span>
+    }
+
+    // ==================== GPA Calculation Helpers ====================
+
+    /**
+     * Calculate final grade using the Strategy Pattern.
+     * Gets the grading scale from CourseOffering and uses the appropriate strategy.
+     * 
+     * Integration points:
+     * - Strategy Pattern: Uses GradingStrategyFactory to get appropriate strategy
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @param rawScore Raw score to convert (0-10 scale)
+     * @return EnrollmentDTO with calculated grades
+     * @throws RuntimeException if enrollment not found
+     */
+    public EnrollmentDTO calculateFinalGradeWithStrategy(Long enrollmentId, Double rawScore) {
+<span class="nc" id="L341">        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)</span>
+<span class="nc" id="L342">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, enrollmentId));</span>
+
+        // Get grading scale from course offering
+<span class="nc" id="L345">        String gradingScale = enrollment.getCourseOffering().getGradingScale();</span>
+<span class="nc bnc" id="L346" title="All 4 branches missed.">        if (gradingScale == null || gradingScale.isBlank()) {</span>
+<span class="nc" id="L347">            gradingScale = &quot;SCALE_10&quot;; // Default</span>
+        }
+
+        // Get appropriate strategy from factory
+<span class="nc" id="L351">        IGradingStrategy strategy = gradingStrategyFactory.getStrategy(gradingScale);</span>
+
+        // Calculate grades using strategy
+<span class="nc" id="L354">        Double gpaValue = strategy.calculateGpa(rawScore);</span>
+<span class="nc" id="L355">        String letterGrade = strategy.calculateLetterGrade(rawScore);</span>
+<span class="nc" id="L356">        boolean isPassing = strategy.isPassing(rawScore);</span>
+
+        // Update enrollment
+<span class="nc" id="L359">        enrollment.setFinalScore(rawScore);</span>
+<span class="nc" id="L360">        enrollment.setGpaValue(gpaValue);</span>
+<span class="nc" id="L361">        enrollment.setLetterGrade(letterGrade);</span>
+
+        // If passing, mark status appropriately (but don't auto-complete)
+<span class="nc" id="L364">        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);</span>
+
+<span class="nc" id="L366">        return convertToDTO(savedEnrollment);</span>
+    }
+
+    /**
+     * Complete enrollment with final grade using Strategy Pattern.
+     * Auto-selects grading strategy based on CourseOffering's gradingScale.
+     * 
+     * @param enrollmentId Enrollment database ID
+     * @param rawScore Raw score (0-10 scale)
+     * @return Updated EnrollmentDTO
+     * @throws RuntimeException if enrollment not found or already completed
+     */
+    public EnrollmentDTO completeEnrollmentWithStrategy(Long enrollmentId, Double rawScore) {
+<span class="nc" id="L379">        Enrollment enrollment = enrollmentRepository.findById(enrollmentId)</span>
+<span class="nc" id="L380">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Enrollment&quot;, &quot;id&quot;, enrollmentId));</span>
+
+<span class="nc bnc" id="L382" title="All 2 branches missed.">        if (enrollment.getStatus() == EnrollmentStatus.COMPLETED) {</span>
+<span class="nc" id="L383">            throw new IllegalStateException(&quot;Enrollment is already completed&quot;);</span>
+        }
+
+<span class="nc bnc" id="L386" title="All 2 branches missed.">        if (enrollment.getStatus() == EnrollmentStatus.WITHDRAWN) {</span>
+<span class="nc" id="L387">            throw new IllegalStateException(&quot;Cannot complete a withdrawn enrollment&quot;);</span>
+        }
+
+        // Get grading scale and strategy
+<span class="nc" id="L391">        String gradingScale = enrollment.getCourseOffering().getGradingScale();</span>
+<span class="nc bnc" id="L392" title="All 4 branches missed.">        if (gradingScale == null || gradingScale.isBlank()) {</span>
+<span class="nc" id="L393">            gradingScale = &quot;SCALE_10&quot;;</span>
+        }
+<span class="nc" id="L395">        IGradingStrategy strategy = gradingStrategyFactory.getStrategy(gradingScale);</span>
+
+        // Calculate grades using strategy
+<span class="nc" id="L398">        Double gpaValue = strategy.calculateGpa(rawScore);</span>
+<span class="nc" id="L399">        String letterGrade = strategy.calculateLetterGrade(rawScore);</span>
+
+        // Update enrollment with calculated values
+<span class="nc" id="L402">        enrollment.setFinalScore(rawScore);</span>
+<span class="nc" id="L403">        enrollment.setGpaValue(gpaValue);</span>
+<span class="nc" id="L404">        enrollment.setLetterGrade(letterGrade);</span>
+<span class="nc" id="L405">        enrollment.setStatus(EnrollmentStatus.COMPLETED);</span>
+<span class="nc" id="L406">        enrollment.setCompletedAt(LocalDateTime.now());</span>
+
+<span class="nc" id="L408">        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);</span>
+
+        // Trigger student GPA recalculation
+<span class="nc" id="L411">        studentService.recalculateAndUpdateGpa(enrollment.getStudent().getId());</span>
+
+        // Notify observers about enrollment completion (Observer Pattern - Member 3)
+<span class="nc" id="L414">        notifyEnrollmentObservers(enrollment);</span>
+
+<span class="nc" id="L416">        return convertToDTO(savedEnrollment);</span>
+    }
+
+    /**
+     * Calculate GPA value from score (10-point to 4-point conversion).
+     * Static utility method that mirrors Enrollment entity logic.
+     * 
+     * @param score Score on 10-point scale
+     * @return GPA value on 4-point scale
+     * @deprecated Use calculateFinalGradeWithStrategy for strategy-based calculation
+     */
+    public static Double calculateGpaFromScore(Double score) {
+<span class="nc bnc" id="L428" title="All 2 branches missed.">        if (score == null) return null;</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">        if (score &gt;= 9.0) return 4.0;</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">        if (score &gt;= 8.5) return 3.7;</span>
+<span class="nc bnc" id="L431" title="All 2 branches missed.">        if (score &gt;= 8.0) return 3.5;</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">        if (score &gt;= 7.0) return 3.0;</span>
+<span class="nc bnc" id="L433" title="All 2 branches missed.">        if (score &gt;= 6.5) return 2.5;</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">        if (score &gt;= 5.5) return 2.0;</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">        if (score &gt;= 5.0) return 1.5;</span>
+<span class="nc bnc" id="L436" title="All 2 branches missed.">        if (score &gt;= 4.0) return 1.0;</span>
+<span class="nc" id="L437">        return 0.0;</span>
+    }
+
+    /**
+     * Calculate letter grade from score.
+     * Static utility method that mirrors Enrollment entity logic.
+     * 
+     * @param score Score on 10-point scale
+     * @return Letter grade (A, A-, B+, B, C+, C, D+, D, F)
+     */
+    public static String calculateLetterGrade(Double score) {
+<span class="nc bnc" id="L448" title="All 2 branches missed.">        if (score == null) return null;</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">        if (score &gt;= 9.0) return &quot;A&quot;;</span>
+<span class="nc bnc" id="L450" title="All 2 branches missed.">        if (score &gt;= 8.5) return &quot;A-&quot;;</span>
+<span class="nc bnc" id="L451" title="All 2 branches missed.">        if (score &gt;= 8.0) return &quot;B+&quot;;</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">        if (score &gt;= 7.0) return &quot;B&quot;;</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">        if (score &gt;= 6.5) return &quot;C+&quot;;</span>
+<span class="nc bnc" id="L454" title="All 2 branches missed.">        if (score &gt;= 5.5) return &quot;C&quot;;</span>
+<span class="nc bnc" id="L455" title="All 2 branches missed.">        if (score &gt;= 5.0) return &quot;D+&quot;;</span>
+<span class="nc bnc" id="L456" title="All 2 branches missed.">        if (score &gt;= 4.0) return &quot;D&quot;;</span>
+<span class="nc" id="L457">        return &quot;F&quot;;</span>
+    }
+
+    // ==================== Search and Filter ====================
+
+    /**
+     * Get enrollments by student ID
+     * 
+     * @param studentId Student database ID
+     * @return List of EnrollmentDTOs for the student
+     */
+    @Transactional(readOnly = true)
+    public List&lt;EnrollmentDTO&gt; getEnrollmentsByStudent(Long studentId) {
+<span class="nc bnc" id="L470" title="All 2 branches missed.">        if (!studentRepository.existsById(studentId)) {</span>
+<span class="nc" id="L471">            throw new ResourceNotFoundException(&quot;Student&quot;, &quot;id&quot;, studentId);</span>
+        }
+<span class="nc" id="L473">        return enrollmentRepository.findByStudentId(studentId).stream()</span>
+<span class="nc" id="L474">                .map(this::convertToDTO)</span>
+<span class="nc" id="L475">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get enrollments by course offering ID
+     * 
+     * @param offeringId CourseOffering database ID
+     * @return List of EnrollmentDTOs for the offering
+     */
+    @Transactional(readOnly = true)
+    public List&lt;EnrollmentDTO&gt; getEnrollmentsByOffering(Long offeringId) {
+<span class="nc bnc" id="L486" title="All 2 branches missed.">        if (!courseOfferingRepository.existsById(offeringId)) {</span>
+<span class="nc" id="L487">            throw new ResourceNotFoundException(&quot;CourseOffering&quot;, &quot;id&quot;, offeringId);</span>
+        }
+<span class="nc" id="L489">        return enrollmentRepository.findByCourseOfferingId(offeringId).stream()</span>
+<span class="nc" id="L490">                .map(this::convertToDTO)</span>
+<span class="nc" id="L491">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get enrollments by status
+     * 
+     * @param status EnrollmentStatus enum value
+     * @return List of EnrollmentDTOs with the specified status
+     */
+    @Transactional(readOnly = true)
+    public List&lt;EnrollmentDTO&gt; getEnrollmentsByStatus(EnrollmentStatus status) {
+<span class="nc" id="L502">        return enrollmentRepository.findByStatus(status).stream()</span>
+<span class="nc" id="L503">                .map(this::convertToDTO)</span>
+<span class="nc" id="L504">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get in-progress enrollments for a student
+     * 
+     * @param studentId Student database ID
+     * @return List of in-progress EnrollmentDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;EnrollmentDTO&gt; getInProgressEnrollments(Long studentId) {
+<span class="nc" id="L515">        return enrollmentRepository.findInProgressByStudent(studentId).stream()</span>
+<span class="nc" id="L516">                .map(this::convertToDTO)</span>
+<span class="nc" id="L517">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get completed enrollments for a student
+     * 
+     * @param studentId Student database ID
+     * @return List of completed EnrollmentDTOs
+     */
+    @Transactional(readOnly = true)
+    public List&lt;EnrollmentDTO&gt; getCompletedEnrollments(Long studentId) {
+<span class="nc" id="L528">        return enrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.COMPLETED).stream()</span>
+<span class="nc" id="L529">                .map(this::convertToDTO)</span>
+<span class="nc" id="L530">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Check if student is enrolled in a specific offering
+     * 
+     * @param studentId Student database ID
+     * @param offeringId CourseOffering database ID
+     * @return true if enrolled
+     */
+    @Transactional(readOnly = true)
+    public boolean isStudentEnrolled(Long studentId, Long offeringId) {
+<span class="nc" id="L542">        return enrollmentRepository.existsByStudentIdAndCourseOfferingId(studentId, offeringId);</span>
+    }
+
+    /**
+     * Get enrollment by student and offering
+     * 
+     * @param studentId Student database ID
+     * @param offeringId CourseOffering database ID
+     * @return EnrollmentDTO or null if not found
+     */
+    @Transactional(readOnly = true)
+    public EnrollmentDTO getEnrollmentByStudentAndOffering(Long studentId, Long offeringId) {
+<span class="nc" id="L554">        return enrollmentRepository.findByStudentIdAndCourseOfferingId(studentId, offeringId)</span>
+<span class="nc" id="L555">                .map(this::convertToDTO)</span>
+<span class="nc" id="L556">                .orElse(null);</span>
+    }
+
+    // ==================== DTO Conversion Helpers ====================
+
+    /**
+     * Convert Enrollment entity to EnrollmentDTO
+     */
+    private EnrollmentDTO convertToDTO(Enrollment enrollment) {
+<span class="nc" id="L565">        EnrollmentDTO dto = new EnrollmentDTO();</span>
+<span class="nc" id="L566">        dto.setId(enrollment.getId());</span>
+<span class="nc" id="L567">        dto.setStudentId(enrollment.getStudent().getId());</span>
+<span class="nc" id="L568">        dto.setStudentName(enrollment.getStudent().getFullName());</span>
+<span class="nc" id="L569">        dto.setStudentCode(enrollment.getStudent().getStudentId());</span>
+<span class="nc" id="L570">        dto.setCourseOfferingId(enrollment.getCourseOffering().getId());</span>
+<span class="nc" id="L571">        dto.setCourseCode(enrollment.getCourseOffering().getCourse().getCourseCode());</span>
+<span class="nc" id="L572">        dto.setCourseName(enrollment.getCourseOffering().getCourse().getCourseName());</span>
+<span class="nc" id="L573">        dto.setCredits(enrollment.getCourseOffering().getCourse().getCredits());</span>
+<span class="nc" id="L574">        dto.setSemester(enrollment.getCourseOffering().getSemester().getDisplayName());</span>
+<span class="nc" id="L575">        dto.setAcademicYear(enrollment.getCourseOffering().getAcademicYear());</span>
+<span class="nc" id="L576">        dto.setFinalScore(enrollment.getFinalScore());</span>
+<span class="nc" id="L577">        dto.setLetterGrade(enrollment.getLetterGrade());</span>
+<span class="nc" id="L578">        dto.setGpaValue(enrollment.getGpaValue());</span>
+<span class="nc" id="L579">        dto.setStatus(enrollment.getStatus());</span>
+<span class="nc" id="L580">        dto.setEnrolledAt(enrollment.getEnrolledAt());</span>
+<span class="nc" id="L581">        dto.setCompletedAt(enrollment.getCompletedAt());</span>
+        
+        // Convert grade entries if present
+<span class="nc bnc" id="L584" title="All 4 branches missed.">        if (enrollment.getGradeEntries() != null &amp;&amp; !enrollment.getGradeEntries().isEmpty()) {</span>
+<span class="nc" id="L585">            List&lt;GradeEntryDTO&gt; gradeEntryDTOs = enrollment.getGradeEntries().stream()</span>
+<span class="nc bnc" id="L586" title="All 2 branches missed.">                    .filter(ge -&gt; ge.getParent() == null) // Only top-level entries</span>
+<span class="nc" id="L587">                    .map(this::convertGradeEntryToDTO)</span>
+<span class="nc" id="L588">                    .collect(Collectors.toList());</span>
+<span class="nc" id="L589">            dto.setGradeEntries(gradeEntryDTOs);</span>
+        }
+        
+<span class="nc" id="L592">        return dto;</span>
+    }
+
+    /**
+     * Convert GradeEntry entity to GradeEntryDTO (with children)
+     */
+    private GradeEntryDTO convertGradeEntryToDTO(GradeEntry gradeEntry) {
+<span class="nc" id="L599">        GradeEntryDTO dto = new GradeEntryDTO();</span>
+<span class="nc" id="L600">        dto.setId(gradeEntry.getId());</span>
+<span class="nc" id="L601">        dto.setEnrollmentId(gradeEntry.getEnrollment().getId());</span>
+<span class="nc" id="L602">        dto.setName(gradeEntry.getName());</span>
+<span class="nc" id="L603">        dto.setWeight(gradeEntry.getWeight());</span>
+<span class="nc" id="L604">        dto.setScore(gradeEntry.getScore());</span>
+<span class="nc" id="L605">        dto.setCalculatedScore(gradeEntry.getCalculatedScore());</span>
+<span class="nc" id="L606">        dto.setEntryType(gradeEntry.getEntryType());</span>
+<span class="nc" id="L607">        dto.setRecordedBy(gradeEntry.getRecordedBy());</span>
+<span class="nc" id="L608">        dto.setRecordedAt(gradeEntry.getRecordedAt());</span>
+<span class="nc" id="L609">        dto.setNotes(gradeEntry.getNotes());</span>
+        
+        // Set course and student info from enrollment
+<span class="nc" id="L612">        Enrollment enrollment = gradeEntry.getEnrollment();</span>
+<span class="nc" id="L613">        dto.setCourseCode(enrollment.getCourseOffering().getCourse().getCourseCode());</span>
+<span class="nc" id="L614">        dto.setCourseName(enrollment.getCourseOffering().getCourse().getCourseName());</span>
+<span class="nc" id="L615">        dto.setStudentName(enrollment.getStudent().getFullName());</span>
+        
+<span class="nc bnc" id="L617" title="All 2 branches missed.">        if (gradeEntry.getParent() != null) {</span>
+<span class="nc" id="L618">            dto.setParentId(gradeEntry.getParent().getId());</span>
+        }
+        
+        // Recursively convert children
+<span class="nc bnc" id="L622" title="All 4 branches missed.">        if (gradeEntry.getChildren() != null &amp;&amp; !gradeEntry.getChildren().isEmpty()) {</span>
+<span class="nc" id="L623">            List&lt;GradeEntryDTO&gt; childDTOs = gradeEntry.getChildren().stream()</span>
+<span class="nc" id="L624">                    .map(this::convertGradeEntryToDTO)</span>
+<span class="nc" id="L625">                    .collect(Collectors.toList());</span>
+<span class="nc" id="L626">            dto.setChildren(childDTOs);</span>
+        }
+        
+<span class="nc" id="L629">        return dto;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

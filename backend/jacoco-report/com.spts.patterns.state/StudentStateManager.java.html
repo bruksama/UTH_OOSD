@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StudentStateManager.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.patterns.state</a> &gt; <span class="el_source">StudentStateManager.java</span></div><h1>StudentStateManager.java</h1><pre class="source lang-java linenums">package com.spts.patterns.state;
+
+import com.spts.entity.Student;
+import com.spts.entity.StudentStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.util.EnumMap;
+import java.util.Map;
+
+/**
+ * Manager class for Student State Pattern.
+ * 
+ * Centralizes state transition logic and provides:
+ * - Mapping between StudentStatus enum and StudentState objects
+ * - GPA-based status determination
+ * - State transition handling
+ * 
+ * Reference: OOSD Chapter 6 - State Pattern
+ * 
+ * @author SPTS Team - Member 3 (Behavioral Engineer)
+ */
+@Component
+public class StudentStateManager {
+
+<span class="fc" id="L27">    private static final Logger logger = LoggerFactory.getLogger(StudentStateManager.class);</span>
+    
+    // GPA Thresholds
+    private static final double NORMAL_THRESHOLD = 2.0;
+    private static final double AT_RISK_THRESHOLD = 1.5;
+    
+    // State instances mapped to status
+    private final Map&lt;StudentStatus, StudentState&gt; states;
+    
+    public StudentStateManager(NormalState normalState,
+                               AtRiskState atRiskState,
+                               ProbationState probationState,
+<span class="fc" id="L39">                               GraduatedState graduatedState) {</span>
+<span class="fc" id="L40">        this.states = new EnumMap&lt;&gt;(StudentStatus.class);</span>
+<span class="fc" id="L41">        this.states.put(StudentStatus.NORMAL, normalState);</span>
+<span class="fc" id="L42">        this.states.put(StudentStatus.AT_RISK, atRiskState);</span>
+<span class="fc" id="L43">        this.states.put(StudentStatus.PROBATION, probationState);</span>
+<span class="fc" id="L44">        this.states.put(StudentStatus.GRADUATED, graduatedState);</span>
+        
+<span class="fc" id="L46">        logger.info(&quot;StudentStateManager initialized with {} states&quot;, states.size());</span>
+<span class="fc" id="L47">    }</span>
+    
+    /**
+     * Get the StudentState object for a given status.
+     * 
+     * @param status StudentStatus enum value
+     * @return Corresponding StudentState object
+     */
+    public StudentState getStateForStatus(StudentStatus status) {
+<span class="fc" id="L56">        return states.get(status);</span>
+    }
+    
+    /**
+     * Determine the appropriate StudentStatus based on GPA.
+     * 
+     * @param gpa Current GPA value
+     * @return Appropriate StudentStatus
+     */
+    public StudentStatus determineStatusFromGpa(Double gpa) {
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (gpa == null) {</span>
+<span class="fc" id="L67">            return StudentStatus.NORMAL; // Default for new students</span>
+        }
+        
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (gpa &gt;= NORMAL_THRESHOLD) {</span>
+<span class="fc" id="L71">            return StudentStatus.NORMAL;</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        } else if (gpa &gt;= AT_RISK_THRESHOLD) {</span>
+<span class="fc" id="L73">            return StudentStatus.AT_RISK;</span>
+        } else {
+<span class="fc" id="L75">            return StudentStatus.PROBATION;</span>
+        }
+    }
+    
+    /**
+     * Handle state transition for a student based on new GPA.
+     * 
+     * @param student The student to update
+     * @param newGpa  The new GPA value
+     * @return The new StudentStatus after transition
+     */
+    public StudentStatus handleStateTransition(Student student, Double newGpa) {
+<span class="fc" id="L87">        StudentStatus currentStatus = student.getStatus();</span>
+<span class="fc" id="L88">        StudentStatus newStatus = determineStatusFromGpa(newGpa);</span>
+        
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (currentStatus != newStatus) {</span>
+<span class="fc" id="L91">            logger.info(&quot;Student {} transitioning from {} to {} (GPA: {})&quot;,</span>
+<span class="fc" id="L92">                    student.getStudentId(), currentStatus, newStatus, newGpa);</span>
+        }
+        
+<span class="fc" id="L95">        return newStatus;</span>
+    }
+    
+    /**
+     * Check if a student can register for courses based on their status.
+     * 
+     * @param status StudentStatus to check
+     * @return true if registration is allowed
+     */
+    public boolean canRegisterCourses(StudentStatus status) {
+<span class="fc" id="L105">        StudentState state = getStateForStatus(status);</span>
+<span class="pc bpc" id="L106" title="1 of 4 branches missed.">        return state != null &amp;&amp; state.canRegisterCourses();</span>
+    }
+    
+    /**
+     * Get the maximum credit hours allowed for a status.
+     * 
+     * @param status StudentStatus to check
+     * @return Maximum credit hours, or 0 if status not found
+     */
+    public int getMaxCreditHours(StudentStatus status) {
+<span class="fc" id="L116">        StudentState state = getStateForStatus(status);</span>
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">        return state != null ? state.getMaxCreditHours() : 0;</span>
+    }
+    
+    /**
+     * Check if counseling is required for a status.
+     * 
+     * @param status StudentStatus to check
+     * @return true if counseling is required
+     */
+    public boolean requiresCounseling(StudentStatus status) {
+<span class="fc" id="L127">        StudentState state = getStateForStatus(status);</span>
+<span class="pc bpc" id="L128" title="1 of 4 branches missed.">        return state != null &amp;&amp; state.requiresCounseling();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

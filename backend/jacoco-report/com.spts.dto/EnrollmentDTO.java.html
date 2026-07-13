@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnrollmentDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.dto</a> &gt; <span class="el_source">EnrollmentDTO.java</span></div><h1>EnrollmentDTO.java</h1><pre class="source lang-java linenums">package com.spts.dto;
+
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.spts.entity.EnrollmentStatus;
+import jakarta.validation.constraints.*;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Data Transfer Object for Enrollment entity.
+ * 
+ * @author SPTS Team
+ */
+public class EnrollmentDTO {
+
+    private Long id;
+
+    @NotNull(message = &quot;Student ID is required&quot;)
+    private Long studentId;
+    
+    private String studentName;
+    private String studentCode;
+
+    @JsonAlias(&quot;offeringId&quot;)
+    @NotNull(message = &quot;Course offering ID is required&quot;)
+    private Long courseOfferingId;
+    
+    private String courseCode;
+    private String courseName;
+    private Integer credits;
+    private String semester;
+    private Integer academicYear;
+
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;Final score cannot be less than 0&quot;)
+    @DecimalMax(value = &quot;10.0&quot;, message = &quot;Final score cannot exceed 10&quot;)
+    private Double finalScore;
+
+    private String letterGrade;
+
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;GPA value cannot be less than 0&quot;)
+    @DecimalMax(value = &quot;4.0&quot;, message = &quot;GPA value cannot exceed 4.0&quot;)
+    private Double gpaValue;
+
+    private EnrollmentStatus status;
+    private LocalDateTime enrolledAt;
+    private LocalDateTime completedAt;
+
+    private List&lt;GradeEntryDTO&gt; gradeEntries;
+
+    // Constructors
+<span class="nc" id="L51">    public EnrollmentDTO() {</span>
+<span class="nc" id="L52">    }</span>
+
+    // Getters and Setters
+    public Long getId() {
+<span class="nc" id="L56">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L60">        this.id = id;</span>
+<span class="nc" id="L61">    }</span>
+
+    public Long getStudentId() {
+<span class="nc" id="L64">        return studentId;</span>
+    }
+
+    public void setStudentId(Long studentId) {
+<span class="nc" id="L68">        this.studentId = studentId;</span>
+<span class="nc" id="L69">    }</span>
+
+    public String getStudentName() {
+<span class="nc" id="L72">        return studentName;</span>
+    }
+
+    public void setStudentName(String studentName) {
+<span class="nc" id="L76">        this.studentName = studentName;</span>
+<span class="nc" id="L77">    }</span>
+
+    public String getStudentCode() {
+<span class="nc" id="L80">        return studentCode;</span>
+    }
+
+    public void setStudentCode(String studentCode) {
+<span class="nc" id="L84">        this.studentCode = studentCode;</span>
+<span class="nc" id="L85">    }</span>
+
+    public Long getCourseOfferingId() {
+<span class="nc" id="L88">        return courseOfferingId;</span>
+    }
+
+    public void setCourseOfferingId(Long courseOfferingId) {
+<span class="nc" id="L92">        this.courseOfferingId = courseOfferingId;</span>
+<span class="nc" id="L93">    }</span>
+
+    public Long getOfferingId() {
+<span class="nc" id="L96">        return courseOfferingId;</span>
+    }
+
+    public void setOfferingId(Long offeringId) {
+<span class="nc" id="L100">        this.courseOfferingId = offeringId;</span>
+<span class="nc" id="L101">    }</span>
+
+    public String getCourseCode() {
+<span class="nc" id="L104">        return courseCode;</span>
+    }
+
+    public void setCourseCode(String courseCode) {
+<span class="nc" id="L108">        this.courseCode = courseCode;</span>
+<span class="nc" id="L109">    }</span>
+
+    public String getCourseName() {
+<span class="nc" id="L112">        return courseName;</span>
+    }
+
+    public void setCourseName(String courseName) {
+<span class="nc" id="L116">        this.courseName = courseName;</span>
+<span class="nc" id="L117">    }</span>
+
+    public Integer getCredits() {
+<span class="nc" id="L120">        return credits;</span>
+    }
+
+    public void setCredits(Integer credits) {
+<span class="nc" id="L124">        this.credits = credits;</span>
+<span class="nc" id="L125">    }</span>
+
+    public String getSemester() {
+<span class="nc" id="L128">        return semester;</span>
+    }
+
+    public void setSemester(String semester) {
+<span class="nc" id="L132">        this.semester = semester;</span>
+<span class="nc" id="L133">    }</span>
+
+    public Integer getAcademicYear() {
+<span class="nc" id="L136">        return academicYear;</span>
+    }
+
+    public void setAcademicYear(Integer academicYear) {
+<span class="nc" id="L140">        this.academicYear = academicYear;</span>
+<span class="nc" id="L141">    }</span>
+
+    public Double getFinalScore() {
+<span class="nc" id="L144">        return finalScore;</span>
+    }
+
+    public void setFinalScore(Double finalScore) {
+<span class="nc" id="L148">        this.finalScore = finalScore;</span>
+<span class="nc" id="L149">    }</span>
+
+    public String getLetterGrade() {
+<span class="nc" id="L152">        return letterGrade;</span>
+    }
+
+    public void setLetterGrade(String letterGrade) {
+<span class="nc" id="L156">        this.letterGrade = letterGrade;</span>
+<span class="nc" id="L157">    }</span>
+
+    public Double getGpaValue() {
+<span class="nc" id="L160">        return gpaValue;</span>
+    }
+
+    public void setGpaValue(Double gpaValue) {
+<span class="nc" id="L164">        this.gpaValue = gpaValue;</span>
+<span class="nc" id="L165">    }</span>
+
+    public EnrollmentStatus getStatus() {
+<span class="nc" id="L168">        return status;</span>
+    }
+
+    public void setStatus(EnrollmentStatus status) {
+<span class="nc" id="L172">        this.status = status;</span>
+<span class="nc" id="L173">    }</span>
+
+    public LocalDateTime getEnrolledAt() {
+<span class="nc" id="L176">        return enrolledAt;</span>
+    }
+
+    public void setEnrolledAt(LocalDateTime enrolledAt) {
+<span class="nc" id="L180">        this.enrolledAt = enrolledAt;</span>
+<span class="nc" id="L181">    }</span>
+
+    public LocalDateTime getCompletedAt() {
+<span class="nc" id="L184">        return completedAt;</span>
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+<span class="nc" id="L188">        this.completedAt = completedAt;</span>
+<span class="nc" id="L189">    }</span>
+
+    public List&lt;GradeEntryDTO&gt; getGradeEntries() {
+<span class="nc" id="L192">        return gradeEntries;</span>
+    }
+
+    public void setGradeEntries(List&lt;GradeEntryDTO&gt; gradeEntries) {
+<span class="nc" id="L196">        this.gradeEntries = gradeEntries;</span>
+<span class="nc" id="L197">    }</span>
+
+    /**
+     * Get display name combining course and semester info
+     */
+    public String getDisplayName() {
+<span class="nc" id="L203">        return courseName + &quot; - &quot; + semester + &quot; &quot; + academicYear;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

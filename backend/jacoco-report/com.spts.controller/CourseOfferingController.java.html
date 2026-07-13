@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CourseOfferingController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.controller</a> &gt; <span class="el_source">CourseOfferingController.java</span></div><h1>CourseOfferingController.java</h1><pre class="source lang-java linenums">package com.spts.controller;
+
+import com.spts.dto.CourseOfferingDTO;
+import com.spts.dto.EnrollmentDTO;
+import com.spts.entity.Semester;
+import com.spts.service.CourseOfferingService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import jakarta.validation.Valid;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * REST controller for CourseOffering management.
+ * Provides endpoints for CRUD operations and enrollment management.
+ * 
+ * CourseOffering represents the Occurrence in Abstraction-Occurrence Pattern.
+ * Each CourseOffering is a specific instance of a Course in a particular semester.
+ * 
+ * @author SPTS Team
+ */
+@RestController
+@RequestMapping(&quot;/api/offerings&quot;)
+@Tag(name = &quot;Course Offerings&quot;, description = &quot;Course offering management APIs&quot;)
+public class CourseOfferingController {
+
+    private final CourseOfferingService courseOfferingService;
+
+<span class="fc" id="L38">    public CourseOfferingController(CourseOfferingService courseOfferingService) {</span>
+<span class="fc" id="L39">        this.courseOfferingService = courseOfferingService;</span>
+<span class="fc" id="L40">    }</span>
+
+    // ==================== CRUD Operations ====================
+
+    @GetMapping
+    @Operation(summary = &quot;Get all offerings&quot;, description = &quot;Retrieves a list of course offerings (filtered by user if provided)&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved list of offerings&quot;)
+    public ResponseEntity&lt;List&lt;CourseOfferingDTO&gt;&gt; getAllOfferings(
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false, defaultValue = &quot;student&quot;) String role) {
+<span class="nc" id="L50">        return ResponseEntity.ok(courseOfferingService.getAllOfferingsFiltered(email, role));</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Get offering by ID&quot;, description = &quot;Retrieves a course offering by its database ID&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Offering found&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Offering not found&quot;)
+    })
+    public ResponseEntity&lt;CourseOfferingDTO&gt; getOfferingById(
+            @Parameter(description = &quot;Offering database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L61">        return ResponseEntity.ok(courseOfferingService.getOfferingById(id));</span>
+    }
+
+    @PostMapping
+    @Operation(summary = &quot;Create new offering&quot;, description = &quot;Creates a new course offering&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Offering created successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Course not found&quot;),
+        @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Offering already exists for this course/semester/year&quot;)
+    })
+    public ResponseEntity&lt;CourseOfferingDTO&gt; createOffering(
+            @Valid @RequestBody CourseOfferingDTO dto) {
+<span class="nc" id="L74">        return new ResponseEntity&lt;&gt;(courseOfferingService.createOffering(dto), HttpStatus.CREATED);</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Update offering&quot;, description = &quot;Updates an existing course offering&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Offering updated successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Offering not found&quot;),
+        @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Offering already exists for this course/semester/year&quot;)
+    })
+    public ResponseEntity&lt;CourseOfferingDTO&gt; updateOffering(
+            @Parameter(description = &quot;Offering database ID&quot;) @PathVariable Long id,
+            @Valid @RequestBody CourseOfferingDTO dto) {
+<span class="nc" id="L88">        return ResponseEntity.ok(courseOfferingService.updateOffering(id, dto));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Delete offering&quot;, description = &quot;Deletes a course offering (fails if offering has enrollments)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Offering deleted successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Offering has existing enrollments&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Offering not found&quot;)
+    })
+    public ResponseEntity&lt;Void&gt; deleteOffering(
+            @Parameter(description = &quot;Offering database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L100">        courseOfferingService.deleteOffering(id);</span>
+<span class="nc" id="L101">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // ==================== Related Data ====================
+
+    @GetMapping(&quot;/{id}/enrollments&quot;)
+    @Operation(summary = &quot;Get offering enrollments&quot;, description = &quot;Retrieves all enrollments for a course offering&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved enrollments&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Offering not found&quot;)
+    })
+    public ResponseEntity&lt;List&lt;EnrollmentDTO&gt;&gt; getOfferingEnrollments(
+            @Parameter(description = &quot;Offering database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L114">        return ResponseEntity.ok(courseOfferingService.getOfferingEnrollments(id));</span>
+    }
+
+    // ==================== Queries ====================
+
+    @GetMapping(&quot;/semester&quot;)
+    @Operation(summary = &quot;Get offerings by semester and year&quot;, description = &quot;Retrieves offerings for a specific semester and academic year&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved offerings&quot;)
+    public ResponseEntity&lt;List&lt;CourseOfferingDTO&gt;&gt; getOfferingsBySemesterAndYear(
+            @Parameter(description = &quot;Semester (FALL, SPRING, SUMMER)&quot;) @RequestParam Semester semester,
+            @Parameter(description = &quot;Academic year&quot;) @RequestParam Integer year) {
+<span class="nc" id="L125">        return ResponseEntity.ok(courseOfferingService.getOfferingsBySemesterAndYear(semester, year));</span>
+    }
+
+    @GetMapping(&quot;/year/{year}&quot;)
+    @Operation(summary = &quot;Get offerings by year&quot;, description = &quot;Retrieves all offerings for an academic year&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved offerings&quot;)
+    public ResponseEntity&lt;List&lt;CourseOfferingDTO&gt;&gt; getOfferingsByYear(
+            @Parameter(description = &quot;Academic year&quot;) @PathVariable Integer year) {
+<span class="nc" id="L133">        return ResponseEntity.ok(courseOfferingService.getOfferingsByYear(year));</span>
+    }
+
+    @GetMapping(&quot;/instructor/{instructor}&quot;)
+    @Operation(summary = &quot;Get offerings by instructor&quot;, description = &quot;Retrieves offerings taught by a specific instructor&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved offerings&quot;)
+    public ResponseEntity&lt;List&lt;CourseOfferingDTO&gt;&gt; getOfferingsByInstructor(
+            @Parameter(description = &quot;Instructor name&quot;) @PathVariable String instructor) {
+<span class="nc" id="L141">        return ResponseEntity.ok(courseOfferingService.getOfferingsByInstructor(instructor));</span>
+    }
+
+    @GetMapping(&quot;/available&quot;)
+    @Operation(summary = &quot;Get offerings with available seats&quot;, description = &quot;Retrieves offerings that have open seats for enrollment&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved offerings&quot;)
+    public ResponseEntity&lt;List&lt;CourseOfferingDTO&gt;&gt; getOfferingsWithAvailableSeats() {
+<span class="nc" id="L148">        return ResponseEntity.ok(courseOfferingService.getOfferingsWithAvailableSeats());</span>
+    }
+
+    @GetMapping(&quot;/current&quot;)
+    @Operation(summary = &quot;Get current offerings&quot;, description = &quot;Retrieves offerings for the current semester&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved offerings&quot;)
+    public ResponseEntity&lt;List&lt;CourseOfferingDTO&gt;&gt; getCurrentOfferings(
+            @Parameter(description = &quot;Current semester&quot;) @RequestParam Semester semester,
+            @Parameter(description = &quot;Current year&quot;) @RequestParam Integer year) {
+<span class="nc" id="L157">        return ResponseEntity.ok(courseOfferingService.getCurrentOfferings(semester, year));</span>
+    }
+
+    @GetMapping(&quot;/instructors&quot;)
+    @Operation(summary = &quot;Get all instructors&quot;, description = &quot;Retrieves a list of all distinct instructor names&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved instructors&quot;)
+    public ResponseEntity&lt;List&lt;String&gt;&gt; getAllInstructors() {
+<span class="nc" id="L164">        return ResponseEntity.ok(courseOfferingService.getAllInstructors());</span>
+    }
+
+    @GetMapping(&quot;/{id}/seats&quot;)
+    @Operation(summary = &quot;Get available seats&quot;, description = &quot;Gets the number of available seats in an offering&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved seat count&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Offering not found&quot;)
+    })
+    public ResponseEntity&lt;Integer&gt; getAvailableSeats(
+            @Parameter(description = &quot;Offering database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L175">        return ResponseEntity.ok(courseOfferingService.getAvailableSeats(id));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

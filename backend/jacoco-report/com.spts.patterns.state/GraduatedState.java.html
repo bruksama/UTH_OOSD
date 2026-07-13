@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GraduatedState.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.patterns.state</a> &gt; <span class="el_source">GraduatedState.java</span></div><h1>GraduatedState.java</h1><pre class="source lang-java linenums">package com.spts.patterns.state;
+
+import com.spts.entity.Student;
+import org.springframework.stereotype.Component;
+
+/**
+ * Graduated state - terminal state.
+ * 
+ * Criteria: Completed all graduation requirements
+ * - No course registration allowed
+ * - No counseling required
+ * - Academic record finalized
+ * 
+ * @author SPTS Team
+ */
+@Component
+<span class="fc" id="L17">public class GraduatedState extends StudentState {</span>
+
+    private static final String STATE_NAME = &quot;GRADUATED&quot;;
+    private static final int MAX_CREDITS = 0;
+
+    @Override
+    public String getStateName() {
+<span class="nc" id="L24">        return STATE_NAME;</span>
+    }
+
+    @Override
+    public boolean canRegisterCourses() {
+        // Graduated students cannot register for courses
+<span class="fc" id="L30">        return false;</span>
+    }
+
+    @Override
+    public boolean requiresCounseling() {
+<span class="fc" id="L35">        return false;</span>
+    }
+
+    @Override
+    public int getMaxCreditHours() {
+<span class="fc" id="L40">        return MAX_CREDITS;</span>
+    }
+
+    @Override
+    public StudentState handleGpaChange(Student student, double newGpa) {
+        // Graduated is a terminal state - no transitions
+<span class="nc" id="L46">        return this;</span>
+    }
+
+    @Override
+    public String getRequiredActions() {
+<span class="nc" id="L51">        return &quot;Congratulations! All academic requirements completed. &quot; +</span>
+               &quot;Proceed with graduation ceremony registration.&quot;;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

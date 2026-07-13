@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RiskDetectorObserver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.patterns.observer</a> &gt; <span class="el_source">RiskDetectorObserver.java</span></div><h1>RiskDetectorObserver.java</h1><pre class="source lang-java linenums">package com.spts.patterns.observer;
+
+import com.spts.entity.AlertLevel;
+import com.spts.entity.AlertType;
+import com.spts.entity.Enrollment;
+import com.spts.entity.GradeEntry;
+import com.spts.entity.Student;
+import com.spts.service.AlertService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+/**
+ * Observer implementation for detecting at-risk students.
+ * 
+ * Monitors GPA changes and creates alerts when:
+ * - GPA falls below 2.0 (AT_RISK threshold)
+ * - GPA falls below 1.5 (PROBATION threshold)
+ * 
+ * @author SPTS Team - Member 3 (Behavioral Engineer)
+ */
+@Component
+public class RiskDetectorObserver implements IGradeObserver {
+
+<span class="fc" id="L25">    private static final Logger logger = LoggerFactory.getLogger(RiskDetectorObserver.class);</span>
+    private static final String OBSERVER_NAME = &quot;Risk Detector&quot;;
+    
+    private static final double AT_RISK_THRESHOLD = 2.0;
+    private static final double PROBATION_THRESHOLD = 1.5;
+    
+    private final AlertService alertService;
+    
+<span class="fc" id="L33">    public RiskDetectorObserver(AlertService alertService) {</span>
+<span class="fc" id="L34">        this.alertService = alertService;</span>
+<span class="fc" id="L35">    }</span>
+
+    @Override
+    public void onGradeUpdated(Student student, Enrollment enrollment, GradeEntry gradeEntry) {
+<span class="nc" id="L39">        logger.info(&quot;Checking risk status for student: {} after grade update&quot;, student.getStudentId());</span>
+        
+<span class="nc" id="L41">        Double currentGpa = student.getGpa();</span>
+<span class="nc" id="L42">        Integer totalCredits = student.getTotalCredits();</span>
+        
+<span class="nc bnc" id="L44" title="All 6 branches missed.">        if (currentGpa == null || totalCredits == null || totalCredits == 0) {</span>
+<span class="nc" id="L45">            logger.debug(&quot;Student {} has no GPA or credits yet, skipping risk detection&quot;, student.getStudentId());</span>
+<span class="nc" id="L46">            return;</span>
+        }
+        
+        // Check enrollment grade
+<span class="nc" id="L50">        Double enrollmentGpa = enrollment.getGpaValue();</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (enrollmentGpa != null) {</span>
+<span class="nc" id="L52">            logger.debug(&quot;Enrollment GPA for {}: {}&quot;, </span>
+<span class="nc" id="L53">                    enrollment.getCourseOffering().getDisplayName(), enrollmentGpa);</span>
+        }
+        
+        // Create alerts based on GPA thresholds
+        // Create alerts based on GPA thresholds
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (currentGpa &lt; PROBATION_THRESHOLD) {</span>
+<span class="nc" id="L59">            createAlert(student, AlertLevel.CRITICAL, AlertType.PROBATION,</span>
+<span class="nc" id="L60">                String.format(&quot;Student GPA (%.2f) is below probation threshold (%.1f)&quot;, </span>
+<span class="nc" id="L61">                    currentGpa, PROBATION_THRESHOLD));</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        } else if (currentGpa &lt; AT_RISK_THRESHOLD) {</span>
+<span class="nc" id="L63">            createAlert(student, AlertLevel.WARNING, AlertType.LOW_GPA,</span>
+<span class="nc" id="L64">                String.format(&quot;Student GPA (%.2f) is below at-risk threshold (%.1f)&quot;, </span>
+<span class="nc" id="L65">                    currentGpa, AT_RISK_THRESHOLD));</span>
+        } else {
+            // GPA is healthy (&gt;= 2.0)
+            // Resolve any existing risk alerts
+<span class="nc" id="L69">            int resolvedProbation = alertService.resolveAlertsByType(student.getId(), AlertType.PROBATION, &quot;System_AutoResolve&quot;);</span>
+<span class="nc" id="L70">            int resolvedRisk = alertService.resolveAlertsByType(student.getId(), AlertType.LOW_GPA, &quot;System_AutoResolve&quot;);</span>
+            
+<span class="nc bnc" id="L72" title="All 4 branches missed.">            if (resolvedProbation &gt; 0 || resolvedRisk &gt; 0) {</span>
+<span class="nc" id="L73">                logger.info(&quot;Auto-resolved {} probation/risk alerts for student {} due to GPA improvement&quot;, </span>
+<span class="nc" id="L74">                        resolvedProbation + resolvedRisk, student.getStudentId());</span>
+                        
+                // Create improvement alert
+<span class="nc" id="L77">                createAlert(student, AlertLevel.INFO, AlertType.IMPROVEMENT,</span>
+<span class="nc" id="L78">                    String.format(&quot;Great job! Your GPA (%.2f) has improved and is now in good standing.&quot;, currentGpa));</span>
+            }
+        }
+<span class="nc" id="L81">    }</span>
+    
+    /**
+     * Create alert only if no unresolved alert of same type exists.
+     * Prevents duplicate alerts when grades update frequently.
+     */
+    private void createAlert(Student student, AlertLevel level, AlertType type, String message) {
+        try {
+            // De-duplication: Check if unresolved alert already exists
+<span class="nc bnc" id="L90" title="All 2 branches missed.">            if (alertService.hasUnresolvedAlert(student.getId(), type)) {</span>
+<span class="nc" id="L91">                logger.debug(&quot;Skipping alert creation - unresolved {} alert already exists for student {}&quot;, </span>
+<span class="nc" id="L92">                        type, student.getStudentId());</span>
+<span class="nc" id="L93">                return;</span>
+            }
+            
+<span class="nc" id="L96">            alertService.createAlert(student, level, type, message);</span>
+<span class="nc" id="L97">            logger.info(&quot;Created {} alert for student {}: {}&quot;, level, student.getStudentId(), type);</span>
+<span class="nc" id="L98">        } catch (Exception e) {</span>
+<span class="nc" id="L99">            logger.error(&quot;Failed to create alert for student {}: {}&quot;, student.getStudentId(), e.getMessage());</span>
+<span class="nc" id="L100">        }</span>
+<span class="nc" id="L101">    }</span>
+
+    @Override
+    public int getPriority() {
+        // Second priority - runs after GPA recalculation
+<span class="fc" id="L106">        return 10;</span>
+    }
+
+    @Override
+    public String getObserverName() {
+<span class="nc" id="L111">        return OBSERVER_NAME;</span>
+    }
+}
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

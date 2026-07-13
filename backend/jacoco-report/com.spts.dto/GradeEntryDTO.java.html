@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GradeEntryDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.dto</a> &gt; <span class="el_source">GradeEntryDTO.java</span></div><h1>GradeEntryDTO.java</h1><pre class="source lang-java linenums">package com.spts.dto;
+
+import com.spts.entity.GradeEntryType;
+import jakarta.validation.constraints.*;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * Data Transfer Object for GradeEntry entity.
+ * Supports hierarchical structure for Composite Pattern.
+ * 
+ * @author SPTS Team
+ */
+public class GradeEntryDTO {
+
+    private Long id;
+
+    @NotNull(message = &quot;Enrollment ID is required&quot;)
+    private Long enrollmentId;
+
+    /**
+     * Parent grade entry ID for Composite Pattern
+     * NULL for root entries
+     */
+    private Long parentId;
+
+    /**
+     * Child grade entries (for hierarchical display)
+     */
+    private List&lt;GradeEntryDTO&gt; children;
+
+    @NotBlank(message = &quot;Name is required&quot;)
+    @Size(max = 100, message = &quot;Name must not exceed 100 characters&quot;)
+    private String name;
+
+    @NotNull(message = &quot;Weight is required&quot;)
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;Weight cannot be less than 0&quot;)
+    @DecimalMax(value = &quot;1.0&quot;, message = &quot;Weight cannot exceed 1&quot;)
+    private Double weight;
+
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;Score cannot be less than 0&quot;)
+    @DecimalMax(value = &quot;10.0&quot;, message = &quot;Score cannot exceed 10&quot;)
+    private Double score;
+
+    /**
+     * Calculated score (for composite entries)
+     */
+    private Double calculatedScore;
+
+    private GradeEntryType entryType;
+    private String recordedBy;
+    private LocalDateTime recordedAt;
+    private String notes;
+    private com.spts.entity.ApprovalStatus status;
+
+    // Additional display fields
+    private String courseCode;
+    private String courseName;
+    private String studentName;
+
+    // Constructors
+<span class="fc" id="L62">    public GradeEntryDTO() {</span>
+<span class="fc" id="L63">    }</span>
+
+    // Getters and Setters
+    public Long getId() {
+<span class="nc" id="L67">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="fc" id="L71">        this.id = id;</span>
+<span class="fc" id="L72">    }</span>
+
+    public Long getEnrollmentId() {
+<span class="fc" id="L75">        return enrollmentId;</span>
+    }
+
+    public void setEnrollmentId(Long enrollmentId) {
+<span class="fc" id="L79">        this.enrollmentId = enrollmentId;</span>
+<span class="fc" id="L80">    }</span>
+
+    public Long getParentId() {
+<span class="fc" id="L83">        return parentId;</span>
+    }
+
+    public void setParentId(Long parentId) {
+<span class="nc" id="L87">        this.parentId = parentId;</span>
+<span class="nc" id="L88">    }</span>
+
+    public List&lt;GradeEntryDTO&gt; getChildren() {
+<span class="nc" id="L91">        return children;</span>
+    }
+
+    public void setChildren(List&lt;GradeEntryDTO&gt; children) {
+<span class="nc" id="L95">        this.children = children;</span>
+<span class="nc" id="L96">    }</span>
+
+    public String getName() {
+<span class="fc" id="L99">        return name;</span>
+    }
+
+    public void setName(String name) {
+<span class="fc" id="L103">        this.name = name;</span>
+<span class="fc" id="L104">    }</span>
+
+    public Double getWeight() {
+<span class="fc" id="L107">        return weight;</span>
+    }
+
+    public void setWeight(Double weight) {
+<span class="fc" id="L111">        this.weight = weight;</span>
+<span class="fc" id="L112">    }</span>
+
+    public Double getScore() {
+<span class="fc" id="L115">        return score;</span>
+    }
+
+    public void setScore(Double score) {
+<span class="fc" id="L119">        this.score = score;</span>
+<span class="fc" id="L120">    }</span>
+
+    public Double getCalculatedScore() {
+<span class="nc" id="L123">        return calculatedScore;</span>
+    }
+
+    public void setCalculatedScore(Double calculatedScore) {
+<span class="fc" id="L127">        this.calculatedScore = calculatedScore;</span>
+<span class="fc" id="L128">    }</span>
+
+    public GradeEntryType getEntryType() {
+<span class="fc" id="L131">        return entryType;</span>
+    }
+
+    public void setEntryType(GradeEntryType entryType) {
+<span class="fc" id="L135">        this.entryType = entryType;</span>
+<span class="fc" id="L136">    }</span>
+
+    public String getRecordedBy() {
+<span class="fc" id="L139">        return recordedBy;</span>
+    }
+
+    public void setRecordedBy(String recordedBy) {
+<span class="fc" id="L143">        this.recordedBy = recordedBy;</span>
+<span class="fc" id="L144">    }</span>
+
+    public LocalDateTime getRecordedAt() {
+<span class="nc" id="L147">        return recordedAt;</span>
+    }
+
+    public void setRecordedAt(LocalDateTime recordedAt) {
+<span class="fc" id="L151">        this.recordedAt = recordedAt;</span>
+<span class="fc" id="L152">    }</span>
+
+    public String getNotes() {
+<span class="fc" id="L155">        return notes;</span>
+    }
+
+    public void setNotes(String notes) {
+<span class="fc" id="L159">        this.notes = notes;</span>
+<span class="fc" id="L160">    }</span>
+
+    public com.spts.entity.ApprovalStatus getStatus() {
+<span class="nc" id="L163">        return status;</span>
+    }
+
+    public void setStatus(com.spts.entity.ApprovalStatus status) {
+<span class="fc" id="L167">        this.status = status;</span>
+<span class="fc" id="L168">    }</span>
+
+    public String getCourseCode() {
+<span class="nc" id="L171">        return courseCode;</span>
+    }
+
+    public void setCourseCode(String courseCode) {
+<span class="fc" id="L175">        this.courseCode = courseCode;</span>
+<span class="fc" id="L176">    }</span>
+
+    public String getCourseName() {
+<span class="nc" id="L179">        return courseName;</span>
+    }
+
+    public void setCourseName(String courseName) {
+<span class="fc" id="L183">        this.courseName = courseName;</span>
+<span class="fc" id="L184">    }</span>
+
+    public String getStudentName() {
+<span class="nc" id="L187">        return studentName;</span>
+    }
+
+    public void setStudentName(String studentName) {
+<span class="fc" id="L191">        this.studentName = studentName;</span>
+<span class="fc" id="L192">    }</span>
+
+    /**
+     * Calculate weighted value
+     */
+    public Double getWeightedValue() {
+<span class="nc bnc" id="L198" title="All 2 branches missed.">        Double effectiveScore = calculatedScore != null ? calculatedScore : score;</span>
+<span class="nc bnc" id="L199" title="All 4 branches missed.">        if (effectiveScore == null || weight == null) return null;</span>
+<span class="nc" id="L200">        return effectiveScore * weight;</span>
+    }
+
+    /**
+     * Check if this is a leaf entry (no children)
+     */
+    public boolean isLeaf() {
+<span class="nc bnc" id="L207" title="All 4 branches missed.">        return children == null || children.isEmpty();</span>
+    }
+
+    /**
+     * Check if this is a root entry (no parent)
+     */
+    public boolean isRoot() {
+<span class="nc bnc" id="L214" title="All 2 branches missed.">        return parentId == null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

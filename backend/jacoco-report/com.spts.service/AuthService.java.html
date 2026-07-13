@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.service</a> &gt; <span class="el_source">AuthService.java</span></div><h1>AuthService.java</h1><pre class="source lang-java linenums">package com.spts.service;
+
+import com.spts.security.FirebaseTokenInfo;
+import com.spts.dto.AuthUserDTO;
+import com.spts.entity.Student;
+import com.spts.entity.User;
+import com.spts.entity.UserRole;
+import com.spts.repository.StudentRepository;
+import com.spts.repository.UserRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Service for authentication operations.
+ */
+@Service
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final StudentRepository studentRepository;
+
+<span class="fc" id="L28">    public AuthService(UserRepository userRepository, StudentRepository studentRepository) {</span>
+<span class="fc" id="L29">        this.userRepository = userRepository;</span>
+<span class="fc" id="L30">        this.studentRepository = studentRepository;</span>
+<span class="fc" id="L31">    }</span>
+
+    /**
+     * Get or create user from Firebase token.
+     * Auto-links to student record if email matches.
+     */
+    @Transactional
+    public AuthUserDTO getOrCreateUser(FirebaseTokenInfo firebaseToken) {
+<span class="fc" id="L39">        String uid = firebaseToken.getUid();</span>
+<span class="fc" id="L40">        String email = firebaseToken.getEmail();</span>
+<span class="fc" id="L41">        String displayName = firebaseToken.getName();</span>
+
+        // Find existing user or create new one
+<span class="fc" id="L44">        User user = userRepository.findByFirebaseUid(uid)</span>
+<span class="pc" id="L45">                .orElseGet(() -&gt; createUser(uid, email, displayName));</span>
+
+        // Update last login
+<span class="fc" id="L48">        user.setLastLoginAt(LocalDateTime.now());</span>
+<span class="fc" id="L49">        userRepository.save(user);</span>
+
+        // Build response
+<span class="fc" id="L52">        Long studentId = null;</span>
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">        if (user.getStudent() != null) {</span>
+<span class="fc" id="L54">            studentId = user.getStudent().getId();</span>
+        }
+
+<span class="fc" id="L57">        return new AuthUserDTO(</span>
+<span class="fc" id="L58">                user.getFirebaseUid(),</span>
+<span class="fc" id="L59">                user.getEmail(),</span>
+<span class="fc" id="L60">                user.getDisplayName(),</span>
+<span class="fc" id="L61">                user.getRole().name().toLowerCase(),</span>
+                studentId
+        );
+    }
+
+    /**
+     * Create new user and auto-link to student if email matches.
+     */
+    private User createUser(String firebaseUid, String email, String displayName) {
+<span class="nc" id="L70">        User user = new User();</span>
+<span class="nc" id="L71">        user.setFirebaseUid(firebaseUid);</span>
+<span class="nc" id="L72">        user.setEmail(email);</span>
+<span class="nc" id="L73">        user.setDisplayName(displayName);</span>
+
+        // Check if email matches an existing student
+<span class="nc" id="L76">        Optional&lt;Student&gt; studentOpt = studentRepository.findByEmail(email);</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (studentOpt.isPresent()) {</span>
+<span class="nc" id="L78">            user.setStudent(studentOpt.get());</span>
+<span class="nc" id="L79">            user.setRole(UserRole.STUDENT);</span>
+<span class="nc bnc" id="L80" title="All 4 branches missed.">        } else if (email != null &amp;&amp; email.toLowerCase().contains(&quot;admin&quot;)) {</span>
+            // Tự động gán quyền ADMIN nếu email chứa chữ &quot;admin&quot;
+<span class="nc" id="L82">            user.setRole(UserRole.ADMIN);</span>
+        } else {
+            // Default to student role for new users
+<span class="nc" id="L85">            user.setRole(UserRole.STUDENT);</span>
+        }
+
+<span class="nc" id="L88">        return userRepository.save(user);</span>
+    }
+
+    /**
+     * Get user by Firebase UID.
+     */
+    public Optional&lt;User&gt; getUserByFirebaseUid(String firebaseUid) {
+<span class="nc" id="L95">        return userRepository.findByFirebaseUid(firebaseUid);</span>
+    }
+
+    /**
+     * Mark the current Firebase token as revoked for the authenticated user.
+     */
+    @Transactional
+    public void revokeCurrentToken(FirebaseTokenInfo firebaseToken) {
+<span class="fc" id="L103">        userRepository.findByFirebaseUid(firebaseToken.getUid()).ifPresent(user -&gt; {</span>
+<span class="fc" id="L104">            user.setTokenRevokedAt(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));</span>
+<span class="fc" id="L105">            userRepository.save(user);</span>
+<span class="fc" id="L106">        });</span>
+<span class="fc" id="L107">    }</span>
+
+    /**
+     * Update user role (admin only).
+     */
+    @Transactional
+    public User updateUserRole(String firebaseUid, UserRole role) {
+<span class="nc" id="L114">        User user = userRepository.findByFirebaseUid(firebaseUid)</span>
+<span class="nc" id="L115">                .orElseThrow(() -&gt; new RuntimeException(&quot;User not found&quot;));</span>
+<span class="nc" id="L116">        user.setRole(role);</span>
+<span class="nc" id="L117">        return userRepository.save(user);</span>
+    }
+
+    /**
+     * Link user to student record.
+     */
+    @Transactional
+    public User linkUserToStudent(String firebaseUid, Long studentId) {
+<span class="nc" id="L125">        User user = userRepository.findByFirebaseUid(firebaseUid)</span>
+<span class="nc" id="L126">                .orElseThrow(() -&gt; new RuntimeException(&quot;User not found&quot;));</span>
+
+<span class="nc" id="L128">        Student student = studentRepository.findById(studentId)</span>
+<span class="nc" id="L129">                .orElseThrow(() -&gt; new RuntimeException(&quot;Student not found&quot;));</span>
+
+<span class="nc" id="L131">        user.setStudent(student);</span>
+<span class="nc" id="L132">        return userRepository.save(user);</span>
+    }
+
+    /**
+     * Create User record in database and links to student.
+     * Firebase account creation is handled synchronously in StudentService, within the same transaction.
+     * Uses a temporary UUID as firebaseUid (will be the same UID if Firebase creates it with setUid).
+     *
+     * @param email User email
+     * @param displayName Display name
+     * @param student Student entity to link
+     * @param defaultPassword Unused here — kept for API compatibility
+     * @return Created User entity
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public User createStudentAccount(String email, String displayName, Student student, String defaultPassword) {
+        // Chỉ tạo User trong DB — Firebase được gọi đồng bộ bởi StudentService trong cùng transaction
+        // Dùng UUID tạm, Firebase sẽ dùng uid này khi tạo account (setUid)
+<span class="nc" id="L150">        User user = new User();</span>
+<span class="nc" id="L151">        user.setFirebaseUid(UUID.randomUUID().toString());</span>
+<span class="nc" id="L152">        user.setEmail(email);</span>
+<span class="nc" id="L153">        user.setDisplayName(displayName);</span>
+<span class="nc" id="L154">        user.setRole(UserRole.STUDENT);</span>
+<span class="nc" id="L155">        user.setStudent(student);</span>
+<span class="nc" id="L156">        return userRepository.save(user);</span>
+    }
+
+    /**
+     * Create User account (overload without student link).
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public User createStudentAccount(String email, String displayName, String defaultPassword) {
+<span class="nc" id="L164">        return createStudentAccount(email, displayName, null, defaultPassword);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
