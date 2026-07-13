@@ -69,3 +69,6 @@ application-local.properties
 *.db
 *.mv.db
 *.trace.db
+
+# Local API client collections
+postman/
