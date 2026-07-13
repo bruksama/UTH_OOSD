@@ -16,7 +16,7 @@ interface MockAuthState {
 }
 
 class MockAuthService {
-  private state: MockAuthState = {
+  private readonly state: MockAuthState = {
     user: null,
     isLoading: false,
     error: null,
@@ -35,7 +35,7 @@ class MockAuthService {
     this.listeners.forEach(listener => listener(this.state));
   }
 
-  async register(email: string, password: string): Promise<MockUser> {
+  async register(email: string, _password: string): Promise<MockUser> {
     this.state.isLoading = true;
     this.notifyListeners();
 
@@ -55,7 +55,7 @@ class MockAuthService {
     });
   }
 
-  async login(email: string, password: string): Promise<MockUser> {
+  async login(email: string, _password: string): Promise<MockUser> {
     this.state.isLoading = true;
     this.notifyListeners();
 

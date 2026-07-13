@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
-import { StudentDTO, StudentStatus } from '../types';
+import { StudentDTO } from '../types';
 import { User, Mail, Calendar, Hash, GraduationCap, Info, X, Loader2, Sparkles } from 'lucide-react';
+import {
+  createInitialStudentForm,
+  generateStudentId,
+  getStatusStyle,
+  getStudentFormErrors,
+  getSubmitLabel,
+} from './student-modal-helpers';
 
 interface StudentModalProps {
   isOpen: boolean;
@@ -10,16 +17,6 @@ interface StudentModalProps {
   onSubmit: (data: StudentDTO) => Promise<void>;
   isLoading?: boolean;
 }
-
-/**
- * Generate a unique student ID
- * Format: STU-YYYY-XXXXX (e.g., STU-2026-00001)
- */
-const generateStudentId = (): string => {
-  const year = new Date().getFullYear();
-  const random = Math.floor(10000 + Math.random() * 90000); // 5-digit random
-  return `STU-${year}-${random}`;
-};
 
 const StudentModal = ({
   isOpen,
@@ -33,39 +30,12 @@ const StudentModal = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (mode === 'edit' && student) {
-      setFormData(student);
-    } else {
-      // Generate new student ID for create mode
-      setFormData({
-        studentId: generateStudentId(),
-        status: StudentStatus.NORMAL,
-      });
-    }
+    setFormData(createInitialStudentForm(mode, student));
     setErrors({});
   }, [mode, student, isOpen]);
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.firstName?.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    if (!formData.lastName?.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-    if (!formData.studentId?.trim()) {
-      newErrors.studentId = 'Student ID is required';
-    }
-    if (!formData.email?.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
-    if (!formData.dateOfBirth) {
-      newErrors.dateOfBirth = 'Date of birth is required';
-    }
-
+    const newErrors = getStudentFormErrors(formData);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -96,6 +66,12 @@ const StudentModal = ({
 
   const regenerateStudentId = () => {
     setFormData((prev) => ({ ...prev, studentId: generateStudentId() }));
+  };
+
+  const renderSubmitContent = () => {
+    if (isLoading) return <><Loader2 className="h-4 w-4 animate-spin" />{getSubmitLabel(mode, true)}</>;
+    if (mode === 'create') return <><User className="h-4 w-4" />{getSubmitLabel(mode, false)}</>;
+    return getSubmitLabel(mode, false);
   };
 
   if (!isOpen) return null;
@@ -144,7 +120,7 @@ const StudentModal = ({
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Hash className="h-5 w-5 text-indigo-600" />
-                <label className="font-semibold text-indigo-900">Student ID</label>
+                <label htmlFor="student-id" className="font-semibold text-indigo-900">Student ID</label>
               </div>
               {mode === 'create' && (
                 <button
@@ -158,6 +134,7 @@ const StudentModal = ({
               )}
             </div>
             <input
+              id="student-id"
               type="text"
               name="studentId"
               value={formData.studentId || ''}
@@ -302,11 +279,7 @@ const StudentModal = ({
                   <p className="text-xs text-slate-500 mt-1">Total Credits</p>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-                  <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${student.status === StudentStatus.NORMAL ? 'bg-green-100 text-green-700' :
-                    student.status === StudentStatus.AT_RISK ? 'bg-yellow-100 text-yellow-700' :
-                      student.status === StudentStatus.PROBATION ? 'bg-red-100 text-red-700' :
-                        'bg-blue-100 text-blue-700'
-                    }`}>
+                  <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusStyle(student.status)}`}>
                     {student.status?.replace('_', ' ')}
                   </div>
                   <p className="text-xs text-slate-500 mt-2">Status</p>
@@ -335,19 +308,7 @@ const StudentModal = ({
             className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium shadow-lg shadow-indigo-500/30 hover:from-indigo-700 hover:to-purple-700 hover:shadow-indigo-500/40 transition active:scale-95 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             disabled={isLoading}
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : mode === 'create' ? (
-              <>
-                <User className="h-4 w-4" />
-                Create Student
-              </>
-            ) : (
-              'Save Changes'
-            )}
+            {renderSubmitContent()}
           </button>
         </div>
       </div>

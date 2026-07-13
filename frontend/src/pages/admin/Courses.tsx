@@ -110,8 +110,8 @@ const Courses = () => {
 
       // Remove duplicates if any student is somehow in multiple offerings (shouldn't happen)
       const uniqueEnrollments = allEnrollments.reduce((acc: EnrollmentDTO[], current) => {
-        const x = acc.find(item => item.studentCode === current.studentCode);
-        if (!x) return acc.concat([current]);
+        const exists = acc.some(item => item.studentCode === current.studentCode);
+        if (!exists) return acc.concat([current]);
         return acc;
       }, []);
 
@@ -303,6 +303,11 @@ interface CourseCardProps {
 const CourseCard = ({ course, onApprove, onReject, onDelete, onViewEnrollments }: CourseCardProps) => {
   const isPending = course.status === ApprovalStatus.PENDING;
   const isRejected = course.status === ApprovalStatus.REJECTED;
+  const accentClass = isPending
+    ? 'from-amber-400 to-orange-400'
+    : isRejected
+      ? 'from-red-400 to-rose-600'
+      : 'from-indigo-600 to-violet-600';
 
   return (
     <div className={`
@@ -312,8 +317,7 @@ const CourseCard = ({ course, onApprove, onReject, onDelete, onViewEnrollments }
       ${isRejected ? 'ring-2 ring-red-400/50 bg-red-50/10' : ''}
     `}>
       {/* Visual Accent */}
-      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${isPending ? 'from-amber-400 to-orange-400' : isRejected ? 'from-red-400 to-rose-600' : 'from-indigo-600 to-violet-600'
-        }`} />
+      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${accentClass}`} />
 
       <div className="flex justify-between items-start mb-6">
         <div className="flex flex-col gap-2">
@@ -425,10 +429,58 @@ interface EnrollmentModalProps {
 const EnrolledStudentsModal = ({ isOpen, onClose, course, enrollments, isLoading }: EnrollmentModalProps) => {
   if (!isOpen) return null;
 
+  let enrollmentContent: JSX.Element;
+  if (isLoading) {
+    enrollmentContent = (
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Locating Students...</p>
+      </div>
+    );
+  } else if (enrollments.length > 0) {
+    enrollmentContent = (
+      <div className="space-y-4">
+        {enrollments.map((enr) => (
+          <div
+            key={enr.id ?? enr.studentCode}
+            className="flex items-center justify-between p-4 bg-slate-50/50 border border-slate-100 rounded-3xl group hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50 transition-all"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-xs font-black text-slate-400 group-hover:text-indigo-600 transition-colors">
+                {enr.studentName?.charAt(0)}
+              </div>
+              <div>
+                <p className="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors">{enr.studentName}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: {enr.studentCode}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="inline-flex px-3 py-1 rounded-lg bg-white border border-slate-100 text-[9px] font-black uppercase tracking-wider text-slate-500">
+                {enr.status.replace('_', ' ')}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  } else {
+    enrollmentContent = (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+          <Search className="w-8 h-8 text-slate-300" />
+        </div>
+        <p className="text-sm font-black text-slate-700 tracking-tight">No Enrollments Found</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">There are no students enrolled in this course yet</p>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div
+      <button
+        type="button"
+        aria-label="Close enrolled students dialog"
         className="absolute inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity"
         onClick={onClose}
       />
@@ -452,6 +504,7 @@ const EnrolledStudentsModal = ({ isOpen, onClose, course, enrollments, isLoading
               </div>
             </div>
             <button
+              aria-label="Close enrolled students dialog"
               onClick={onClose}
               className="p-3 bg-white text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all shadow-sm"
             >
@@ -462,48 +515,7 @@ const EnrolledStudentsModal = ({ isOpen, onClose, course, enrollments, isLoading
 
         {/* Content */}
         <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Locating Students...</p>
-            </div>
-          ) : enrollments.length > 0 ? (
-            <div className="space-y-4">
-              {enrollments.map((enr, idx) => (
-                <div
-                  key={enr.id || idx}
-                  className="flex items-center justify-between p-4 bg-slate-50/50 border border-slate-100 rounded-3xl group hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-xs font-black text-slate-400 group-hover:text-indigo-600 transition-colors">
-                      {enr.studentName?.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors">
-                        {enr.studentName}
-                      </p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        ID: {enr.studentCode}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-flex px-3 py-1 rounded-lg bg-white border border-slate-100 text-[9px] font-black uppercase tracking-wider text-slate-500">
-                      {enr.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                <Search className="w-8 h-8 text-slate-300" />
-              </div>
-              <p className="text-sm font-black text-slate-700 tracking-tight">No Enrollments Found</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">There are no students enrolled in this course yet</p>
-            </div>
-          )}
+          {enrollmentContent}
         </div>
 
         {/* Footer */}

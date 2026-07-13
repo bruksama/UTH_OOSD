@@ -61,6 +61,12 @@ const getChartColor = (label: string): string => {
   return colorMap[label] || '#94a3b8';
 };
 
+const getLeaderboardClass = (index: number): string => [
+  'bg-gradient-to-r from-amber-400 to-yellow-500',
+  'bg-gradient-to-r from-slate-400 to-slate-500',
+  'bg-gradient-to-r from-orange-400 to-amber-500',
+][index] ?? 'bg-gradient-to-r from-indigo-400 to-purple-500';
+
 /* ================= ADMIN DASHBOARD ================= */
 const AdminDashboard = () => {
   const [students, setStudents] = useState<StudentDTO[]>([]);
@@ -131,7 +137,7 @@ const AdminDashboard = () => {
   }, {} as Record<string, { count: number, label: string }>);
 
   const statusDistribution = Object.values(statusCounts)
-    .map(item => ({ name: item.label, value: item.count, color: getChartColor(item.label) }))
+    .map(item => ({ key: item.label, name: item.label, value: item.count, color: getChartColor(item.label) }))
     .sort((a, b) => b.value - a.value);
 
   // Top Courses data
@@ -147,6 +153,7 @@ const AdminDashboard = () => {
     enrollments: dept.totalEnrollments,
     students: dept.totalStudents,
   })) || [];
+  const atRiskStudents = realStudents.filter(s => s.status === StudentStatus.AT_RISK);
 
   // NOTE: Enrollment Trends and Credit Distribution will be developed later
 
@@ -251,15 +258,11 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {advancedStats?.departmentStats?.slice(0, 6).map((dept, index) => (
               <div
-                key={dept.department || index}
+                key={`${dept.department || 'Unknown'}-${dept.totalEnrollments}-${dept.totalCourses}-${dept.totalStudents}`}
                 className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 transition-all hover:border-indigo-200 hover:shadow-md"
               >
                 <div className="flex items-center gap-4">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full text-white font-bold ${index === 0 ? 'bg-gradient-to-r from-amber-400 to-yellow-500' :
-                    index === 1 ? 'bg-gradient-to-r from-slate-400 to-slate-500' :
-                      index === 2 ? 'bg-gradient-to-r from-orange-400 to-amber-500' :
-                        'bg-gradient-to-r from-indigo-400 to-purple-500'
-                    }`}>
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full text-white font-bold ${getLeaderboardClass(index)}`}>
                     {index + 1}
                   </div>
                   <div>
@@ -297,8 +300,8 @@ const AdminDashboard = () => {
 
           <ChartCard title="🚨 Students Requiring Attention" subtitle="Students with at-risk status">
             <div className="space-y-3 max-h-64 overflow-y-auto">
-              {realStudents.filter(s => s.status === StudentStatus.AT_RISK).length > 0
-                ? realStudents.filter(s => s.status === StudentStatus.AT_RISK).map(student => (
+              {atRiskStudents.length > 0
+                ? atRiskStudents.map(student => (
                   <div key={student.studentId} className="p-4 rounded-xl bg-gradient-to-r from-red-50 to-white border border-red-100 transition-all hover:border-red-300 hover:shadow-md">
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-slate-800">{student.firstName} {student.lastName}</p>

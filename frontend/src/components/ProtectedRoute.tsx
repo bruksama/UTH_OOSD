@@ -3,8 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 
 interface ProtectedRouteProps {
-  children: JSX.Element;
-  allowedRoles?: UserRole[];
+  readonly children: JSX.Element;
+  readonly allowedRoles?: readonly UserRole[];
 }
 
 function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {

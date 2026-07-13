@@ -176,8 +176,9 @@ const StudentProfile = () => {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
                             <div className="space-y-2 group">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 group-focus-within:text-indigo-500 transition-colors">First Name</label>
+                                <label htmlFor="student-profile-first-name" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 group-focus-within:text-indigo-500 transition-colors">First Name</label>
                                 <input
+                                    id="student-profile-first-name"
                                     type="text"
                                     name="firstName"
                                     value={formData.firstName || ''}
@@ -188,8 +189,9 @@ const StudentProfile = () => {
                             </div>
 
                             <div className="space-y-2 group">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 group-focus-within:text-indigo-500 transition-colors">Last Name</label>
+                                <label htmlFor="student-profile-last-name" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 group-focus-within:text-indigo-500 transition-colors">Last Name</label>
                                 <input
+                                    id="student-profile-last-name"
                                     type="text"
                                     name="lastName"
                                     value={formData.lastName || ''}
@@ -200,8 +202,9 @@ const StudentProfile = () => {
                             </div>
 
                             <div className="space-y-2 group">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 group-focus-within:text-indigo-500 transition-colors">Email Address</label>
+                                <label htmlFor="student-profile-email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 group-focus-within:text-indigo-500 transition-colors">Email Address</label>
                                 <input
+                                    id="student-profile-email"
                                     type="email"
                                     name="email"
                                     value={formData.email || ''}
@@ -212,8 +215,9 @@ const StudentProfile = () => {
                             </div>
 
                             <div className="space-y-2 group">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 group-focus-within:text-indigo-500 transition-colors">Date of Birth</label>
+                                <label htmlFor="student-profile-date-of-birth" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 group-focus-within:text-indigo-500 transition-colors">Date of Birth</label>
                                 <input
+                                    id="student-profile-date-of-birth"
                                     type="date"
                                     name="dateOfBirth"
                                     value={formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString().split('T')[0] : ''}

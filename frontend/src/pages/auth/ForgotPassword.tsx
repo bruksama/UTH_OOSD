@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { resetPassword } from '../../services/auth.service';
 import { getFirebaseErrorMessage } from '../../utils/firebaseErrors';
 
 export default function ForgotPassword() {
-  const navigate = useNavigate();
-
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -78,12 +76,12 @@ export default function ForgotPassword() {
           </button>
         </div>
 
-        <p
-          className="mt-6 text-center text-sm text-primary-600 hover:underline cursor-pointer"
-          onClick={() => navigate('/login')}
+        <Link
+          to="/login"
+          className="block mt-6 text-center text-sm text-primary-600 hover:underline cursor-pointer"
         >
           Back to login
-        </p>
+        </Link>
       </form>
     </div>
   );

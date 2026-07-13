@@ -10,6 +10,20 @@ interface CourseProposalModalProps {
     existingDepartments: string[];
 }
 
+export const generateCourseCode = (dept: string, courseName = ''): string => {
+    if (!dept) return 'NEW-0000';
+
+    const cleanDept = dept.trim().toUpperCase().replace(/[^A-Z]/g, '');
+    const prefix = cleanDept.substring(0, 3).padEnd(3, 'X');
+    let hash = 0;
+    for (let i = 0; i < courseName.length; i++) {
+        const codePoint = courseName.codePointAt(i) ?? 0;
+        const codeUnit = codePoint > 0xFFFF ? ((codePoint - 0x10000) >> 10) + 0xD800 : codePoint;
+        hash = Math.trunc(((hash << 5) - hash) + codeUnit);
+    }
+    return `${prefix}${Math.abs(hash) % 9000 + 1000}`;
+};
+
 const CourseProposalModal = ({
     isOpen,
     onClose,
@@ -26,26 +40,6 @@ const CourseProposalModal = ({
     const [isAddingNewDept, setIsAddingNewDept] = useState(false);
     const [newDeptName, setNewDeptName] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
-
-    // Helper to generate a Course Code based on Department
-    const generateCourseCode = (dept: string, courseName: string): string => {
-        if (!dept) return 'NEW-0000';
-
-        // Systematic rule: Take first 3 letters of the department (normalized)
-        const cleanDept = dept.trim().toUpperCase().replace(/[^A-Z]/g, '');
-        const prefix = cleanDept.substring(0, 3).padEnd(3, 'X');
-
-        // Generate 4 digits based on course name hash to keep it stable but unique-ish
-        const nameSeed = courseName || '';
-        let hash = 0;
-        for (let i = 0; i < nameSeed.length; i++) {
-            hash = ((hash << 5) - hash) + nameSeed.charCodeAt(i);
-            hash = Math.trunc(hash);
-        }
-        const seed = Math.abs(hash) % 9000 + 1000; // Force 4 digits (1000-9999)
-
-        return `${prefix}${seed}`;
-    };
 
     // Auto-generate course code when department OR course name changes
     useEffect(() => {
@@ -110,7 +104,7 @@ const CourseProposalModal = ({
 
         setFormData((prev) => ({
             ...prev,
-            [name]: name === 'credits' ? parseInt(value) : value
+            [name]: name === 'credits' ? Number.parseInt(value) : value
         }));
 
         if (errors[name]) {
@@ -134,7 +128,7 @@ const CourseProposalModal = ({
                             <h2 className="text-2xl font-bold text-slate-900">Propose New Course</h2>
                             <p className="text-slate-500 text-sm mt-1">Submit a new course for admin approval.</p>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                        <button type="button" aria-label="Close course proposal" onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
@@ -143,8 +137,9 @@ const CourseProposalModal = ({
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="px-8 py-6 space-y-6">
                     <div>
-                        <label className="label">Course Name *</label>
+                        <label htmlFor="course-proposal-name" className="label">Course Name *</label>
                         <input
+                            id="course-proposal-name"
                             name="courseName"
                             value={formData.courseName || ''}
                             onChange={handleChange}
@@ -156,10 +151,11 @@ const CourseProposalModal = ({
 
                     <div className="grid grid-cols-3 gap-4">
                         <div className="col-span-2">
-                            <label className="label">Category / Department *</label>
+                            <label htmlFor={isAddingNewDept ? 'course-proposal-new-department' : 'course-proposal-department'} className="label">Category / Department *</label>
                             {!isAddingNewDept ? (
                                 <div className="space-y-2">
                                     <select
+                                        id="course-proposal-department"
                                         name="department"
                                         value={formData.department || ''}
                                         onChange={handleChange}
@@ -176,6 +172,7 @@ const CourseProposalModal = ({
                                 <div className="flex gap-2">
                                     <div className="flex-1">
                                         <input
+                                            id="course-proposal-new-department"
                                             type="text"
                                             value={newDeptName}
                                             onChange={(e) => setNewDeptName(e.target.value)}
@@ -197,8 +194,9 @@ const CourseProposalModal = ({
                         </div>
 
                         <div>
-                            <label className="label">Credits *</label>
+                            <label htmlFor="course-proposal-credits" className="label">Credits *</label>
                             <input
+                                id="course-proposal-credits"
                                 type="number"
                                 name="credits"
                                 value={formData.credits || ''}
@@ -213,8 +211,9 @@ const CourseProposalModal = ({
 
                     {user?.role === 'admin' && (
                         <div>
-                            <label className="label">Course ID (Auto-generated)</label>
+                            <label htmlFor="course-proposal-code" className="label">Course ID (Auto-generated)</label>
                             <input
+                                id="course-proposal-code"
                                 name="courseCode"
                                 value={formData.courseCode || ''}
                                 readOnly
@@ -224,8 +223,9 @@ const CourseProposalModal = ({
                     )}
 
                     <div>
-                        <label className="label">Description</label>
+                        <label htmlFor="course-proposal-description" className="label">Description</label>
                         <textarea
+                            id="course-proposal-description"
                             name="description"
                             value={formData.description || ''}
                             onChange={handleChange}

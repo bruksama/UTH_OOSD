@@ -27,6 +27,7 @@ vi.mock('../services/auth.service', () => ({
   loginWithGoogle: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
+  signOutLocally: vi.fn(),
 }));
 
 vi.mock('../services/api', () => ({
@@ -55,13 +56,15 @@ function TestConsumer() {
       <span data-testid="authenticated">{auth.isAuthenticated ? 'authenticated' : 'not-authenticated'}</span>
       <span data-testid="user">{auth.user ? auth.user.email : 'no-user'}</span>
       <span data-testid="error">{auth.error || 'no-error'}</span>
-      <button onClick={() => auth.loginWithEmail('test@example.com', 'password')}>
+      <span data-testid="profile-unavailable">{auth.isProfileUnavailable ? 'unavailable' : 'available'}</span>
+      <button onClick={() => { void auth.loginWithEmail('test@example.com', 'password').catch(() => undefined); }}>
         Login Email
       </button>
       <button onClick={() => auth.loginWithGoogle()}>Login Google</button>
       <button onClick={() => auth.logout()}>Logout</button>
       <button onClick={() => auth.register('new@example.com', 'password')}>Register</button>
       <button onClick={() => auth.updateUser({ displayName: 'Updated Name' })}>Update</button>
+      <button onClick={() => { void auth.retryProfile(); }}>Retry Profile</button>
     </div>
   );
 }
@@ -72,6 +75,12 @@ describe('AuthContext', () => {
     email: 'test@example.com',
     displayName: 'Test User',
     getIdToken: vi.fn(() => Promise.resolve('mock-token')),
+  };
+
+  const deferred = <T,>() => {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((done) => { resolve = done; });
+    return { promise, resolve };
   };
 
   beforeEach(() => {
@@ -170,7 +179,7 @@ describe('AuthContext', () => {
       });
     });
 
-    it('should logout when backend profile fetch fails', async () => {
+    it('should retain Firebase identity but withhold application auth when profile is transiently unavailable', async () => {
       vi.mocked(api.get).mockRejectedValue(new Error('Backend error'));
       vi.mocked(authService.logout).mockResolvedValue(undefined);
 
@@ -187,9 +196,72 @@ describe('AuthContext', () => {
         </AuthProvider>
       );
 
-      await waitFor(() => {
-        expect(authService.logout).toHaveBeenCalled();
+      await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('temporarily unavailable'));
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('not-authenticated');
+      expect(authService.logout).not.toHaveBeenCalled();
+    });
+
+    it('performs local-only cleanup for unauthorized profiles even when cleanup rejects', async () => {
+      vi.mocked(api.get).mockRejectedValue({ response: { status: 401 } });
+      vi.mocked(authService.signOutLocally).mockRejectedValue(new Error('cleanup failed'));
+      vi.mocked(onAuthStateChanged).mockImplementation((_, callback) => {
+        if (typeof callback === 'function') setTimeout(() => callback(mockFirebaseUser as any), 0);
+        return vi.fn();
       });
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      render(<AuthProvider><TestConsumer /></AuthProvider>);
+      await waitFor(() => expect(authService.signOutLocally).toHaveBeenCalled());
+      expect(authService.logout).not.toHaveBeenCalled();
+      expect(screen.getByTestId('loading')).toHaveTextContent('not-loading');
+    });
+
+    it('retries a transiently unavailable profile without forcing logout', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.get)
+        .mockRejectedValueOnce(new Error('network'))
+        .mockResolvedValueOnce({ data: { role: 'student', studentId: 1 } });
+      vi.mocked(onAuthStateChanged).mockImplementation((_, callback) => {
+        if (typeof callback === 'function') setTimeout(() => callback(mockFirebaseUser as any), 0);
+        return vi.fn();
+      });
+      render(<AuthProvider><TestConsumer /></AuthProvider>);
+      await waitFor(() => expect(screen.getByTestId('profile-unavailable')).toHaveTextContent('unavailable'));
+      await user.click(screen.getByText('Retry Profile'));
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('authenticated'));
+      expect(authService.logout).not.toHaveBeenCalled();
+    });
+
+    it('does not restore a profile that resolves after logout', async () => {
+      const user = userEvent.setup();
+      const profile = deferred<{ data: { role: string; studentId: number } }>();
+      vi.mocked(api.get).mockReturnValue(profile.promise as never);
+      vi.mocked(authService.logout).mockResolvedValue(undefined);
+      vi.mocked(onAuthStateChanged).mockImplementation((_, callback) => {
+        if (typeof callback === 'function') setTimeout(() => callback(mockFirebaseUser as any), 0);
+        return vi.fn();
+      });
+      render(<AuthProvider><TestConsumer /></AuthProvider>);
+      await waitFor(() => expect(api.get).toHaveBeenCalled());
+      await user.click(screen.getByText('Logout'));
+      profile.resolve({ data: { role: 'student', studentId: 1 } });
+      await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('not-loading'));
+      expect(screen.getByTestId('user')).toHaveTextContent('no-user');
+    });
+
+    it('keeps the newest account when profile responses resolve out of order', async () => {
+      const first = deferred<{ data: { role: string; displayName: string } }>();
+      const second = deferred<{ data: { role: string; displayName: string } }>();
+      vi.mocked(api.get).mockReturnValueOnce(first.promise as never).mockReturnValueOnce(second.promise as never);
+      let callback: ((firebaseUser: any) => void) | undefined;
+      vi.mocked(onAuthStateChanged).mockImplementation((_, next) => { callback = next as typeof callback; return vi.fn(); });
+      render(<AuthProvider><TestConsumer /></AuthProvider>);
+      callback?.(mockFirebaseUser);
+      callback?.({ ...mockFirebaseUser, uid: 'second', email: 'second@example.com' });
+      second.resolve({ data: { role: 'student', displayName: 'Second' } });
+      await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('second@example.com'));
+      first.resolve({ data: { role: 'admin', displayName: 'First' } });
+      await Promise.resolve();
+      expect(screen.getByTestId('user')).toHaveTextContent('second@example.com');
     });
   });
 

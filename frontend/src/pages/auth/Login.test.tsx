@@ -29,6 +29,7 @@ vi.mock('../../services/auth.service', () => ({
   loginWithGoogle: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
+  signOutLocally: vi.fn(),
 }));
 
 vi.mock('../../services/api', () => ({

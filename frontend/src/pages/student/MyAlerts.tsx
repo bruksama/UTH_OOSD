@@ -3,6 +3,12 @@ import { alertService } from '../../services';
 import { AlertDTO } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 
+const ALERT_LEVEL_STYLES: Record<string, { card: string; badge: string }> = {
+    CRITICAL: { card: 'border-l-red-500 bg-red-50/30', badge: 'bg-red-100 text-red-700' },
+    HIGH: { card: 'border-l-orange-500 bg-orange-50/30', badge: 'bg-orange-100 text-orange-700' },
+};
+const DEFAULT_ALERT_STYLE = { card: 'border-l-blue-500 bg-blue-50/30', badge: 'bg-blue-100 text-blue-700' };
+
 const MyAlerts = () => {
     const [alerts, setAlerts] = useState<AlertDTO[]>([]);
     const [loading, setLoading] = useState(true);
@@ -61,25 +67,17 @@ const MyAlerts = () => {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {unresolvedAlerts.map((alert) => (
-                        <div
-                            key={alert.id}
-                            className={`p-4 rounded-xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 transition-all hover:shadow-md border-l-4 ${alert.level === 'CRITICAL'
-                                    ? 'border-l-red-500 bg-red-50/30'
-                                    : alert.level === 'HIGH'
-                                        ? 'border-l-orange-500 bg-orange-50/30'
-                                        : 'border-l-blue-500 bg-blue-50/30'
-                                }`}
-                        >
+                    {unresolvedAlerts.map((alert) => {
+                        const levelStyle = ALERT_LEVEL_STYLES[alert.level] ?? DEFAULT_ALERT_STYLE;
+                        return (
+                            <div
+                                key={alert.id}
+                                className={`p-4 rounded-xl bg-gradient-to-r from-slate-50 to-white border border-slate-100 transition-all hover:shadow-md border-l-4 ${levelStyle.card}`}
+                            >
                             <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${alert.level === 'CRITICAL'
-                                                ? 'bg-red-100 text-red-700'
-                                                : alert.level === 'HIGH'
-                                                    ? 'bg-orange-100 text-orange-700'
-                                                    : 'bg-blue-100 text-blue-700'
-                                            }`}>
+                                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${levelStyle.badge}`}>
                                             {alert.level}
                                         </span>
                                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{alert.type.replace('_', ' ')}</span>
@@ -103,8 +101,9 @@ const MyAlerts = () => {
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

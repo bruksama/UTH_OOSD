@@ -35,6 +35,15 @@ interface ChartDataItem {
     [key: string]: string | number | undefined;
 }
 
+export interface PieChartDataItem {
+    key: string;
+    name: string;
+    value: number;
+    color?: string;
+}
+
+export const getPieChartCellKey = (entry: PieChartDataItem): string => entry.key;
+
 // =====================
 // GRADIENT DEFINITIONS
 // =====================
@@ -61,12 +70,12 @@ interface TooltipProps {
 }
 
 export const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
+    if (active && payload?.length) {
         return (
             <div className="rounded-lg bg-slate-800 px-4 py-3 shadow-xl">
                 <p className="text-sm font-semibold text-white">{label}</p>
-                {payload.map((entry, index) => (
-                    <p key={index} className="text-sm text-slate-300">
+                {payload.map((entry) => (
+                    <p key={`${entry.name}-${entry.value}-${entry.color ?? ''}`} className="text-sm text-slate-300">
                         {entry.name}: <span className="font-medium text-white">{entry.value}</span>
                     </p>
                 ))}
@@ -206,7 +215,7 @@ export const BarChartWidget: React.FC<BarChartWidgetProps> = ({
 // =====================
 
 interface PieChartWidgetProps {
-    data: { name: string; value: number; color?: string }[];
+    data: PieChartDataItem[];
     height?: number;
     innerRadius?: number;
     showLabels?: boolean;
@@ -237,7 +246,7 @@ export const PieChartWidget: React.FC<PieChartWidgetProps> = ({
                 >
                     {data.map((entry, index) => (
                         <Cell
-                            key={`cell-${index}`}
+                            key={getPieChartCellKey(entry)}
                             fill={entry.color || CHART_COLORS[index % CHART_COLORS.length]}
                         />
                     ))}

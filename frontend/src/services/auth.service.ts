@@ -12,12 +12,16 @@ import api from './api';
 import { mockAuthService } from './mockAuth';
 
 // Helper: Check if Firebase is available
-const isFirebaseAvailable = (): boolean => {
-  return auth !== null && auth !== undefined;
-};
+const getFirebaseAuth = () => auth;
 
 // Helper: Convert mock user to Firebase-like User object
-const convertMockUserToFirebaseUser = (mockUser: any): User => {
+interface MockUserLike {
+  uid: string;
+  email: string;
+  displayName: string;
+}
+
+const convertMockUserToFirebaseUser = (mockUser: MockUserLike): User => {
   return {
     uid: mockUser.uid,
     email: mockUser.email,
@@ -43,78 +47,66 @@ const convertMockUserToFirebaseUser = (mockUser: any): User => {
     delete: async () => {},
     reload: async () => {},
     toJSON: () => ({}),
-  } as any as User;
+  } as unknown as User;
 };
 
 /**
  * Sign in with email and password
  */
 export const loginWithEmail = async (email: string, password: string): Promise<User> => {
-  if (!isFirebaseAvailable()) {
+  const firebaseAuth = getFirebaseAuth();
+  if (!firebaseAuth) {
     console.log('Using mock authentication for login');
     const mockUser = await mockAuthService.login(email, password);
     return convertMockUserToFirebaseUser(mockUser);
   }
 
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error) {
-    console.warn('Firebase login failed, using mock auth:', error);
-    const mockUser = await mockAuthService.login(email, password);
-    return convertMockUserToFirebaseUser(mockUser);
-  }
+  const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+  return userCredential.user;
 };
 
 /**
  * Sign in with Google OAuth
  */
 export const loginWithGoogle = async (): Promise<User> => {
-  if (!isFirebaseAvailable()) {
+  const firebaseAuth = getFirebaseAuth();
+  if (!firebaseAuth) {
     console.log('Google auth not available, using mock authentication');
     throw new Error('Google Sign-in is not available in development mode without Firebase credentials');
   }
 
-  try {
-    const userCredential = await signInWithPopup(auth, googleProvider);
-    return userCredential.user;
-  } catch (error) {
-    console.warn('Google login failed:', error);
-    throw error;
-  }
+  if (!googleProvider) throw new Error('Google Sign-in provider is not configured');
+  const userCredential = await signInWithPopup(firebaseAuth, googleProvider);
+  return userCredential.user;
 };
 
 /**
  * Register a new user with email and password
  */
 export const register = async (email: string, password: string): Promise<User> => {
-  if (!isFirebaseAvailable()) {
+  const firebaseAuth = getFirebaseAuth();
+  if (!firebaseAuth) {
     console.log('Using mock authentication for registration');
     const mockUser = await mockAuthService.register(email, password);
     return convertMockUserToFirebaseUser(mockUser);
   }
 
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
 
     // Send email verification
     if (userCredential.user) {
       await sendEmailVerification(userCredential.user);
     }
 
-    return userCredential.user;
-  } catch (error) {
-    console.warn('Firebase registration failed, using mock auth:', error);
-    const mockUser = await mockAuthService.register(email, password);
-    return convertMockUserToFirebaseUser(mockUser);
-  }
+  return userCredential.user;
 };
 
 /**
  * Sign out the current user
  */
 export const logout = async (): Promise<void> => {
-  if (!isFirebaseAvailable()) {
+  const firebaseAuth = getFirebaseAuth();
+  if (!firebaseAuth) {
     await mockAuthService.logout();
     return;
   }
@@ -125,25 +117,30 @@ export const logout = async (): Promise<void> => {
     console.warn('Backend logout failed:', error);
   }
 
-  try {
-    await signOut(auth);
-  } catch (error) {
-    console.warn('Firebase logout failed:', error);
+  await signOut(firebaseAuth);
+};
+
+export const signOutLocally = async (): Promise<void> => {
+  const firebaseAuth = getFirebaseAuth();
+  if (!firebaseAuth) {
     await mockAuthService.logout();
+    return;
   }
+  await signOut(firebaseAuth);
 };
 
 /**
  * Send password reset email
  */
 export const resetPassword = async (email: string): Promise<void> => {
-  if (!isFirebaseAvailable()) {
+  const firebaseAuth = getFirebaseAuth();
+  if (!firebaseAuth) {
     console.log('Password reset not available in mock auth mode');
     return;
   }
 
   try {
-    await sendPasswordResetEmail(auth, email);
+    await sendPasswordResetEmail(firebaseAuth, email);
   } catch (error) {
     console.warn('Password reset failed:', error);
   }
@@ -153,11 +150,12 @@ export const resetPassword = async (email: string): Promise<void> => {
  * Get the current user's ID token for API authentication
  */
 export const getIdToken = async (): Promise<string | null> => {
-  if (!isFirebaseAvailable()) {
+  const firebaseAuth = getFirebaseAuth();
+  if (!firebaseAuth) {
     return 'mock-id-token';
   }
 
-  const user = auth.currentUser;
+  const user = firebaseAuth.currentUser;
   if (!user) return null;
   return user.getIdToken();
 };

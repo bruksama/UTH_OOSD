@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { alertService } from '../../services';
 import { AlertDTO, AlertLevel } from '../../types';
 
+const ALERT_STYLES: Record<AlertLevel, { indicator: string; badge: string }> = {
+  [AlertLevel.CRITICAL]: { indicator: 'bg-rose-500', badge: 'bg-rose-50 text-rose-600 border border-rose-100' },
+  [AlertLevel.HIGH]: { indicator: 'bg-orange-500', badge: 'bg-orange-50 text-orange-600 border border-orange-100' },
+  [AlertLevel.WARNING]: { indicator: 'bg-amber-500', badge: 'bg-amber-50 text-amber-600 border border-amber-100' },
+  [AlertLevel.INFO]: { indicator: 'bg-blue-500', badge: 'bg-blue-50 text-blue-600 border border-blue-100' },
+};
+
 /**
  * Alerts page component
  * Displays all alerts with filtering and management capabilities
@@ -127,9 +134,7 @@ const Alerts = () => {
       <div className="grid grid-cols-1 gap-4 lg:gap-6">
         {filteredAlerts.length > 0 ? (
           filteredAlerts.map((alert) => {
-            const isCritical = alert.level === AlertLevel.CRITICAL;
-            const isHigh = alert.level === AlertLevel.HIGH;
-            const isWarning = alert.level === AlertLevel.WARNING;
+            const alertStyle = ALERT_STYLES[alert.level];
 
             return (
               <div
@@ -141,17 +146,12 @@ const Alerts = () => {
                 `}
               >
                 {/* Visual Level Indicator */}
-                <div className={`absolute top-0 bottom-0 left-0 w-2 ${isCritical ? 'bg-rose-500' : isHigh ? 'bg-orange-500' : isWarning ? 'bg-amber-500' : 'bg-blue-500'
-                  }`} />
+                <div className={`absolute top-0 bottom-0 left-0 w-2 ${alertStyle.indicator}`} />
 
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${isCritical ? 'bg-rose-50 text-rose-600 border border-rose-100' :
-                          isHigh ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                            isWarning ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                              'bg-blue-50 text-blue-600 border border-blue-100'
-                        }`}>
+                      <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${alertStyle.badge}`}>
                         {alert.level} PRIORITY
                       </span>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">

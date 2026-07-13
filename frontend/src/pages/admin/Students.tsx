@@ -5,6 +5,13 @@ import { StudentDTO, StudentStatus } from '../../types';
 import StudentModal from '../../components/StudentModal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
+export const getStudentGpaColor = (gpa = 0, compact = false): string => {
+  if (gpa >= 3.5) return compact ? 'text-emerald-500' : 'text-emerald-600';
+  if (!compact && gpa >= 2.5) return 'text-indigo-600';
+  if (gpa >= 2.0) return compact ? 'text-indigo-600' : 'text-amber-600';
+  return 'text-red-500';
+};
+
 /**
  * Students list page component
  * Displays all students with filtering and search capabilities
@@ -95,10 +102,10 @@ const Students = () => {
         await studentService.update(formData.id!, formData);
       }
       await fetchStudents();
-      setModalOpen(false);
     } catch (err) {
       console.error('Error submitting form:', err);
       alert('Failed to save student record');
+      throw err;
     } finally {
       setSubmitting(false);
     }
@@ -255,10 +262,7 @@ const Students = () => {
                       </div>
                     </td>
                     <td className="px-8 py-5 text-center">
-                      <span className={`text-lg font-black tracking-tighter ${(student.gpa || 0) >= 3.5 ? 'text-emerald-600' :
-                          (student.gpa || 0) >= 2.5 ? 'text-indigo-600' :
-                            (student.gpa || 0) >= 2.0 ? 'text-amber-600' : 'text-red-500'
-                        }`}>
+                      <span className={`text-lg font-black tracking-tighter ${getStudentGpaColor(student.gpa ?? 0)}`}>
                         {student.gpa?.toFixed(2) ?? '0.00'}
                       </span>
                     </td>
@@ -323,7 +327,7 @@ const Students = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white p-4 rounded-2xl border border-slate-100 text-center">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">GPA</p>
-                    <p className={`text-xl font-black ${(student.gpa || 0) >= 3.5 ? 'text-emerald-500' : (student.gpa || 0) >= 2.0 ? 'text-indigo-600' : 'text-red-500'}`}>
+                    <p className={`text-xl font-black ${getStudentGpaColor(student.gpa ?? 0, true)}`}>
                       {student.gpa?.toFixed(2) ?? '0.00'}
                     </p>
                   </div>
@@ -383,17 +387,16 @@ const Students = () => {
       </div>
 
       {/* Modals Container */}
-      <>
-        <StudentModal
+      <StudentModal
           isOpen={modalOpen}
           mode={modalMode}
           student={selectedStudent}
           onClose={() => setModalOpen(false)}
           onSubmit={handleModalSubmit}
           isLoading={submitting}
-        />
+      />
 
-        <ConfirmDialog
+      <ConfirmDialog
           isOpen={deleteConfirm}
           title="⚠️ PERMANENT DESTRUCTION"
           message={deleteMessage}
@@ -405,8 +408,7 @@ const Students = () => {
           confirmText={deleting ? 'EXECUTING...' : 'CONFIRM DELETION'}
           cancelText="HALT"
           isDangerous={true}
-        />
-      </>
+      />
     </div>
   );
 };

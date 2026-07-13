@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 
 // Mock Firebase
 vi.mock('firebase/app', () => ({
@@ -22,7 +22,7 @@ vi.mock('firebase/auth', () => ({
 }));
 
 // Mock environment variables
-vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-api-key');
+vi.stubEnv('VITE_FIREBASE_API_KEY', 'AIzaSyConfiguredFirebaseKey123456789');
 vi.stubEnv('VITE_FIREBASE_AUTH_DOMAIN', 'test.firebaseapp.com');
 vi.stubEnv('VITE_FIREBASE_PROJECT_ID', 'test-project');
 vi.stubEnv('VITE_FIREBASE_STORAGE_BUCKET', 'test.appspot.com');
@@ -44,3 +44,16 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+const localStorageValues = new Map<string, string>();
+Object.defineProperty(window, 'localStorage', {
+  configurable: true,
+  value: {
+    getItem: vi.fn((key: string) => localStorageValues.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => localStorageValues.set(key, value)),
+    removeItem: vi.fn((key: string) => localStorageValues.delete(key)),
+    clear: vi.fn(() => localStorageValues.clear()),
+  },
+});
+
+afterEach(() => localStorageValues.clear());

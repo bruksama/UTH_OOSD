@@ -148,7 +148,7 @@ export const getApprovalStatusDisplay = (status: ApprovalStatus | undefined): { 
  * Based on 10-point scale thresholds
  */
 export const getLetterGradeColor = (score: number | null | undefined): string => {
-    const val = score || 0;
+    const val = score ?? 0;
     if (val >= 8.5) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     if (val >= 8.0) return 'bg-teal-50 text-teal-700 border-teal-200';
     if (val >= 7.0) return 'bg-blue-50 text-blue-700 border-blue-200';

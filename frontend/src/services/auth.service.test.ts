@@ -25,12 +25,6 @@ vi.mock('./api', () => ({
   },
 }));
 
-const fallbackMockUser = {
-  uid: 'mock-test@example.com',
-  email: 'test@example.com',
-  displayName: 'test',
-};
-
 const resetMocks = () => {
   vi.restoreAllMocks();
   vi.clearAllMocks();
@@ -57,20 +51,13 @@ test('loginWithEmail returns Firebase user when sign-in succeeds', async () => {
   expect(result).toEqual(firebaseUser);
 });
 
-test('loginWithEmail falls back to mock auth when Firebase sign-in fails', async () => {
+test('loginWithEmail propagates configured Firebase sign-in failure', async () => {
   resetMocks();
 
   vi.mocked(signInWithEmailAndPassword).mockRejectedValue(new Error('Invalid credentials'));
-  vi.spyOn(mockAuthService, 'login').mockResolvedValue(fallbackMockUser as any);
-
-  const result = await loginWithEmail('test@example.com', 'wrong-password');
-
-  expect(mockAuthService.login).toHaveBeenCalledWith('test@example.com', 'wrong-password');
-  expect(result).toMatchObject({
-    uid: fallbackMockUser.uid,
-    email: fallbackMockUser.email,
-    displayName: fallbackMockUser.displayName,
-  });
+  vi.spyOn(mockAuthService, 'login');
+  await expect(loginWithEmail('test@example.com', 'wrong-password')).rejects.toThrow('Invalid credentials');
+  expect(mockAuthService.login).not.toHaveBeenCalled();
 });
 
 test('loginWithGoogle returns Firebase user when popup sign-in succeeds', async () => {
@@ -122,20 +109,13 @@ test('register returns Firebase user when registration succeeds', async () => {
   expect(result).toEqual(firebaseUser);
 });
 
-test('register falls back to mock auth when Firebase registration fails', async () => {
+test('register propagates configured Firebase registration failure', async () => {
   resetMocks();
 
   vi.mocked(createUserWithEmailAndPassword).mockRejectedValue(new Error('Email already in use'));
-  vi.spyOn(mockAuthService, 'register').mockResolvedValue(fallbackMockUser as any);
-
-  const result = await register('existing@example.com', 'password123');
-
-  expect(mockAuthService.register).toHaveBeenCalledWith('existing@example.com', 'password123');
-  expect(result).toMatchObject({
-    uid: fallbackMockUser.uid,
-    email: fallbackMockUser.email,
-    displayName: fallbackMockUser.displayName,
-  });
+  vi.spyOn(mockAuthService, 'register');
+  await expect(register('existing@example.com', 'password123')).rejects.toThrow('Email already in use');
+  expect(mockAuthService.register).not.toHaveBeenCalled();
 });
 
 test('logout signs out the current user', async () => {
@@ -149,15 +129,14 @@ test('logout signs out the current user', async () => {
   expect(signOut).toHaveBeenCalledWith(expect.any(Object));
 });
 
-test('logout falls back to mock auth when Firebase sign-out fails', async () => {
+test('logout propagates configured Firebase sign-out failure', async () => {
   resetMocks();
 
   vi.mocked(signOut).mockRejectedValue(new Error('Network error'));
-  vi.spyOn(mockAuthService, 'logout').mockResolvedValue(undefined);
-
-  await expect(logout()).resolves.toBeUndefined();
+  vi.spyOn(mockAuthService, 'logout');
+  await expect(logout()).rejects.toThrow('Network error');
   expect(api.post).toHaveBeenCalledWith('/auth/logout');
-  expect(mockAuthService.logout).toHaveBeenCalled();
+  expect(mockAuthService.logout).not.toHaveBeenCalled();
 });
 
 test('resetPassword sends a password reset email', async () => {

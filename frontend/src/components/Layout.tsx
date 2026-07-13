@@ -100,7 +100,9 @@ const Layout = () => {
     <div className="min-h-screen bg-[#f8fafc] flex overflow-x-hidden selection:bg-indigo-100 selection:text-indigo-900">
       {/* Mobile Backdrop */}
       {isSidebarOpen && (
-        <div
+        <button
+          type="button"
+          aria-label="Close navigation menu"
           className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[60] lg:hidden transition-all duration-500 ease-in-out"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -129,6 +131,7 @@ const Layout = () => {
               </div>
             </div>
             <button
+              aria-label="Close navigation menu"
               onClick={() => setIsSidebarOpen(false)}
               className="lg:hidden p-2 text-slate-400 hover:text-slate-600 bg-slate-50 rounded-xl transition-all"
             >
@@ -213,6 +216,7 @@ const Layout = () => {
         <header className="h-24 bg-white/60 backdrop-blur-xl border-b border-slate-200/40 sticky top-0 z-[50] flex items-center justify-between px-6 lg:px-12 transition-all">
           <div className="flex items-center gap-6 min-w-0">
             <button
+              aria-label="Open navigation menu"
               onClick={() => setIsSidebarOpen(true)}
               className="lg:hidden p-3 -ml-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all"
             >

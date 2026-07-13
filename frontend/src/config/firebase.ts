@@ -1,5 +1,5 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { FirebaseApp, initializeApp } from 'firebase/app';
+import { Auth, getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY || '';
 
@@ -25,30 +25,32 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:000000000000:web:demo',
 };
 
-// Initialize Firebase with fallback
-let app;
-let auth;
-let googleProvider;
+interface FirebaseInitialization {
+  app: FirebaseApp | null;
+  auth: Auth | null;
+  googleProvider: GoogleAuthProvider | null;
+}
 
-if (!isRealFirebaseKey(apiKey)) {
+const initializeFirebase = (): FirebaseInitialization => {
+  if (!isRealFirebaseKey(apiKey)) {
   // API key giả → bỏ qua Firebase, dùng mock auth
   console.warn('⚠️ Firebase API key không hợp lệ hoặc là key giả - dùng mock auth cho development');
-  app = null;
-  auth = null;
-  googleProvider = null;
-} else {
-  try {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    googleProvider = new GoogleAuthProvider();
-    console.log('✅ Firebase initialized successfully');
-  } catch (error) {
-    console.warn('⚠️ Firebase initialization failed - using mock auth for development:', error);
-    app = null;
-    auth = null;
-    googleProvider = null;
+    return { app: null, auth: null, googleProvider: null };
   }
-}
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const googleProvider = new GoogleAuthProvider();
+    console.log('✅ Firebase initialized successfully');
+    return { app, auth, googleProvider };
+  } catch (error) {
+    console.error('Firebase initialization failed for configured credentials:', error);
+    throw error;
+  }
+};
+
+const { app, auth, googleProvider } = initializeFirebase();
 
 export { auth, googleProvider };
 export default app;

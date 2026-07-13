@@ -6,7 +6,7 @@ priority: P2
 effort: 5h
 branch: "main"
 tags: [feature, frontend, auth, testing]
-blockedBy: []
+blockedBy: [260713-0640-sonarcloud-issue-remediation]
 blocks: []
 created: "2026-06-19"
 createdBy: "ck:plan"

@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Register() {
-  const navigate = useNavigate();
   const { register } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -17,7 +16,7 @@ export default function Register() {
     if (pwd.length < 8) {
       return 'Password must be at least 8 characters long';
     }
-    if (!/[A-Za-z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+    if (!/[A-Za-z]/.test(pwd) || !/\d/.test(pwd)) {
       return 'Password must contain both letters and numbers';
     }
     return null;
@@ -121,12 +120,12 @@ export default function Register() {
           </button>
         </div>
 
-        <p
-          className="mt-6 text-center text-sm text-primary-600 hover:underline cursor-pointer"
-          onClick={() => navigate('/login')}
+        <Link
+          to="/login"
+          className="block mt-6 text-center text-sm text-primary-600 hover:underline cursor-pointer"
         >
           Back to login
-        </p>
+        </Link>
       </form>
     </div>
   );
