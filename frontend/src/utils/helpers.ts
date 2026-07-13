@@ -147,14 +147,14 @@ export const getApprovalStatusDisplay = (status: ApprovalStatus | undefined): { 
  * Get Color Badge for Letter Grade
  * Based on 10-point scale thresholds
  */
-export const getLetterGradeColor = (score: number | null | undefined): string => {
-    const val = score ?? 0;
-    if (val >= 8.5) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    if (val >= 8.0) return 'bg-teal-50 text-teal-700 border-teal-200';
-    if (val >= 7.0) return 'bg-blue-50 text-blue-700 border-blue-200';
-    if (val >= 6.5) return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-    if (val >= 5.5) return 'bg-violet-50 text-violet-700 border-violet-200';
-    if (val >= 5.0) return 'bg-amber-50 text-amber-700 border-amber-200';
-    if (val >= 4.0) return 'bg-orange-50 text-orange-700 border-orange-200';
+export const getLetterGradeColor = (score: number | null = 0): string => {
+    if (score === null) return 'bg-red-50 text-red-700 border-red-200';
+    if (score >= 8.5) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (score >= 8.0) return 'bg-teal-50 text-teal-700 border-teal-200';
+    if (score >= 7.0) return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (score >= 6.5) return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+    if (score >= 5.5) return 'bg-violet-50 text-violet-700 border-violet-200';
+    if (score >= 5.0) return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (score >= 4.0) return 'bg-orange-50 text-orange-700 border-orange-200';
     return 'bg-red-50 text-red-700 border-red-200';
 };

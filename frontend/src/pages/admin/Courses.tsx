@@ -300,14 +300,16 @@ interface CourseCardProps {
   onViewEnrollments: () => void;
 }
 
+const getCourseAccentClass = (status?: ApprovalStatus) => {
+  if (status === ApprovalStatus.PENDING) return 'from-amber-400 to-orange-400';
+  if (status === ApprovalStatus.REJECTED) return 'from-red-400 to-rose-600';
+  return 'from-indigo-600 to-violet-600';
+};
+
 const CourseCard = ({ course, onApprove, onReject, onDelete, onViewEnrollments }: CourseCardProps) => {
   const isPending = course.status === ApprovalStatus.PENDING;
   const isRejected = course.status === ApprovalStatus.REJECTED;
-  const accentClass = isPending
-    ? 'from-amber-400 to-orange-400'
-    : isRejected
-      ? 'from-red-400 to-rose-600'
-      : 'from-indigo-600 to-violet-600';
+  const accentClass = getCourseAccentClass(course.status);
 
   return (
     <div className={`

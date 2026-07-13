@@ -161,9 +161,9 @@ const StudentModal = ({
           {/* Personal Information */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-6 h-px bg-slate-200"></span>
+              <span className="w-6 h-px bg-slate-200" />
               Personal Information
-              <span className="flex-1 h-px bg-slate-200"></span>
+              <span className="flex-1 h-px bg-slate-200" />
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
@@ -264,9 +264,9 @@ const StudentModal = ({
           {mode === 'edit' && student && (
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
-                <span className="w-6 h-px bg-slate-200"></span>
+                <span className="w-6 h-px bg-slate-200" />
                 Academic Information
-                <span className="flex-1 h-px bg-slate-200"></span>
+                <span className="flex-1 h-px bg-slate-200" />
               </h3>
 
               <div className="grid grid-cols-3 gap-4">
