@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GradeEntryController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.controller</a> &gt; <span class="el_source">GradeEntryController.java</span></div><h1>GradeEntryController.java</h1><pre class="source lang-java linenums">package com.spts.controller;
+
+import com.spts.dto.GradeEntryDTO;
+import com.spts.entity.GradeEntryType;
+import com.spts.service.GradeEntryService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import jakarta.validation.Valid;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * REST controller for GradeEntry management.
+ * Provides endpoints for CRUD operations and Composite Pattern operations.
+ * 
+ * GradeEntry implements Composite Pattern for hierarchical grade structure.
+ * 
+ * @author SPTS Team
+ */
+@RestController
+@RequestMapping(&quot;/api/grade-entries&quot;)
+@Tag(name = &quot;Grade Entries&quot;, description = &quot;Grade entry management APIs (Composite Pattern)&quot;)
+public class GradeEntryController {
+
+    private final GradeEntryService gradeEntryService;
+
+<span class="fc" id="L36">    public GradeEntryController(GradeEntryService gradeEntryService) {</span>
+<span class="fc" id="L37">        this.gradeEntryService = gradeEntryService;</span>
+<span class="fc" id="L38">    }</span>
+
+    // ==================== CRUD Operations ====================
+
+    @GetMapping
+    @Operation(summary = &quot;Get all grade entries&quot;, description = &quot;Retrieves a list of all grade entries&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved list of grade entries&quot;)
+    public ResponseEntity&lt;List&lt;GradeEntryDTO&gt;&gt; getAllGradeEntries() {
+<span class="nc" id="L46">        return ResponseEntity.ok(gradeEntryService.getAllGradeEntries());</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Get grade entry by ID&quot;, description = &quot;Retrieves a grade entry by its database ID&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Grade entry found&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Grade entry not found&quot;)
+    })
+    public ResponseEntity&lt;GradeEntryDTO&gt; getGradeEntryById(
+            @Parameter(description = &quot;Grade entry database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L57">        return ResponseEntity.ok(gradeEntryService.getGradeEntryById(id));</span>
+    }
+
+    @PostMapping
+    @Operation(summary = &quot;Create new grade entry&quot;, description = &quot;Creates a new grade entry for an enrollment&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Grade entry created successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment or parent not found&quot;)
+    })
+    public ResponseEntity&lt;GradeEntryDTO&gt; createGradeEntry(
+            @Valid @RequestBody GradeEntryDTO dto) {
+<span class="nc" id="L69">        return new ResponseEntity&lt;&gt;(gradeEntryService.createGradeEntry(dto), HttpStatus.CREATED);</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Update grade entry&quot;, description = &quot;Updates an existing grade entry&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Grade entry updated successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Grade entry not found&quot;)
+    })
+    public ResponseEntity&lt;GradeEntryDTO&gt; updateGradeEntry(
+            @Parameter(description = &quot;Grade entry database ID&quot;) @PathVariable Long id,
+            @Valid @RequestBody GradeEntryDTO dto) {
+<span class="nc" id="L82">        return ResponseEntity.ok(gradeEntryService.updateGradeEntry(id, dto));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Delete grade entry&quot;, description = &quot;Deletes a grade entry (cascades to children)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Grade entry deleted successfully&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Grade entry not found&quot;)
+    })
+    public ResponseEntity&lt;Void&gt; deleteGradeEntry(
+            @Parameter(description = &quot;Grade entry database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L93">        gradeEntryService.deleteGradeEntry(id);</span>
+<span class="nc" id="L94">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // ==================== Composite Pattern Operations ====================
+
+    @PostMapping(&quot;/{parentId}/children&quot;)
+    @Operation(summary = &quot;Add child grade entry&quot;, description = &quot;Adds a child grade entry to a parent (Composite Pattern)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Child grade entry created successfully&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Parent grade entry not found&quot;)
+    })
+    public ResponseEntity&lt;GradeEntryDTO&gt; addChildGradeEntry(
+            @Parameter(description = &quot;Parent grade entry ID&quot;) @PathVariable Long parentId,
+            @Valid @RequestBody GradeEntryDTO dto) {
+<span class="nc" id="L108">        return new ResponseEntity&lt;&gt;(gradeEntryService.addChildGradeEntry(parentId, dto), HttpStatus.CREATED);</span>
+    }
+
+    @GetMapping(&quot;/{parentId}/children&quot;)
+    @Operation(summary = &quot;Get children of grade entry&quot;, description = &quot;Retrieves all children of a grade entry&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved children&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Grade entry not found&quot;)
+    })
+    public ResponseEntity&lt;List&lt;GradeEntryDTO&gt;&gt; getChildren(
+            @Parameter(description = &quot;Parent grade entry ID&quot;) @PathVariable Long parentId) {
+<span class="nc" id="L119">        return ResponseEntity.ok(gradeEntryService.getChildren(parentId));</span>
+    }
+
+    @GetMapping(&quot;/enrollment/{enrollmentId}/hierarchy&quot;)
+    @Operation(summary = &quot;Get hierarchical grades&quot;, description = &quot;Retrieves the full grade hierarchy for an enrollment (root entries with nested children)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved grade hierarchy&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;List&lt;GradeEntryDTO&gt;&gt; getHierarchy(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long enrollmentId) {
+<span class="nc" id="L130">        return ResponseEntity.ok(gradeEntryService.getHierarchicalGrades(enrollmentId));</span>
+    }
+
+    @GetMapping(&quot;/enrollment/{enrollmentId}/roots&quot;)
+    @Operation(summary = &quot;Get root grade entries&quot;, description = &quot;Retrieves root-level grade entries for an enrollment&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved root entries&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;List&lt;GradeEntryDTO&gt;&gt; getRootEntries(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long enrollmentId) {
+<span class="nc" id="L141">        return ResponseEntity.ok(gradeEntryService.getRootEntriesByEnrollment(enrollmentId));</span>
+    }
+
+    // ==================== Score Calculations ====================
+
+    @GetMapping(&quot;/{id}/calculated-score&quot;)
+    @Operation(summary = &quot;Get calculated score&quot;, description = &quot;Calculates composite score (recursively from children if composite)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully calculated score&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Grade entry not found&quot;)
+    })
+    public ResponseEntity&lt;Double&gt; getCalculatedScore(
+            @Parameter(description = &quot;Grade entry database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L154">        return ResponseEntity.ok(gradeEntryService.calculateCompositeScore(id));</span>
+    }
+
+    @GetMapping(&quot;/{id}/weighted-score&quot;)
+    @Operation(summary = &quot;Get weighted score&quot;, description = &quot;Calculates weighted score (score * weight)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully calculated weighted score&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Grade entry not found&quot;)
+    })
+    public ResponseEntity&lt;Double&gt; getWeightedScore(
+            @Parameter(description = &quot;Grade entry database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L165">        return ResponseEntity.ok(gradeEntryService.calculateWeightedScore(id));</span>
+    }
+
+    @GetMapping(&quot;/enrollment/{enrollmentId}/final-grade&quot;)
+    @Operation(summary = &quot;Calculate final grade&quot;, description = &quot;Calculates the final grade from all root components&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully calculated final grade&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;Double&gt; calculateFinalGrade(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long enrollmentId) {
+<span class="nc" id="L176">        return ResponseEntity.ok(gradeEntryService.calculateFinalGrade(enrollmentId));</span>
+    }
+
+    @GetMapping(&quot;/enrollment/{enrollmentId}/validate-weights&quot;)
+    @Operation(summary = &quot;Validate weights&quot;, description = &quot;Validates that root entry weights sum to 1.0&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Validation result&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;Boolean&gt; validateWeights(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long enrollmentId) {
+<span class="nc" id="L187">        return ResponseEntity.ok(gradeEntryService.validateWeights(enrollmentId));</span>
+    }
+
+    // ==================== Queries ====================
+
+    @GetMapping(&quot;/enrollment/{enrollmentId}&quot;)
+    @Operation(summary = &quot;Get entries by enrollment&quot;, description = &quot;Retrieves all grade entries for an enrollment&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved entries&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;List&lt;GradeEntryDTO&gt;&gt; getByEnrollment(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long enrollmentId) {
+<span class="nc" id="L200">        return ResponseEntity.ok(gradeEntryService.getEntriesByEnrollment(enrollmentId));</span>
+    }
+
+    @GetMapping(&quot;/student/{studentId}&quot;)
+    @Operation(summary = &quot;Get entries by student&quot;, description = &quot;Retrieves all grade entries for a student across all enrollments&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved entries&quot;)
+    public ResponseEntity&lt;List&lt;GradeEntryDTO&gt;&gt; getByStudent(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long studentId) {
+<span class="nc" id="L208">        return ResponseEntity.ok(gradeEntryService.getEntriesByStudent(studentId));</span>
+    }
+
+    @GetMapping(&quot;/type/{entryType}&quot;)
+    @Operation(summary = &quot;Get entries by type&quot;, description = &quot;Retrieves grade entries of a specific type&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved entries&quot;)
+    public ResponseEntity&lt;List&lt;GradeEntryDTO&gt;&gt; getByType(
+            @Parameter(description = &quot;Entry type (MIDTERM, FINAL, QUIZ, etc.)&quot;) @PathVariable GradeEntryType entryType) {
+<span class="nc" id="L216">        return ResponseEntity.ok(gradeEntryService.getEntriesByType(entryType));</span>
+    }
+
+    @GetMapping(&quot;/enrollment/{enrollmentId}/leaves&quot;)
+    @Operation(summary = &quot;Get leaf entries&quot;, description = &quot;Retrieves leaf-level entries (entries without children)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved leaf entries&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;List&lt;GradeEntryDTO&gt;&gt; getLeafEntries(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long enrollmentId) {
+<span class="nc" id="L227">        return ResponseEntity.ok(gradeEntryService.getLeafEntries(enrollmentId));</span>
+    }
+
+    @PatchMapping(&quot;/{id}/score&quot;)
+    @Operation(summary = &quot;Update score only&quot;, description = &quot;Updates just the score of a grade entry&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Score updated successfully&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Grade entry not found&quot;)
+    })
+    public ResponseEntity&lt;GradeEntryDTO&gt; updateScore(
+            @Parameter(description = &quot;Grade entry database ID&quot;) @PathVariable Long id,
+            @Parameter(description = &quot;New score (0-10 scale)&quot;) @RequestParam Double score,
+            @Parameter(description = &quot;Username of recorder&quot;) @RequestParam(required = false) String recordedBy) {
+<span class="nc" id="L240">        return ResponseEntity.ok(gradeEntryService.updateScore(id, score, recordedBy));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

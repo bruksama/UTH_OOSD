@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataInitializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.config</a> &gt; <span class="el_source">DataInitializer.java</span></div><h1>DataInitializer.java</h1><pre class="source lang-java linenums">package com.spts.config;
+
+import com.spts.entity.*;
+import com.spts.repository.*;
+import com.spts.entity.ApprovalStatus;
+import com.spts.entity.GradingType;
+import com.spts.entity.Semester;
+import com.spts.entity.StudentStatus;
+import com.spts.entity.EnrollmentStatus;
+import com.spts.entity.AlertLevel;
+import com.spts.entity.AlertType;
+import com.spts.entity.GradeEntryType;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+/**
+ * Data initializer for development profile.
+ * Seeds sample data for testing and development purposes.
+ * 
+ * Seeds: 5 students, 4 courses, 3 offerings, sample enrollments, alerts
+ * 
+ * @author SPTS Team
+ */
+@Component
+@Profile(&quot;dev&quot;)
+public class DataInitializer implements CommandLineRunner {
+
+    private final StudentRepository studentRepository;
+    private final CourseRepository courseRepository;
+    private final CourseOfferingRepository courseOfferingRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final GradeEntryRepository gradeEntryRepository;
+    private final AlertRepository alertRepository;
+
+    public DataInitializer(
+            StudentRepository studentRepository,
+            CourseRepository courseRepository,
+            CourseOfferingRepository courseOfferingRepository,
+            EnrollmentRepository enrollmentRepository,
+            GradeEntryRepository gradeEntryRepository,
+<span class="fc" id="L47">            AlertRepository alertRepository) {</span>
+<span class="fc" id="L48">        this.studentRepository = studentRepository;</span>
+<span class="fc" id="L49">        this.courseRepository = courseRepository;</span>
+<span class="fc" id="L50">        this.courseOfferingRepository = courseOfferingRepository;</span>
+<span class="fc" id="L51">        this.enrollmentRepository = enrollmentRepository;</span>
+<span class="fc" id="L52">        this.gradeEntryRepository = gradeEntryRepository;</span>
+<span class="fc" id="L53">        this.alertRepository = alertRepository;</span>
+<span class="fc" id="L54">    }</span>
+
+    @Override
+    @Transactional
+    public void run(String... args) {
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        if (studentRepository.count() &gt; 0) {</span>
+<span class="fc" id="L60">            System.out.println(&quot;DataInitializer: Data directory already indexed. Skipping seeding.&quot;);</span>
+<span class="fc" id="L61">            return;</span>
+        }
+
+<span class="nc" id="L64">        System.out.println(&quot;DataInitializer: Generating High-Engagement Test Dataset...&quot;);</span>
+
+        // ==================== 1. DEPARTMENTS &amp; COURSES ====================
+        // Computer Science
+<span class="nc" id="L68">        Course cs1 = createCourse(&quot;CS101&quot;, &quot;Introduction to Computing&quot;, &quot;Basics of hardware and software.&quot;, 3, &quot;Computer Science&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L69">        Course cs2 = createCourse(&quot;CS202&quot;, &quot;Data Structures&quot;, &quot;Advanced Algorithms and complexity.&quot;, 4, &quot;Computer Science&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L70">        Course cs3 = createCourse(&quot;CS301&quot;, &quot;Operating Systems&quot;, &quot;Kernel, memory and process management.&quot;, 4, &quot;Computer Science&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L71">        Course cs4 = createCourse(&quot;CS401&quot;, &quot;Database Systems&quot;, &quot;SQL, NoSQL and data modeling.&quot;, 3, &quot;Computer Science&quot;, ApprovalStatus.APPROVED);</span>
+        
+        // Software Engineering
+<span class="nc" id="L74">        Course se1 = createCourse(&quot;SE101&quot;, &quot;Design Patterns&quot;, &quot;Clean Code &amp; SOLID principles.&quot;, 3, &quot;Software Engineering&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L75">        Course se2 = createCourse(&quot;SE102&quot;, &quot;Requirement Engineering&quot;, &quot;Managing software lifecycle.&quot;, 3, &quot;Software Engineering&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L76">        Course se3 = createCourse(&quot;SE301&quot;, &quot;Full-Stack Web Dev&quot;, &quot;React, Node and Modern Web.&quot;, 4, &quot;Software Engineering&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L77">        Course se4 = createCourse(&quot;SE402&quot;, &quot;Mobile Application&quot;, &quot;Android and Flutter development.&quot;, 4, &quot;Software Engineering&quot;, ApprovalStatus.APPROVED);</span>
+
+        // Artificial Intelligence
+<span class="nc" id="L80">        Course ai1 = createCourse(&quot;AI101&quot;, &quot;Neural Networks&quot;, &quot;Deep Learning Base.&quot;, 4, &quot;Artificial Intelligence&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L81">        Course ai2 = createCourse(&quot;AI102&quot;, &quot;Machine Learning&quot;, &quot;Supervised and Unsupervised.&quot;, 4, &quot;Artificial Intelligence&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L82">        Course ai3 = createCourse(&quot;AI201&quot;, &quot;Natural Language&quot;, &quot;NLP and LLM fundamentals.&quot;, 4, &quot;Artificial Intelligence&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L83">        Course ai4 = createCourse(&quot;AI301&quot;, &quot;Computer Vision&quot;, &quot;Image processing and CNN.&quot;, 4, &quot;Artificial Intelligence&quot;, ApprovalStatus.APPROVED);</span>
+
+        // Physics
+<span class="nc" id="L86">        Course ph1 = createCourse(&quot;PHY101&quot;, &quot;General Physics 1&quot;, &quot;Mechanics and Thermodynamics.&quot;, 3, &quot;Physics&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L87">        Course ph2 = createCourse(&quot;PHY102&quot;, &quot;Electromagnetism&quot;, &quot;Electricity and Magnetism.&quot;, 3, &quot;Physics&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L88">        Course ph3 = createCourse(&quot;PHY301&quot;, &quot;Quantum Mechanics&quot;, &quot;Particles and Wave functions.&quot;, 4, &quot;Physics&quot;, ApprovalStatus.APPROVED);</span>
+
+        // Management
+<span class="nc" id="L91">        Course mn1 = createCourse(&quot;MAN101&quot;, &quot;Org Behavior&quot;, &quot;Human behavior in organizations.&quot;, 3, &quot;Management&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L92">        Course mn2 = createCourse(&quot;MAN301&quot;, &quot;Strategic Management&quot;, &quot;Corporate planning and growth.&quot;, 4, &quot;Management&quot;, ApprovalStatus.APPROVED);</span>
+<span class="nc" id="L93">        Course mn3 = createCourse(&quot;MAN4438&quot;, &quot;IT Management&quot;, &quot;Core management for IT projects.&quot;, 4, &quot;Management&quot;, ApprovalStatus.APPROVED);</span>
+
+        // Pending/Rejected Proposals (For Admin Testing)
+<span class="nc" id="L96">        createCourse(&quot;WEB404&quot;, &quot;Quantum Computing&quot;, &quot;Future of Compute&quot;, 5, &quot;Experimental&quot;, ApprovalStatus.PENDING, &quot;dr.weird@lab.edu&quot;);</span>
+<span class="nc" id="L97">        createCourse(&quot;FAIL101&quot;, &quot;Underwater Basket Weaving&quot;, &quot;No credits&quot;, 1, &quot;Arts&quot;, ApprovalStatus.REJECTED, &quot;lazy.pro@edu.vn&quot;);</span>
+
+        // ==================== 2. COURSE OFFERINGS (SPRING 2026) ====================
+        // Core offerings
+<span class="nc" id="L101">        CourseOffering o1 = createOffering(ph1, Semester.SPRING, 2026, null, 60);</span>
+<span class="nc" id="L102">        CourseOffering o2 = createOffering(mn3, Semester.SPRING, 2026, null, 40);</span>
+<span class="nc" id="L103">        CourseOffering o3 = createOffering(cs2, Semester.SPRING, 2026, null, 50);</span>
+<span class="nc" id="L104">        CourseOffering o4 = createOffering(se1, Semester.SPRING, 2026, null, 45);</span>
+<span class="nc" id="L105">        CourseOffering o5 = createOffering(ai1, Semester.SPRING, 2026, null, 35);</span>
+        
+        // Secondary offerings
+<span class="nc" id="L108">        CourseOffering o6 = createOffering(cs1, Semester.SPRING, 2026, &quot;Dr. Banner&quot;, 80);</span>
+<span class="nc" id="L109">        CourseOffering o7 = createOffering(se3, Semester.SPRING, 2026, &quot;Prof. Stark&quot;, 40);</span>
+<span class="nc" id="L110">        CourseOffering o8 = createOffering(ai2, Semester.SPRING, 2026, &quot;Dr. Strange&quot;, 30);</span>
+<span class="nc" id="L111">        CourseOffering o9 = createOffering(ph2, Semester.SPRING, 2026, &quot;Dr. Newton&quot;, 50);</span>
+<span class="nc" id="L112">        CourseOffering o10 = createOffering(mn2, Semester.SPRING, 2026, &quot;Prof. Buffet&quot;, 45);</span>
+
+        // Additional offerings for previously missing courses
+<span class="nc" id="L115">        CourseOffering o11 = createOffering(cs3, Semester.SPRING, 2026, &quot;Prof. Xavier&quot;, 45);</span>
+<span class="nc" id="L116">        CourseOffering o12 = createOffering(cs4, Semester.SPRING, 2026, &quot;Dr. Turing&quot;, 50);</span>
+<span class="nc" id="L117">        CourseOffering o13 = createOffering(se2, Semester.SPRING, 2026, &quot;Prof. Pressman&quot;, 40);</span>
+<span class="nc" id="L118">        CourseOffering o14 = createOffering(se4, Semester.SPRING, 2026, &quot;Eng. Jobs&quot;, 35);</span>
+<span class="nc" id="L119">        CourseOffering o15 = createOffering(ai3, Semester.SPRING, 2026, &quot;Dr. Hinton&quot;, 30);</span>
+<span class="nc" id="L120">        CourseOffering o16 = createOffering(ai4, Semester.SPRING, 2026, &quot;Prof. LeCun&quot;, 30);</span>
+<span class="nc" id="L121">        CourseOffering o17 = createOffering(ph3, Semester.SPRING, 2026, &quot;Dr. Einstein&quot;, 25);</span>
+<span class="nc" id="L122">        CourseOffering o18 = createOffering(mn1, Semester.SPRING, 2026, &quot;Dr. Drucker&quot;, 45);</span>
+
+        // ==================== 3. STUDENTS (VIETNAMESE LOCALIZED) ====================
+<span class="nc" id="L125">        Student s1 = createStudent(&quot;IT202301&quot;, &quot;Nguyễn&quot;, &quot;Thị Mai&quot;, &quot;mai.nt@student.uth.edu.vn&quot;, 3.95, StudentStatus.NORMAL, 2005, 12, 1);</span>
+<span class="nc" id="L126">        Student s2 = createStudent(&quot;IT202302&quot;, &quot;Trần&quot;, &quot;Văn Nam&quot;, &quot;nam.tv@student.uth.edu.vn&quot;, 3.82, StudentStatus.NORMAL, 2004, 5, 20);</span>
+<span class="nc" id="L127">        Student s3 = createStudent(&quot;IT202303&quot;, &quot;Alice&quot;, &quot;Wonderland&quot;, &quot;alice.w@univ.edu&quot;, 3.90, StudentStatus.NORMAL, 2005, 3, 15);</span>
+<span class="nc" id="L128">        Student s4 = createStudent(&quot;IT202304&quot;, &quot;Lê&quot;, &quot;Hoàng Long&quot;, &quot;long.lh@student.uth.edu.vn&quot;, 2.50, StudentStatus.NORMAL, 2005, 6, 12);</span>
+<span class="nc" id="L129">        Student s5 = createStudent(&quot;IT202305&quot;, &quot;Phạm&quot;, &quot;Thanh Thảo&quot;, &quot;thao.pt@student.uth.edu.vn&quot;, 2.75, StudentStatus.NORMAL, 2003, 8, 30);</span>
+<span class="nc" id="L130">        Student s6 = createStudent(&quot;IT202410&quot;, &quot;Hoàng&quot;, &quot;Minh Tuấn&quot;, &quot;tuan.hm@student.uth.edu.vn&quot;, 1.85, StudentStatus.AT_RISK, 2006, 1, 10);</span>
+<span class="nc" id="L131">        Student s7 = createStudent(&quot;IT202411&quot;, &quot;Đặng&quot;, &quot;Văn Hậu&quot;, &quot;hau.dv@student.uth.edu.vn&quot;, 1.25, StudentStatus.PROBATION, 2005, 11, 2);</span>
+
+        // Batch students
+<span class="nc" id="L134">        String[] firstNames = {&quot;Anh&quot;, &quot;Bình&quot;, &quot;Cường&quot;, &quot;Dung&quot;, &quot;Em&quot;, &quot;Gia&quot;, &quot;Hòa&quot;, &quot;Khánh&quot;, &quot;Linh&quot;, &quot;Minh&quot;, &quot;Nghĩa&quot;, &quot;Oanh&quot;, &quot;Phúc&quot;, &quot;Quang&quot;, &quot;Sơn&quot;};</span>
+<span class="nc" id="L135">        String[] lastNames = {&quot;Nguyễn&quot;, &quot;Trần&quot;, &quot;Lê&quot;, &quot;Phạm&quot;, &quot;Hoàng&quot;, &quot;Huỳnh&quot;, &quot;Phan&quot;, &quot;Vũ&quot;, &quot;Võ&quot;, &quot;Đặng&quot;, &quot;Bùi&quot;, &quot;Đỗ&quot;, &quot;Hồ&quot;, &quot;Ngô&quot;, &quot;Dương&quot;};</span>
+        
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        for(int i = 0; i &lt; 15; i++) {</span>
+<span class="nc" id="L138">            createStudent(&quot;GEN2025&quot; + String.format(&quot;%02d&quot;, i+1), lastNames[i], firstNames[i], </span>
+                    &quot;student.&quot; + (i+1) + &quot;@uth.edu.vn&quot;, 
+<span class="nc" id="L140">                    2.0 + (Math.random() * 1.8), StudentStatus.NORMAL, 2004 + (i%2), (i%12)+1, (i%28)+1);</span>
+        }
+
+        // ==================== 4. ENROLLMENTS &amp; GRADES ====================
+<span class="nc" id="L144">        Enrollment e1 = createEnrollment(s1, o1, EnrollmentStatus.COMPLETED, 9.5);</span>
+<span class="nc" id="L145">        createGradeEntry(e1, &quot;Baitap 1&quot;, 0.2, 10.0);</span>
+<span class="nc" id="L146">        createGradeEntry(e1, &quot;Giua ky&quot;, 0.4, 9.0);</span>
+<span class="nc" id="L147">        createGradeEntry(e1, &quot;Cuoi ky&quot;, 0.4, 9.5);</span>
+        
+<span class="nc" id="L149">        createEnrollment(s1, o3, EnrollmentStatus.IN_PROGRESS, null);</span>
+<span class="nc" id="L150">        createEnrollment(s6, o1, EnrollmentStatus.COMPLETED, 4.5);</span>
+
+        // Fully engage all students in the new course offerings
+<span class="nc" id="L153">        CourseOffering[] allOfferings = {o1, o2, o3, o4, o5, o6, o7, o8, o9, o10, o11, o12, o13, o14, o15, o16, o17, o18};</span>
+<span class="nc" id="L154">        var allStudents = studentRepository.findAll();</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        for(int i = 0; i &lt; allStudents.size(); i++) {</span>
+<span class="nc" id="L156">             Student st = allStudents.get(i);</span>
+             // Enroll each student in 3-4 different courses based on their index
+<span class="nc bnc" id="L158" title="All 2 branches missed.">             for(int j = 0; j &lt; 4; j++) {</span>
+<span class="nc" id="L159">                 int offeringIdx = (i + j * 3) % allOfferings.length;</span>
+                 // Avoid duplicate enrollments for s1 and s6 who already have manual ones
+<span class="nc bnc" id="L161" title="All 10 branches missed.">                 if ((i == 0 &amp;&amp; (offeringIdx == 0 || offeringIdx == 2)) || (i == 5 &amp;&amp; offeringIdx == 0)) continue;</span>
+                 // 70% chance to be COMPLETED with a grade, 30% IN_PROGRESS
+<span class="nc bnc" id="L163" title="All 2 branches missed.">                 if (Math.random() &gt; 0.3) {</span>
+<span class="nc" id="L164">                     double score = 5.0 + (Math.random() * 4.5); // Random score 5.0 - 9.5</span>
+                     // Round to 1 decimal
+<span class="nc" id="L166">                     score = Math.round(score * 10.0) / 10.0;</span>
+<span class="nc" id="L167">                     createEnrollment(st, allOfferings[offeringIdx], EnrollmentStatus.COMPLETED, score);</span>
+<span class="nc" id="L168">                 } else {</span>
+<span class="nc" id="L169">                     createEnrollment(st, allOfferings[offeringIdx], EnrollmentStatus.IN_PROGRESS, null);</span>
+                 }
+             }
+        }
+
+        // ==================== 5. ALERTS (HIERARCHY) ====================
+<span class="nc" id="L175">        createAlert(s6, AlertLevel.CRITICAL, AlertType.PROBATION, &quot;CRITICAL: Student on final probation. Dismissal pending next GPA drop.&quot;);</span>
+<span class="nc" id="L176">        createAlert(s5, AlertLevel.HIGH, AlertType.LOW_GPA, &quot;WARNING: GPA below 2.0. Mandatory advising scheduled.&quot;);</span>
+<span class="nc" id="L177">        createAlert(s3, AlertLevel.WARNING, AlertType.GPA_DROP, &quot;NOTICE: 0.5 GPA drop detected since last semester.&quot;);</span>
+<span class="nc" id="L178">        createAlert(s1, AlertLevel.INFO, AlertType.IMPROVEMENT, &quot;ACHIEVEMENT: Top 1% of Computer Science faculty.&quot;);</span>
+
+<span class="nc" id="L180">        System.out.println(&quot;DataInitializer: High-Engagement Dataset Seeding Complete!&quot;);</span>
+<span class="nc" id="L181">        System.out.println(&quot;&gt;&gt; Indexing Summary:&quot;);</span>
+<span class="nc" id="L182">        System.out.println(&quot;   - Managed Records: &quot; + studentRepository.count() + &quot; Students&quot;);</span>
+<span class="nc" id="L183">        System.out.println(&quot;   - Catalog Assets: &quot; + courseRepository.count() + &quot; Courses&quot;);</span>
+<span class="nc" id="L184">        System.out.println(&quot;   - Active Offerings: &quot; + courseOfferingRepository.count());</span>
+<span class="nc" id="L185">    }</span>
+
+    // ==================== Helper Methods ====================
+
+    private Student createStudent(String studentId, String fName, String lName, String email, Double gpa, StudentStatus status, int y, int m, int d) {
+<span class="nc" id="L190">        Student student = new Student();</span>
+<span class="nc" id="L191">        student.setStudentId(studentId);</span>
+<span class="nc" id="L192">        student.setFirstName(fName);</span>
+<span class="nc" id="L193">        student.setLastName(lName);</span>
+<span class="nc" id="L194">        student.setEmail(email);</span>
+<span class="nc" id="L195">        student.setGpa(gpa);</span>
+<span class="nc" id="L196">        student.setStatus(status);</span>
+<span class="nc" id="L197">        student.setDateOfBirth(LocalDate.of(y, m, d));</span>
+<span class="nc" id="L198">        student.setEnrollmentDate(LocalDate.now().minusYears(1));</span>
+<span class="nc" id="L199">        student.setTotalCredits(30 + (int)(Math.random() * 60));</span>
+<span class="nc" id="L200">        return studentRepository.save(student);</span>
+    }
+
+    private Course createCourse(String code, String name, String desc, int credits, String dept, ApprovalStatus status) {
+<span class="nc" id="L204">        return createCourse(code, name, desc, credits, dept, status, &quot;admin@university.edu&quot;);</span>
+    }
+
+    private Course createCourse(String code, String name, String desc, int credits, String dept, ApprovalStatus status, String creator) {
+<span class="nc" id="L208">        Course course = new Course();</span>
+<span class="nc" id="L209">        course.setCourseCode(code);</span>
+<span class="nc" id="L210">        course.setCourseName(name);</span>
+<span class="nc" id="L211">        course.setDescription(desc);</span>
+<span class="nc" id="L212">        course.setCredits(credits);</span>
+<span class="nc" id="L213">        course.setDepartment(dept);</span>
+<span class="nc" id="L214">        course.setStatus(status);</span>
+<span class="nc" id="L215">        course.setCreatorEmail(creator);</span>
+<span class="nc" id="L216">        course.setGradingType(GradingType.SCALE_10);</span>
+<span class="nc" id="L217">        return courseRepository.save(course);</span>
+    }
+
+    private CourseOffering createOffering(Course c, Semester s, int y, String inst, int max) {
+<span class="nc" id="L221">        CourseOffering o = new CourseOffering();</span>
+<span class="nc" id="L222">        o.setCourse(c);</span>
+<span class="nc" id="L223">        o.setSemester(s);</span>
+<span class="nc" id="L224">        o.setAcademicYear(y);</span>
+<span class="nc" id="L225">        o.setInstructor(inst);</span>
+<span class="nc" id="L226">        o.setMaxEnrollment(max);</span>
+<span class="nc" id="L227">        o.setCurrentEnrollment(0);</span>
+<span class="nc" id="L228">        o.setGradingScale(&quot;SCALE_10&quot;);</span>
+<span class="nc" id="L229">        return courseOfferingRepository.save(o);</span>
+    }
+
+    private Enrollment createEnrollment(Student s, CourseOffering o, EnrollmentStatus status, Double score) {
+<span class="nc" id="L233">        Enrollment e = new Enrollment();</span>
+<span class="nc" id="L234">        e.setStudent(s);</span>
+<span class="nc" id="L235">        e.setCourseOffering(o);</span>
+<span class="nc" id="L236">        e.setStatus(status);</span>
+<span class="nc" id="L237">        e.setEnrolledAt(LocalDateTime.now().minusDays(30));</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">        if (score != null) {</span>
+<span class="nc" id="L239">            e.setFinalScore(score);</span>
+<span class="nc" id="L240">            e.setCompletedAt(LocalDateTime.now().minusDays(5));</span>
+        }
+<span class="nc" id="L242">        o.setCurrentEnrollment(o.getCurrentEnrollment() + 1);</span>
+<span class="nc" id="L243">        courseOfferingRepository.save(o);</span>
+<span class="nc" id="L244">        return enrollmentRepository.save(e);</span>
+    }
+
+    private void createGradeEntry(Enrollment e, String name, Double weight, Double score) {
+<span class="nc" id="L248">        GradeEntry entry = new GradeEntry();</span>
+<span class="nc" id="L249">        entry.setEnrollment(e);</span>
+<span class="nc" id="L250">        entry.setName(name);</span>
+<span class="nc" id="L251">        entry.setWeight(weight);</span>
+<span class="nc" id="L252">        entry.setScore(score);</span>
+<span class="nc" id="L253">        entry.setEntryType(GradeEntryType.COMPONENT);</span>
+<span class="nc" id="L254">        entry.setRecordedBy(&quot;System_Initialize&quot;);</span>
+<span class="nc" id="L255">        entry.setRecordedAt(LocalDateTime.now().minusDays(15));</span>
+<span class="nc" id="L256">        gradeEntryRepository.save(entry);</span>
+<span class="nc" id="L257">    }</span>
+
+    private void createAlert(Student s, AlertLevel lvl, AlertType type, String msg) {
+<span class="nc" id="L260">        Alert a = new Alert();</span>
+<span class="nc" id="L261">        a.setStudent(s);</span>
+<span class="nc" id="L262">        a.setLevel(lvl);</span>
+<span class="nc" id="L263">        a.setType(type);</span>
+<span class="nc" id="L264">        a.setMessage(msg);</span>
+<span class="nc" id="L265">        a.setIsRead(false);</span>
+<span class="nc" id="L266">        a.setIsResolved(false);</span>
+<span class="nc" id="L267">        a.setCreatedAt(LocalDateTime.now().minusHours(5));</span>
+<span class="nc" id="L268">        alertRepository.save(a);</span>
+<span class="nc" id="L269">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

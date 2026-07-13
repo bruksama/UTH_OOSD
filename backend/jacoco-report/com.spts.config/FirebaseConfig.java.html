@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FirebaseConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.config</a> &gt; <span class="el_source">FirebaseConfig.java</span></div><h1>FirebaseConfig.java</h1><pre class="source lang-java linenums">package com.spts.config;
+
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
+
+import jakarta.annotation.PostConstruct;
+import java.io.IOException;
+import java.io.InputStream;
+
+/**
+ * Firebase configuration for authentication.
+ * Set firebase.service-account-path in application.properties to enable Firebase auth.
+ * If not set, the app will start in development mode without Firebase authentication.
+ */
+@Configuration
+<span class="fc" id="L24">public class FirebaseConfig {</span>
+
+<span class="fc" id="L26">    private static final Logger logger = LoggerFactory.getLogger(FirebaseConfig.class);</span>
+
+    @Value(&quot;${firebase.service-account-path:}&quot;)
+    private String serviceAccountPath;
+
+    @Value(&quot;${firebase.enabled:true}&quot;)
+    private boolean firebaseEnabled;
+
+<span class="fc" id="L34">    private boolean initialized = false;</span>
+
+    @PostConstruct
+    public void initialize() {
+        // Skip initialization if Firebase is disabled
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        if (!firebaseEnabled) {</span>
+<span class="nc" id="L40">            logger.warn(&quot;Firebase authentication is DISABLED. Set firebase.enabled=true to enable.&quot;);</span>
+<span class="nc" id="L41">            return;</span>
+        }
+
+        // Skip if no service account path is provided
+<span class="pc bpc" id="L45" title="2 of 4 branches missed.">        if (serviceAccountPath == null || serviceAccountPath.trim().isEmpty()) {</span>
+<span class="nc" id="L46">            logger.warn(&quot;Firebase service account path not configured. Firebase authentication is DISABLED.&quot;);</span>
+<span class="nc" id="L47">            logger.warn(&quot;To enable Firebase auth, set 'firebase.service-account-path' in application.properties&quot;);</span>
+<span class="nc" id="L48">            logger.warn(&quot;Download service account JSON from: Firebase Console &gt; Project Settings &gt; Service Accounts&quot;);</span>
+<span class="nc" id="L49">            return;</span>
+        }
+
+        try {
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">            if (FirebaseApp.getApps().isEmpty()) {</span>
+                // Dùng Resource để hỗ trợ cả classpath: và file: prefix
+                // try-with-resources đảm bảo InputStream luôn được đóng
+<span class="fc" id="L56">                org.springframework.core.io.Resource resource = new org.springframework.core.io.DefaultResourceLoader().getResource(serviceAccountPath);</span>
+<span class="fc" id="L57">                try (InputStream serviceAccount = resource.getInputStream()) {</span>
+<span class="fc" id="L58">                    FirebaseOptions options = FirebaseOptions.builder()</span>
+<span class="fc" id="L59">                            .setCredentials(GoogleCredentials.fromStream(serviceAccount))</span>
+<span class="fc" id="L60">                            .build();</span>
+<span class="fc" id="L61">                    FirebaseApp.initializeApp(options);</span>
+                }
+<span class="fc" id="L63">                initialized = true;</span>
+<span class="fc" id="L64">                logger.info(&quot;Firebase initialized successfully with service account file&quot;);</span>
+<span class="fc" id="L65">            } else {</span>
+<span class="nc" id="L66">                initialized = true;</span>
+<span class="nc" id="L67">                logger.info(&quot;Firebase was already initialized&quot;);</span>
+            }
+<span class="nc" id="L69">        } catch (IOException e) {</span>
+<span class="nc" id="L70">            logger.error(&quot;Failed to initialize Firebase: {}. App will continue without Firebase auth.&quot;, e.getMessage());</span>
+<span class="nc" id="L71">            logger.error(&quot;Make sure the service account file exists at: {}&quot;, serviceAccountPath);</span>
+<span class="fc" id="L72">        }</span>
+<span class="fc" id="L73">    }</span>
+
+    @Bean
+    public FirebaseAuth firebaseAuth() {
+<span class="pc bpc" id="L77" title="2 of 4 branches missed.">        if (initialized &amp;&amp; !FirebaseApp.getApps().isEmpty()) {</span>
+<span class="fc" id="L78">            return FirebaseAuth.getInstance();</span>
+        }
+        // Return null if Firebase is not initialized - components should handle this gracefully
+<span class="nc" id="L81">        logger.warn(&quot;FirebaseAuth bean is null - Firebase authentication is not available&quot;);</span>
+<span class="nc" id="L82">        return null;</span>
+    }
+
+    /**
+     * Check if Firebase is properly initialized and available
+     */
+    public boolean isInitialized() {
+<span class="nc" id="L89">        return initialized;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

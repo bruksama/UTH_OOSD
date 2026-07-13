@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CourseOfferingDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.dto</a> &gt; <span class="el_source">CourseOfferingDTO.java</span></div><h1>CourseOfferingDTO.java</h1><pre class="source lang-java linenums">package com.spts.dto;
+
+import com.spts.entity.Semester;
+import jakarta.validation.constraints.*;
+
+/**
+ * Data Transfer Object for CourseOffering entity.
+ * 
+ * @author SPTS Team
+ */
+public class CourseOfferingDTO {
+
+    private Long id;
+
+    @NotNull(message = &quot;Course ID is required&quot;)
+    private Long courseId;
+    
+    private String courseCode;
+    private String courseName;
+    private Integer credits;
+    private String department;
+
+    @NotNull(message = &quot;Semester is required&quot;)
+    private Semester semester;
+
+    @NotNull(message = &quot;Academic year is required&quot;)
+    @Min(value = 2000, message = &quot;Academic year must be 2000 or later&quot;)
+    @Max(value = 2100, message = &quot;Academic year must be before 2100&quot;)
+    private Integer academicYear;
+
+    private String instructor;
+    private Integer maxEnrollment;
+    private Integer currentEnrollment;
+    
+    /**
+     * Grading scale for this course offering.
+     * Values: SCALE_10 (default), SCALE_4, PASS_FAIL
+     */
+    private String gradingScale;
+
+    // Constructors
+<span class="nc" id="L42">    public CourseOfferingDTO() {</span>
+<span class="nc" id="L43">    }</span>
+
+    // Getters and Setters
+    public Long getId() {
+<span class="nc" id="L47">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L51">        this.id = id;</span>
+<span class="nc" id="L52">    }</span>
+
+    public Long getCourseId() {
+<span class="nc" id="L55">        return courseId;</span>
+    }
+
+    public void setCourseId(Long courseId) {
+<span class="nc" id="L59">        this.courseId = courseId;</span>
+<span class="nc" id="L60">    }</span>
+
+    public String getCourseCode() {
+<span class="nc" id="L63">        return courseCode;</span>
+    }
+
+    public void setCourseCode(String courseCode) {
+<span class="nc" id="L67">        this.courseCode = courseCode;</span>
+<span class="nc" id="L68">    }</span>
+
+    public String getCourseName() {
+<span class="nc" id="L71">        return courseName;</span>
+    }
+
+    public void setCourseName(String courseName) {
+<span class="nc" id="L75">        this.courseName = courseName;</span>
+<span class="nc" id="L76">    }</span>
+
+    public Integer getCredits() {
+<span class="nc" id="L79">        return credits;</span>
+    }
+
+    public void setCredits(Integer credits) {
+<span class="nc" id="L83">        this.credits = credits;</span>
+<span class="nc" id="L84">    }</span>
+
+    public String getDepartment() {
+<span class="nc" id="L87">        return department;</span>
+    }
+
+    public void setDepartment(String department) {
+<span class="nc" id="L91">        this.department = department;</span>
+<span class="nc" id="L92">    }</span>
+
+    public Semester getSemester() {
+<span class="nc" id="L95">        return semester;</span>
+    }
+
+    public void setSemester(Semester semester) {
+<span class="nc" id="L99">        this.semester = semester;</span>
+<span class="nc" id="L100">    }</span>
+
+    public Integer getAcademicYear() {
+<span class="nc" id="L103">        return academicYear;</span>
+    }
+
+    public void setAcademicYear(Integer academicYear) {
+<span class="nc" id="L107">        this.academicYear = academicYear;</span>
+<span class="nc" id="L108">    }</span>
+
+    public String getInstructor() {
+<span class="nc" id="L111">        return instructor;</span>
+    }
+
+    public void setInstructor(String instructor) {
+<span class="nc" id="L115">        this.instructor = instructor;</span>
+<span class="nc" id="L116">    }</span>
+
+    public Integer getMaxEnrollment() {
+<span class="nc" id="L119">        return maxEnrollment;</span>
+    }
+
+    public void setMaxEnrollment(Integer maxEnrollment) {
+<span class="nc" id="L123">        this.maxEnrollment = maxEnrollment;</span>
+<span class="nc" id="L124">    }</span>
+
+    public Integer getCurrentEnrollment() {
+<span class="nc" id="L127">        return currentEnrollment;</span>
+    }
+
+    public void setCurrentEnrollment(Integer currentEnrollment) {
+<span class="nc" id="L131">        this.currentEnrollment = currentEnrollment;</span>
+<span class="nc" id="L132">    }</span>
+
+    public String getGradingScale() {
+<span class="nc" id="L135">        return gradingScale;</span>
+    }
+
+    public void setGradingScale(String gradingScale) {
+<span class="nc" id="L139">        this.gradingScale = gradingScale;</span>
+<span class="nc" id="L140">    }</span>
+
+    public String getDisplayName() {
+<span class="nc" id="L143">        return courseName + &quot; - &quot; + semester.getDisplayName() + &quot; &quot; + academicYear;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

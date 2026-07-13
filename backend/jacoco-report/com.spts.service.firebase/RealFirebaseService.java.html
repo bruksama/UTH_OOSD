@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RealFirebaseService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.service.firebase</a> &gt; <span class="el_source">RealFirebaseService.java</span></div><h1>RealFirebaseService.java</h1><pre class="source lang-java linenums">package com.spts.service.firebase;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
+import com.google.firebase.auth.UserRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Service;
+
+@Service
+@Profile(&quot;prod&quot;)
+public class RealFirebaseService implements FirebaseService {
+
+<span class="nc" id="L15">    private static final Logger log = LoggerFactory.getLogger(RealFirebaseService.class);</span>
+    private final FirebaseAuth firebaseAuth;
+
+<span class="nc" id="L18">    public RealFirebaseService(FirebaseAuth firebaseAuth) {</span>
+<span class="nc" id="L19">        this.firebaseAuth = firebaseAuth;</span>
+<span class="nc" id="L20">    }</span>
+
+    @Override
+    public String createAccount(String uid, String email, String displayName, String password) {
+<span class="nc bnc" id="L24" title="All 2 branches missed.">        if (firebaseAuth == null) {</span>
+<span class="nc" id="L25">            log.error(&quot;Firebase: Cannot create account for {} — FirebaseAuth not initialized&quot;, email);</span>
+<span class="nc" id="L26">            throw new RuntimeException(&quot;FirebaseAuth not initialized&quot;);</span>
+        }
+        try {
+<span class="nc" id="L29">            UserRecord.CreateRequest request = new UserRecord.CreateRequest()</span>
+<span class="nc" id="L30">                .setUid(uid)            // QUAN TRỌNG: dùng UID từ DB, không để Firebase tự sinh</span>
+<span class="nc" id="L31">                .setEmail(email)</span>
+<span class="nc" id="L32">                .setPassword(password)</span>
+<span class="nc" id="L33">                .setDisplayName(displayName)</span>
+<span class="nc" id="L34">                .setEmailVerified(false);</span>
+<span class="nc" id="L35">            UserRecord userRecord = firebaseAuth.createUser(request);</span>
+<span class="nc" id="L36">            log.info(&quot;Firebase: Created account for {} with uid {}&quot;, email, uid);</span>
+<span class="nc" id="L37">            return userRecord.getUid();</span>
+<span class="nc" id="L38">        } catch (FirebaseAuthException e) {</span>
+<span class="nc" id="L39">            log.error(&quot;Firebase: Auth error creating account for {} - errorCode: {}&quot;, email, e.getErrorCode(), e);</span>
+<span class="nc" id="L40">            throw new RuntimeException(&quot;Firebase account creation failed [&quot; + e.getErrorCode() + &quot;]: &quot; + e.getMessage(), e);</span>
+<span class="nc" id="L41">        } catch (Exception e) {</span>
+<span class="nc" id="L42">            log.error(&quot;Firebase: Unexpected error creating account for {}&quot;, email, e);</span>
+<span class="nc" id="L43">            throw new RuntimeException(&quot;Firebase account creation failed for &quot; + email, e);</span>
+        }
+    }
+
+    @Override
+    public void deleteAccount(String uid) {
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        if (firebaseAuth == null) {</span>
+<span class="nc" id="L50">            log.error(&quot;Firebase: Cannot delete account {} — FirebaseAuth not initialized&quot;, uid);</span>
+<span class="nc" id="L51">            throw new RuntimeException(&quot;FirebaseAuth not initialized&quot;);</span>
+        }
+        try {
+<span class="nc" id="L54">            firebaseAuth.deleteUser(uid);</span>
+<span class="nc" id="L55">            log.info(&quot;Firebase: Deleted account {}&quot;, uid);</span>
+<span class="nc" id="L56">        } catch (FirebaseAuthException e) {</span>
+<span class="nc bnc" id="L57" title="All 2 branches missed.">            if (&quot;user-not-found&quot;.equals(e.getErrorCode())) {</span>
+<span class="nc" id="L58">                log.warn(&quot;Firebase: Account {} already deleted or not found&quot;, uid);</span>
+            } else {
+<span class="nc" id="L60">                log.error(&quot;Firebase: Auth error deleting account {}&quot;, uid, e);</span>
+<span class="nc" id="L61">                throw new RuntimeException(&quot;Firebase account deletion failed for &quot; + uid, e);</span>
+            }
+<span class="nc" id="L63">        } catch (Exception e) {</span>
+<span class="nc" id="L64">            log.error(&quot;Firebase: Unexpected error deleting account {}&quot;, uid, e);</span>
+<span class="nc" id="L65">            throw new RuntimeException(&quot;Firebase account deletion failed for &quot; + uid, e);</span>
+<span class="nc" id="L66">        }</span>
+<span class="nc" id="L67">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

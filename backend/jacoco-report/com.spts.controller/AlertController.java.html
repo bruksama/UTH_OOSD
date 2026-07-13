@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlertController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.controller</a> &gt; <span class="el_source">AlertController.java</span></div><h1>AlertController.java</h1><pre class="source lang-java linenums">package com.spts.controller;
+
+import com.spts.dto.AlertDTO;
+import com.spts.entity.AlertLevel;
+import com.spts.entity.AlertType;
+import com.spts.service.AlertService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import jakarta.validation.Valid;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * REST controller for Alert management.
+ * Provides endpoints for CRUD operations and alert queries.
+ * 
+ * Alerts are created by the Observer pattern when student performance issues are detected.
+ * 
+ * @author SPTS Team
+ */
+@RestController
+@RequestMapping(&quot;/api/alerts&quot;)
+@Tag(name = &quot;Alerts&quot;, description = &quot;Alert management APIs (Observer Pattern)&quot;)
+public class AlertController {
+
+    private final AlertService alertService;
+
+<span class="fc" id="L37">    public AlertController(AlertService alertService) {</span>
+<span class="fc" id="L38">        this.alertService = alertService;</span>
+<span class="fc" id="L39">    }</span>
+
+    // ==================== CRUD Operations ====================
+
+    @GetMapping
+    @Operation(summary = &quot;Get all alerts&quot;, description = &quot;Retrieves a list of all alerts&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved list of alerts&quot;)
+    public ResponseEntity&lt;List&lt;AlertDTO&gt;&gt; getAllAlerts() {
+<span class="fc" id="L47">        return ResponseEntity.ok(alertService.getAllAlerts());</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Get alert by ID&quot;, description = &quot;Retrieves an alert by its database ID&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Alert found&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Alert not found&quot;)
+    })
+    public ResponseEntity&lt;AlertDTO&gt; getAlertById(
+            @Parameter(description = &quot;Alert database ID&quot;) @PathVariable Long id) {
+<span class="fc" id="L58">        return ResponseEntity.ok(alertService.getAlertById(id));</span>
+    }
+
+    @PostMapping
+    @Operation(summary = &quot;Create new alert&quot;, description = &quot;Creates a new alert for a student&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Alert created successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student not found&quot;)
+    })
+    public ResponseEntity&lt;AlertDTO&gt; createAlert(
+            @Valid @RequestBody AlertDTO dto) {
+<span class="fc" id="L70">        return new ResponseEntity&lt;&gt;(alertService.createAlert(dto), HttpStatus.CREATED);</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Update alert&quot;, description = &quot;Updates an existing alert&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Alert updated successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Alert not found&quot;)
+    })
+    public ResponseEntity&lt;AlertDTO&gt; updateAlert(
+            @Parameter(description = &quot;Alert database ID&quot;) @PathVariable Long id,
+            @Valid @RequestBody AlertDTO dto) {
+<span class="fc" id="L83">        return ResponseEntity.ok(alertService.updateAlert(id, dto));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Delete alert&quot;, description = &quot;Deletes an alert record&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Alert deleted successfully&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Alert not found&quot;)
+    })
+    public ResponseEntity&lt;Void&gt; deleteAlert(
+            @Parameter(description = &quot;Alert database ID&quot;) @PathVariable Long id) {
+<span class="fc" id="L94">        alertService.deleteAlert(id);</span>
+<span class="fc" id="L95">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // ==================== Mark as Read/Resolved ====================
+
+    @PutMapping(&quot;/{id}/read&quot;)
+    @Operation(summary = &quot;Mark alert as read&quot;, description = &quot;Marks an alert as read&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Alert marked as read&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Alert not found&quot;)
+    })
+    public ResponseEntity&lt;AlertDTO&gt; markAsRead(
+            @Parameter(description = &quot;Alert database ID&quot;) @PathVariable Long id) {
+<span class="fc" id="L108">        return ResponseEntity.ok(alertService.markAsRead(id));</span>
+    }
+
+    @PutMapping(&quot;/{id}/resolve&quot;)
+    @Operation(summary = &quot;Mark alert as resolved&quot;, description = &quot;Marks an alert as resolved&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Alert marked as resolved&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Alert not found&quot;)
+    })
+    public ResponseEntity&lt;AlertDTO&gt; resolveAlert(
+            @Parameter(description = &quot;Alert database ID&quot;) @PathVariable Long id,
+            @Parameter(description = &quot;Username of resolver&quot;) @RequestParam String resolvedBy) {
+<span class="fc" id="L120">        return ResponseEntity.ok(alertService.markAsResolved(id, resolvedBy));</span>
+    }
+
+    @PutMapping(&quot;/batch/read&quot;)
+    @Operation(summary = &quot;Mark multiple alerts as read&quot;, description = &quot;Marks multiple alerts as read in batch&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Number of alerts marked as read&quot;)
+    public ResponseEntity&lt;Integer&gt; markMultipleAsRead(
+            @Parameter(description = &quot;List of alert IDs&quot;) @RequestBody List&lt;Long&gt; ids) {
+<span class="fc" id="L128">        return ResponseEntity.ok(alertService.markMultipleAsRead(ids));</span>
+    }
+
+    @PutMapping(&quot;/batch/resolve&quot;)
+    @Operation(summary = &quot;Mark multiple alerts as resolved&quot;, description = &quot;Marks multiple alerts as resolved in batch&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Number of alerts marked as resolved&quot;)
+    public ResponseEntity&lt;Integer&gt; markMultipleAsResolved(
+            @Parameter(description = &quot;List of alert IDs&quot;) @RequestBody List&lt;Long&gt; ids,
+            @Parameter(description = &quot;Username of resolver&quot;) @RequestParam String resolvedBy) {
+<span class="fc" id="L137">        return ResponseEntity.ok(alertService.markMultipleAsResolved(ids, resolvedBy));</span>
+    }
+
+    @PutMapping(&quot;/student/{studentId}/read-all&quot;)
+    @Operation(summary = &quot;Mark all alerts as read for student&quot;, description = &quot;Marks all unread alerts for a student as read&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Number of alerts marked as read&quot;)
+    public ResponseEntity&lt;Integer&gt; markAllAsReadForStudent(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long studentId) {
+<span class="fc" id="L145">        return ResponseEntity.ok(alertService.markAllAsReadForStudent(studentId));</span>
+    }
+
+    // ==================== Queries ====================
+
+    @GetMapping(&quot;/unread&quot;)
+    @Operation(summary = &quot;Get unread alerts&quot;, description = &quot;Retrieves all unread alerts&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved unread alerts&quot;)
+    public ResponseEntity&lt;List&lt;AlertDTO&gt;&gt; getUnreadAlerts() {
+<span class="fc" id="L154">        return ResponseEntity.ok(alertService.getUnreadAlerts());</span>
+    }
+
+    @GetMapping(&quot;/unresolved&quot;)
+    @Operation(summary = &quot;Get unresolved alerts&quot;, description = &quot;Retrieves all unresolved alerts&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved unresolved alerts&quot;)
+    public ResponseEntity&lt;List&lt;AlertDTO&gt;&gt; getUnresolvedAlerts() {
+<span class="fc" id="L161">        return ResponseEntity.ok(alertService.getUnresolvedAlerts());</span>
+    }
+
+    @GetMapping(&quot;/urgent&quot;)
+    @Operation(summary = &quot;Get urgent alerts&quot;, description = &quot;Retrieves CRITICAL and HIGH level unresolved alerts&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved urgent alerts&quot;)
+    public ResponseEntity&lt;List&lt;AlertDTO&gt;&gt; getUrgentAlerts() {
+<span class="fc" id="L168">        return ResponseEntity.ok(alertService.getUrgentAlerts());</span>
+    }
+
+    @GetMapping(&quot;/student/{studentId}&quot;)
+    @Operation(summary = &quot;Get alerts by student&quot;, description = &quot;Retrieves all alerts for a student&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved alerts&quot;)
+    public ResponseEntity&lt;List&lt;AlertDTO&gt;&gt; getByStudent(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long studentId) {
+<span class="fc" id="L176">        return ResponseEntity.ok(alertService.getAlertsByStudent(studentId));</span>
+    }
+
+    @GetMapping(&quot;/student/{studentId}/unread&quot;)
+    @Operation(summary = &quot;Get unread alerts for student&quot;, description = &quot;Retrieves unread alerts for a student&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved unread alerts&quot;)
+    public ResponseEntity&lt;List&lt;AlertDTO&gt;&gt; getUnreadAlertsForStudent(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long studentId) {
+<span class="fc" id="L184">        return ResponseEntity.ok(alertService.getUnreadAlertsForStudent(studentId));</span>
+    }
+
+    @GetMapping(&quot;/level/{level}&quot;)
+    @Operation(summary = &quot;Get alerts by level&quot;, description = &quot;Retrieves alerts of a specific severity level&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved alerts&quot;)
+    public ResponseEntity&lt;List&lt;AlertDTO&gt;&gt; getByLevel(
+            @Parameter(description = &quot;Alert level (INFO, WARNING, HIGH, CRITICAL)&quot;) @PathVariable AlertLevel level) {
+<span class="fc" id="L192">        return ResponseEntity.ok(alertService.getAlertsByLevel(level));</span>
+    }
+
+    @GetMapping(&quot;/type/{type}&quot;)
+    @Operation(summary = &quot;Get alerts by type&quot;, description = &quot;Retrieves alerts of a specific type&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved alerts&quot;)
+    public ResponseEntity&lt;List&lt;AlertDTO&gt;&gt; getByType(
+            @Parameter(description = &quot;Alert type (LOW_GPA, GPA_DROP, STATUS_CHANGE, etc.)&quot;) @PathVariable AlertType type) {
+<span class="fc" id="L200">        return ResponseEntity.ok(alertService.getAlertsByType(type));</span>
+    }
+
+    @GetMapping(&quot;/student/{studentId}/count&quot;)
+    @Operation(summary = &quot;Count unread alerts&quot;, description = &quot;Counts unread alerts for a student&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved count&quot;)
+    public ResponseEntity&lt;Long&gt; countUnreadAlerts(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long studentId) {
+<span class="fc" id="L208">        return ResponseEntity.ok(alertService.countUnreadAlerts(studentId));</span>
+    }
+
+    @GetMapping(&quot;/student/{studentId}/summary&quot;)
+    @Operation(summary = &quot;Get alert summary&quot;, description = &quot;Gets alert statistics for a student&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved summary&quot;)
+    public ResponseEntity&lt;AlertService.AlertSummary&gt; getAlertSummary(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long studentId) {
+<span class="fc" id="L216">        return ResponseEntity.ok(alertService.getAlertSummary(studentId));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

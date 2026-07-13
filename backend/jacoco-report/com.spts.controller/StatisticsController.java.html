@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StatisticsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.controller</a> &gt; <span class="el_source">StatisticsController.java</span></div><h1>StatisticsController.java</h1><pre class="source lang-java linenums">package com.spts.controller;
+
+import com.spts.dto.StatisticsDTO.*;
+import com.spts.service.StatisticsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * REST Controller for statistics endpoints.
+ * Provides advanced analytics data for Admin Dashboard.
+ * 
+ * @author SPTS Team
+ */
+@RestController
+@RequestMapping(&quot;/api/statistics&quot;)
+@CrossOrigin(origins = &quot;*&quot;)
+public class StatisticsController {
+
+<span class="fc" id="L23">    private static final Logger logger = LoggerFactory.getLogger(StatisticsController.class);</span>
+
+    private final StatisticsService statisticsService;
+
+<span class="fc" id="L27">    public StatisticsController(StatisticsService statisticsService) {</span>
+<span class="fc" id="L28">        this.statisticsService = statisticsService;</span>
+<span class="fc" id="L29">    }</span>
+
+    /**
+     * Get complete admin dashboard statistics
+     */
+    @GetMapping(&quot;/dashboard&quot;)
+    public ResponseEntity&lt;AdminDashboardStats&gt; getDashboardStats() {
+<span class="nc" id="L36">        logger.info(&quot;GET /api/statistics/dashboard - Getting complete dashboard stats&quot;);</span>
+<span class="nc" id="L37">        AdminDashboardStats stats = statisticsService.getAdminDashboardStats();</span>
+<span class="nc" id="L38">        return ResponseEntity.ok(stats);</span>
+    }
+
+    /**
+     * Get top enrolled courses
+     * 
+     * @param limit Number of courses to return (default: 10)
+     */
+    @GetMapping(&quot;/top-courses&quot;)
+    public ResponseEntity&lt;List&lt;CourseEnrollmentStats&gt;&gt; getTopCourses(
+            @RequestParam(defaultValue = &quot;10&quot;) int limit) {
+<span class="nc" id="L49">        logger.info(&quot;GET /api/statistics/top-courses - Getting top {} courses&quot;, limit);</span>
+<span class="nc" id="L50">        List&lt;CourseEnrollmentStats&gt; stats = statisticsService.getTopEnrolledCourses(limit);</span>
+<span class="nc" id="L51">        return ResponseEntity.ok(stats);</span>
+    }
+
+    /**
+     * Get department statistics
+     */
+    @GetMapping(&quot;/departments&quot;)
+    public ResponseEntity&lt;List&lt;DepartmentStats&gt;&gt; getDepartmentStats() {
+<span class="nc" id="L59">        logger.info(&quot;GET /api/statistics/departments - Getting department statistics&quot;);</span>
+<span class="nc" id="L60">        List&lt;DepartmentStats&gt; stats = statisticsService.getDepartmentStatistics();</span>
+<span class="nc" id="L61">        return ResponseEntity.ok(stats);</span>
+    }
+
+    /**
+     * Get enrollment trends by semester/year
+     */
+    @GetMapping(&quot;/enrollment-trends&quot;)
+    public ResponseEntity&lt;List&lt;EnrollmentTrend&gt;&gt; getEnrollmentTrends() {
+<span class="nc" id="L69">        logger.info(&quot;GET /api/statistics/enrollment-trends - Getting enrollment trends&quot;);</span>
+<span class="nc" id="L70">        List&lt;EnrollmentTrend&gt; trends = statisticsService.getEnrollmentTrends();</span>
+<span class="nc" id="L71">        return ResponseEntity.ok(trends);</span>
+    }
+
+    /**
+     * Get credit distribution
+     */
+    @GetMapping(&quot;/credit-distribution&quot;)
+    public ResponseEntity&lt;List&lt;CreditDistribution&gt;&gt; getCreditDistribution() {
+<span class="nc" id="L79">        logger.info(&quot;GET /api/statistics/credit-distribution - Getting credit distribution&quot;);</span>
+<span class="nc" id="L80">        List&lt;CreditDistribution&gt; distribution = statisticsService.getCreditDistribution();</span>
+<span class="nc" id="L81">        return ResponseEntity.ok(distribution);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

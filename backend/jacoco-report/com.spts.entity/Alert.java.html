@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Alert.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.entity</a> &gt; <span class="el_source">Alert.java</span></div><h1>Alert.java</h1><pre class="source lang-java linenums">package com.spts.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import java.time.LocalDateTime;
+
+/**
+ * Alert entity - Auto-generated notifications based on performance criteria.
+ * 
+ * Created by Observer Pattern when:
+ * - GPA falls below threshold (2.0 or 1.5)
+ * - Significant GPA drop detected
+ * - Academic status changes
+ * 
+ * OCL Constraints:
+ * - createdAt &lt;= CURRENT_TIMESTAMP
+ * 
+ * @author SPTS Team
+ */
+@Entity
+@Table(name = &quot;alerts&quot;)
+public class Alert {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;student_id&quot;, nullable = false)
+    @NotNull(message = &quot;Student reference is required&quot;)
+    private Student student;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;level&quot;, nullable = false)
+    @NotNull(message = &quot;Alert level is required&quot;)
+    private AlertLevel level;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = &quot;type&quot;, nullable = false)
+    @NotNull(message = &quot;Alert type is required&quot;)
+    private AlertType type;
+
+    @Column(name = &quot;message&quot;, nullable = false, columnDefinition = &quot;TEXT&quot;)
+    @NotBlank(message = &quot;Alert message is required&quot;)
+    private String message;
+
+<span class="pc" id="L47">    @Column(name = &quot;is_read&quot;, nullable = false)</span>
+<span class="pc" id="L48">    private Boolean isRead = false;</span>
+
+    @Column(name = &quot;read_at&quot;)
+    private LocalDateTime readAt;
+
+<span class="pc" id="L53">    @Column(name = &quot;is_resolved&quot;, nullable = false)</span>
+<span class="pc" id="L54">    private Boolean isResolved = false;</span>
+
+    @Column(name = &quot;resolved_at&quot;)
+    private LocalDateTime resolvedAt;
+
+    @Column(name = &quot;resolved_by&quot;, length = 100)
+    private String resolvedBy;
+
+    /**
+     * OCL Constraint: createdAt &lt;= CURRENT_TIMESTAMP
+     */
+    @Column(name = &quot;created_at&quot;, nullable = false)
+    private LocalDateTime createdAt;
+
+    // Constructors
+<span class="fc" id="L69">    public Alert() {</span>
+<span class="fc" id="L70">        this.createdAt = LocalDateTime.now();</span>
+<span class="fc" id="L71">    }</span>
+
+<span class="nc" id="L73">    public Alert(Student student, AlertLevel level, AlertType type, String message) {</span>
+<span class="nc" id="L74">        this.student = student;</span>
+<span class="nc" id="L75">        this.level = level;</span>
+<span class="nc" id="L76">        this.type = type;</span>
+<span class="nc" id="L77">        this.message = message;</span>
+<span class="nc" id="L78">        this.createdAt = LocalDateTime.now();</span>
+<span class="nc" id="L79">    }</span>
+
+    // Getters and Setters
+    public Long getId() {
+<span class="nc" id="L83">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L87">        this.id = id;</span>
+<span class="nc" id="L88">    }</span>
+
+    public Student getStudent() {
+<span class="nc" id="L91">        return student;</span>
+    }
+
+    public void setStudent(Student student) {
+<span class="nc" id="L95">        this.student = student;</span>
+<span class="nc" id="L96">    }</span>
+
+    public AlertLevel getLevel() {
+<span class="nc" id="L99">        return level;</span>
+    }
+
+    public void setLevel(AlertLevel level) {
+<span class="nc" id="L103">        this.level = level;</span>
+<span class="nc" id="L104">    }</span>
+
+    public AlertType getType() {
+<span class="nc" id="L107">        return type;</span>
+    }
+
+    public void setType(AlertType type) {
+<span class="nc" id="L111">        this.type = type;</span>
+<span class="nc" id="L112">    }</span>
+
+    public String getMessage() {
+<span class="nc" id="L115">        return message;</span>
+    }
+
+    public void setMessage(String message) {
+<span class="nc" id="L119">        this.message = message;</span>
+<span class="nc" id="L120">    }</span>
+
+    public Boolean getIsRead() {
+<span class="nc" id="L123">        return isRead;</span>
+    }
+
+    public void setIsRead(Boolean isRead) {
+<span class="nc" id="L127">        this.isRead = isRead;</span>
+<span class="nc" id="L128">    }</span>
+
+    public LocalDateTime getReadAt() {
+<span class="nc" id="L131">        return readAt;</span>
+    }
+
+    public void setReadAt(LocalDateTime readAt) {
+<span class="nc" id="L135">        this.readAt = readAt;</span>
+<span class="nc" id="L136">    }</span>
+
+    public Boolean getIsResolved() {
+<span class="nc" id="L139">        return isResolved;</span>
+    }
+
+    public void setIsResolved(Boolean isResolved) {
+<span class="nc" id="L143">        this.isResolved = isResolved;</span>
+<span class="nc" id="L144">    }</span>
+
+    public LocalDateTime getResolvedAt() {
+<span class="nc" id="L147">        return resolvedAt;</span>
+    }
+
+    public void setResolvedAt(LocalDateTime resolvedAt) {
+<span class="nc" id="L151">        this.resolvedAt = resolvedAt;</span>
+<span class="nc" id="L152">    }</span>
+
+    public String getResolvedBy() {
+<span class="nc" id="L155">        return resolvedBy;</span>
+    }
+
+    public void setResolvedBy(String resolvedBy) {
+<span class="nc" id="L159">        this.resolvedBy = resolvedBy;</span>
+<span class="nc" id="L160">    }</span>
+
+    public LocalDateTime getCreatedAt() {
+<span class="nc" id="L163">        return createdAt;</span>
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        // Enforce OCL constraint
+<span class="nc bnc" id="L168" title="All 4 branches missed.">        if (createdAt != null &amp;&amp; createdAt.isAfter(LocalDateTime.now())) {</span>
+<span class="nc" id="L169">            throw new IllegalArgumentException(&quot;Created time cannot be in the future&quot;);</span>
+        }
+<span class="nc" id="L171">        this.createdAt = createdAt;</span>
+<span class="nc" id="L172">    }</span>
+
+    /**
+     * Mark alert as read
+     */
+    public void markAsRead() {
+<span class="nc" id="L178">        this.isRead = true;</span>
+<span class="nc" id="L179">        this.readAt = LocalDateTime.now();</span>
+<span class="nc" id="L180">    }</span>
+
+    /**
+     * Mark alert as resolved
+     * @param resolvedBy Username of resolver
+     */
+    public void markAsResolved(String resolvedBy) {
+<span class="nc" id="L187">        this.isResolved = true;</span>
+<span class="nc" id="L188">        this.resolvedAt = LocalDateTime.now();</span>
+<span class="nc" id="L189">        this.resolvedBy = resolvedBy;</span>
+<span class="nc" id="L190">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CorsConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.config</a> &gt; <span class="el_source">CorsConfig.java</span></div><h1>CorsConfig.java</h1><pre class="source lang-java linenums">package com.spts.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * CORS configuration to allow frontend application access.
+ * Default frontend URL: http://localhost:5173 (Vite dev server)
+ */
+@Configuration
+<span class="fc" id="L17">public class CorsConfig {</span>
+
+    @Bean
+    public CorsFilter corsFilter() {
+<span class="fc" id="L21">        CorsConfiguration corsConfiguration = new CorsConfiguration();</span>
+        
+        // Allow frontend origins
+<span class="fc" id="L24">        corsConfiguration.setAllowedOrigins(Arrays.asList(</span>
+                &quot;http://localhost:5173&quot;,  // Vite dev server
+                &quot;http://localhost:3000&quot;   // Alternative dev server
+        ));
+        
+        // Allow all standard HTTP methods
+<span class="fc" id="L30">        corsConfiguration.setAllowedMethods(Arrays.asList(</span>
+                &quot;GET&quot;, &quot;POST&quot;, &quot;PUT&quot;, &quot;DELETE&quot;, &quot;PATCH&quot;, &quot;OPTIONS&quot;
+        ));
+        
+        // Allow all headers
+<span class="fc" id="L35">        corsConfiguration.setAllowedHeaders(List.of(&quot;*&quot;));</span>
+        
+        // Allow credentials (cookies, authorization headers)
+<span class="fc" id="L38">        corsConfiguration.setAllowCredentials(true);</span>
+        
+        // Expose headers to frontend
+<span class="fc" id="L41">        corsConfiguration.setExposedHeaders(Arrays.asList(</span>
+                &quot;Authorization&quot;, &quot;Content-Type&quot;
+        ));
+
+<span class="fc" id="L45">        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();</span>
+<span class="fc" id="L46">        source.registerCorsConfiguration(&quot;/api/**&quot;, corsConfiguration);</span>
+        
+<span class="fc" id="L48">        return new CorsFilter(source);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StudentController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.controller</a> &gt; <span class="el_source">StudentController.java</span></div><h1>StudentController.java</h1><pre class="source lang-java linenums">package com.spts.controller;
+
+import com.spts.dto.StudentDTO;
+import com.spts.dto.EnrollmentDTO;
+import com.spts.entity.StudentStatus;
+import com.spts.service.StudentService;
+import com.spts.service.EnrollmentService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import jakarta.validation.Valid;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * REST controller for Student management.
+ * Provides endpoints for CRUD operations and student queries.
+ * 
+ * @author SPTS Team
+ */
+@RestController
+@RequestMapping(&quot;/api/students&quot;)
+@Tag(name = &quot;Students&quot;, description = &quot;Student management APIs&quot;)
+public class StudentController {
+
+    private final StudentService studentService;
+    private final EnrollmentService enrollmentService;
+
+<span class="fc" id="L37">    public StudentController(StudentService studentService, EnrollmentService enrollmentService) {</span>
+<span class="fc" id="L38">        this.studentService = studentService;</span>
+<span class="fc" id="L39">        this.enrollmentService = enrollmentService;</span>
+<span class="fc" id="L40">    }</span>
+
+    // ==================== CRUD Operations ====================
+
+    @GetMapping
+    @Operation(summary = &quot;Get all students&quot;, description = &quot;Retrieves a list of all students in the system&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved list of students&quot;)
+    public ResponseEntity&lt;List&lt;StudentDTO&gt;&gt; getAllStudents() {
+<span class="nc" id="L48">        return ResponseEntity.ok(studentService.getAllStudents());</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Get student by ID&quot;, description = &quot;Retrieves a student by their database ID&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Student found&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student not found&quot;)
+    })
+    public ResponseEntity&lt;StudentDTO&gt; getStudentById(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L59">        return ResponseEntity.ok(studentService.getStudentById(id));</span>
+    }
+
+    @GetMapping(&quot;/code/{studentCode}&quot;)
+    @Operation(summary = &quot;Get student by student code&quot;, description = &quot;Retrieves a student by their student code (e.g., STU001)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Student found&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student not found&quot;)
+    })
+    public ResponseEntity&lt;StudentDTO&gt; getByStudentCode(
+            @Parameter(description = &quot;Student code (e.g., STU001)&quot;) @PathVariable String studentCode) {
+<span class="nc" id="L70">        return ResponseEntity.ok(studentService.getStudentByStudentId(studentCode));</span>
+    }
+
+    @PostMapping
+    @Operation(summary = &quot;Create new student&quot;, description = &quot;Creates a new student record&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Student created successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+        @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Student ID or email already exists&quot;)
+    })
+    public ResponseEntity&lt;StudentDTO&gt; createStudent(
+            @Valid @RequestBody StudentDTO dto) {
+<span class="nc" id="L82">        return new ResponseEntity&lt;&gt;(studentService.createStudent(dto), HttpStatus.CREATED);</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Update student&quot;, description = &quot;Updates an existing student record&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Student updated successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student not found&quot;),
+        @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Student ID or email already exists&quot;)
+    })
+    public ResponseEntity&lt;StudentDTO&gt; updateStudent(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long id,
+            @Valid @RequestBody StudentDTO dto) {
+<span class="nc" id="L96">        return ResponseEntity.ok(studentService.updateStudent(id, dto));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Delete student&quot;, description = &quot;Deletes a student record&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Student deleted successfully&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student not found&quot;)
+    })
+    public ResponseEntity&lt;Void&gt; deleteStudent(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L107">        studentService.deleteStudent(id);</span>
+<span class="nc" id="L108">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // ==================== Related Data ====================
+
+    @GetMapping(&quot;/{id}/enrollments&quot;)
+    @Operation(summary = &quot;Get student enrollments&quot;, description = &quot;Retrieves all enrollments for a student&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved enrollments&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student not found&quot;)
+    })
+    public ResponseEntity&lt;List&lt;EnrollmentDTO&gt;&gt; getStudentEnrollments(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L121">        return ResponseEntity.ok(enrollmentService.getEnrollmentsByStudent(id));</span>
+    }
+
+    // ==================== Queries ====================
+
+    @GetMapping(&quot;/at-risk&quot;)
+    @Operation(summary = &quot;Get at-risk students&quot;, description = &quot;Retrieves students with AT_RISK or PROBATION status&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved at-risk students&quot;)
+    public ResponseEntity&lt;List&lt;StudentDTO&gt;&gt; getAtRiskStudents() {
+<span class="nc" id="L130">        return ResponseEntity.ok(studentService.getStudentsAtRisk());</span>
+    }
+
+    @GetMapping(&quot;/search&quot;)
+    @Operation(summary = &quot;Search students by name&quot;, description = &quot;Searches students by first or last name&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved matching students&quot;)
+    public ResponseEntity&lt;List&lt;StudentDTO&gt;&gt; searchByName(
+            @Parameter(description = &quot;Name to search for&quot;) @RequestParam String name) {
+<span class="nc" id="L138">        return ResponseEntity.ok(studentService.searchByName(name));</span>
+    }
+
+    @GetMapping(&quot;/gpa-below&quot;)
+    @Operation(summary = &quot;Get students with GPA below threshold&quot;, description = &quot;Retrieves students with GPA below the specified value&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved students&quot;)
+    public ResponseEntity&lt;List&lt;StudentDTO&gt;&gt; getStudentsWithGpaBelow(
+            @Parameter(description = &quot;GPA threshold&quot;) @RequestParam Double threshold) {
+<span class="nc" id="L146">        return ResponseEntity.ok(studentService.getStudentsWithGpaBelow(threshold));</span>
+    }
+
+    @PostMapping(&quot;/{id}/graduate&quot;)
+    @Operation(summary = &quot;Graduate student&quot;, description = &quot;Marks a student as graduated if requirements are met&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Student graduated successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Student does not meet graduation requirements&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student not found&quot;)
+    })
+    public ResponseEntity&lt;Void&gt; graduateStudent(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L158">        studentService.graduateStudent(id);</span>
+<span class="nc" id="L159">        return ResponseEntity.ok().build();</span>
+    }
+
+    @PostMapping(&quot;/{id}/recalculate-gpa&quot;)
+    @Operation(summary = &quot;Recalculate student GPA&quot;, description = &quot;Recalculates and updates the student's GPA from completed enrollments&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;GPA recalculated successfully&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student not found&quot;)
+    })
+    public ResponseEntity&lt;Void&gt; recalculateGpa(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L170">        studentService.recalculateAndUpdateGpa(id);</span>
+<span class="nc" id="L171">        return ResponseEntity.ok().build();</span>
+    }
+
+    @PostMapping(&quot;/recalculate-all-gpa&quot;)
+    @Operation(summary = &quot;Recalculate GPA for all students&quot;, description = &quot;Recalculates and updates GPA for all students in the system&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;All GPAs recalculated successfully&quot;)
+    public ResponseEntity&lt;String&gt; recalculateAllGpa() {
+<span class="nc" id="L178">        List&lt;StudentDTO&gt; allStudents = studentService.getAllStudents();</span>
+<span class="nc" id="L179">        int count = 0;</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        for (StudentDTO student : allStudents) {</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">            if (student.getId() != null) {</span>
+<span class="nc" id="L182">                studentService.recalculateAndUpdateGpa(student.getId());</span>
+<span class="nc" id="L183">                count++;</span>
+            }
+<span class="nc" id="L185">        }</span>
+<span class="nc" id="L186">        return ResponseEntity.ok(&quot;Recalculated GPA for &quot; + count + &quot; students&quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

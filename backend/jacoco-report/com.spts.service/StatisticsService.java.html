@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StatisticsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.service</a> &gt; <span class="el_source">StatisticsService.java</span></div><h1>StatisticsService.java</h1><pre class="source lang-java linenums">package com.spts.service;
+
+import com.spts.dto.StatisticsDTO.*;
+import com.spts.entity.*;
+import com.spts.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * Service for generating advanced statistics for Admin Dashboard.
+ * Provides insights on course enrollments, department performance, and trends.
+ * 
+ * Follows SOLID principles:
+ * - Single Responsibility: Only handles statistics aggregation
+ * - Open/Closed: Uses existing services for data access
+ * - Dependency Inversion: Depends on repository abstractions
+ * 
+ * @author SPTS Team
+ */
+@Service
+@Transactional(readOnly = true)
+public class StatisticsService {
+
+<span class="fc" id="L29">    private static final Logger logger = LoggerFactory.getLogger(StatisticsService.class);</span>
+
+    private final EnrollmentRepository enrollmentRepository;
+    private final CourseRepository courseRepository;
+
+    public StatisticsService(EnrollmentRepository enrollmentRepository,
+<span class="fc" id="L35">                              CourseRepository courseRepository) {</span>
+<span class="fc" id="L36">        this.enrollmentRepository = enrollmentRepository;</span>
+<span class="fc" id="L37">        this.courseRepository = courseRepository;</span>
+<span class="fc" id="L38">    }</span>
+
+    // ==================== Core Data Access (DRY - Single Fetch) ====================
+
+    /**
+     * Internal cache holder for statistics calculation.
+     * Avoids multiple database calls within a single request.
+     */
+    private static class StatisticsDataCache {
+        final List&lt;Enrollment&gt; enrollments;
+        final List&lt;Course&gt; courses;
+
+<span class="nc" id="L50">        StatisticsDataCache(List&lt;Enrollment&gt; enrollments, List&lt;Course&gt; courses) {</span>
+<span class="nc" id="L51">            this.enrollments = enrollments;</span>
+<span class="nc" id="L52">            this.courses = courses;</span>
+<span class="nc" id="L53">        }</span>
+    }
+
+    /**
+     * Fetch all required data once for statistics calculations
+     */
+    private StatisticsDataCache fetchAllData() {
+<span class="nc" id="L60">        return new StatisticsDataCache(</span>
+<span class="nc" id="L61">            enrollmentRepository.findAll(),</span>
+<span class="nc" id="L62">            courseRepository.findAll()</span>
+        );
+    }
+
+    // ==================== Statistics Calculations ====================
+
+    /**
+     * Get top enrolled courses
+     * 
+     * @param limit Number of courses to return
+     * @return List of courses sorted by enrollment count
+     */
+    public List&lt;CourseEnrollmentStats&gt; getTopEnrolledCourses(int limit) {
+<span class="nc" id="L75">        logger.debug(&quot;Getting top {} enrolled courses&quot;, limit);</span>
+<span class="nc" id="L76">        List&lt;Enrollment&gt; enrollments = enrollmentRepository.findAll();</span>
+<span class="nc" id="L77">        return calculateTopCourses(enrollments, limit);</span>
+    }
+
+    /**
+     * Get statistics by department
+     * 
+     * @return List of department statistics
+     */
+    public List&lt;DepartmentStats&gt; getDepartmentStatistics() {
+<span class="nc" id="L86">        logger.debug(&quot;Getting department statistics&quot;);</span>
+<span class="nc" id="L87">        StatisticsDataCache cache = fetchAllData();</span>
+<span class="nc" id="L88">        return calculateDepartmentStats(cache.enrollments, cache.courses);</span>
+    }
+
+    /**
+     * Get enrollment trends by semester/year
+     * 
+     * @return List of enrollment trends
+     */
+    public List&lt;EnrollmentTrend&gt; getEnrollmentTrends() {
+<span class="nc" id="L97">        logger.debug(&quot;Getting enrollment trends&quot;);</span>
+<span class="nc" id="L98">        List&lt;Enrollment&gt; enrollments = enrollmentRepository.findAll();</span>
+<span class="nc" id="L99">        return calculateEnrollmentTrends(enrollments);</span>
+    }
+
+    /**
+     * Get credit distribution statistics
+     * 
+     * @return List of credit distribution stats
+     */
+    public List&lt;CreditDistribution&gt; getCreditDistribution() {
+<span class="nc" id="L108">        logger.debug(&quot;Getting credit distribution&quot;);</span>
+<span class="nc" id="L109">        StatisticsDataCache cache = fetchAllData();</span>
+<span class="nc" id="L110">        return calculateCreditDistribution(cache.enrollments, cache.courses);</span>
+    }
+
+    /**
+     * Get complete admin dashboard statistics.
+     * Uses single data fetch to avoid multiple DB calls (DRY principle).
+     * 
+     * @return AdminDashboardStats with all statistics
+     */
+    public AdminDashboardStats getAdminDashboardStats() {
+<span class="nc" id="L120">        logger.debug(&quot;Getting complete admin dashboard statistics&quot;);</span>
+        
+        // Single data fetch for all calculations (DRY)
+<span class="nc" id="L123">        StatisticsDataCache cache = fetchAllData();</span>
+        
+<span class="nc" id="L125">        AdminDashboardStats stats = new AdminDashboardStats();</span>
+        
+        // Calculate core stats using cached data
+<span class="nc" id="L128">        stats.setTopCourses(calculateTopCourses(cache.enrollments, 10));</span>
+<span class="nc" id="L129">        stats.setDepartmentStats(calculateDepartmentStats(cache.enrollments, cache.courses));</span>
+        
+        // NOTE: Enrollment Trends and Credit Distribution will be developed later
+        // stats.setEnrollmentTrends(calculateEnrollmentTrends(cache.enrollments));
+        // stats.setCreditDistribution(calculateCreditDistribution(cache.enrollments, cache.courses));
+        
+        // Calculate summary stats
+<span class="nc" id="L136">        stats.setTotalEnrollments((long) cache.enrollments.size());</span>
+<span class="nc" id="L137">        stats.setActiveEnrollments(countByStatus(cache.enrollments, EnrollmentStatus.IN_PROGRESS));</span>
+<span class="nc" id="L138">        stats.setCompletedEnrollments(countByStatus(cache.enrollments, EnrollmentStatus.COMPLETED));</span>
+<span class="nc" id="L139">        stats.setOverallAverageGpa(calculateAverageGpa(cache.enrollments));</span>
+        
+<span class="nc" id="L141">        return stats;</span>
+    }
+
+    // ==================== Private Calculation Methods (Single Responsibility) ====================
+
+    private List&lt;CourseEnrollmentStats&gt; calculateTopCourses(List&lt;Enrollment&gt; enrollments, int limit) {
+        // Group by course
+<span class="nc" id="L148">        Map&lt;Long, List&lt;Enrollment&gt;&gt; byCourse = enrollments.stream()</span>
+<span class="nc" id="L149">                .collect(Collectors.groupingBy(e -&gt; e.getCourseOffering().getCourse().getId()));</span>
+        
+<span class="nc" id="L151">        return byCourse.entrySet().stream()</span>
+<span class="nc" id="L152">                .map(entry -&gt; buildCourseStats(entry.getValue()))</span>
+<span class="nc" id="L153">                .filter(Objects::nonNull)</span>
+<span class="nc" id="L154">                .sorted(Comparator.comparing(CourseEnrollmentStats::getTotalEnrollments).reversed())</span>
+<span class="nc" id="L155">                .limit(limit)</span>
+<span class="nc" id="L156">                .collect(Collectors.toList());</span>
+    }
+
+    private CourseEnrollmentStats buildCourseStats(List&lt;Enrollment&gt; courseEnrollments) {
+<span class="nc bnc" id="L160" title="All 2 branches missed.">        if (courseEnrollments.isEmpty()) return null;</span>
+        
+<span class="nc" id="L162">        Course course = courseEnrollments.get(0).getCourseOffering().getCourse();</span>
+<span class="nc" id="L163">        CourseEnrollmentStats stat = new CourseEnrollmentStats();</span>
+        
+<span class="nc" id="L165">        stat.setCourseCode(course.getCourseCode());</span>
+<span class="nc" id="L166">        stat.setCourseName(course.getCourseName());</span>
+<span class="nc" id="L167">        stat.setDepartment(course.getDepartment());</span>
+<span class="nc" id="L168">        stat.setCredits(course.getCredits());</span>
+<span class="nc" id="L169">        stat.setTotalEnrollments((long) courseEnrollments.size());</span>
+<span class="nc" id="L170">        stat.setCompletedEnrollments(countByStatus(courseEnrollments, EnrollmentStatus.COMPLETED));</span>
+<span class="nc" id="L171">        stat.setAverageScore(calculateAverageScore(courseEnrollments));</span>
+        
+<span class="nc" id="L173">        return stat;</span>
+    }
+
+    private List&lt;DepartmentStats&gt; calculateDepartmentStats(List&lt;Enrollment&gt; enrollments, List&lt;Course&gt; courses) {
+        // Group courses by department
+<span class="nc" id="L178">        Map&lt;String, List&lt;Course&gt;&gt; coursesByDept = courses.stream()</span>
+<span class="nc" id="L179">                .filter(c -&gt; isValidDepartment(c.getDepartment()))</span>
+<span class="nc" id="L180">                .collect(Collectors.groupingBy(Course::getDepartment));</span>
+        
+        // Group enrollments by department
+<span class="nc" id="L183">        Map&lt;String, List&lt;Enrollment&gt;&gt; enrollmentsByDept = enrollments.stream()</span>
+<span class="nc" id="L184">                .filter(e -&gt; isValidDepartment(e.getCourseOffering().getCourse().getDepartment()))</span>
+<span class="nc" id="L185">                .collect(Collectors.groupingBy(e -&gt; e.getCourseOffering().getCourse().getDepartment()));</span>
+        
+        // Combine all departments
+<span class="nc" id="L188">        Set&lt;String&gt; allDepts = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L189">        allDepts.addAll(coursesByDept.keySet());</span>
+<span class="nc" id="L190">        allDepts.addAll(enrollmentsByDept.keySet());</span>
+        
+<span class="nc" id="L192">        return allDepts.stream()</span>
+<span class="nc" id="L193">                .map(dept -&gt; buildDepartmentStats(dept, coursesByDept, enrollmentsByDept))</span>
+<span class="nc" id="L194">                .sorted(Comparator.comparing(DepartmentStats::getTotalEnrollments).reversed())</span>
+<span class="nc" id="L195">                .collect(Collectors.toList());</span>
+    }
+
+    private DepartmentStats buildDepartmentStats(String dept,
+                                                   Map&lt;String, List&lt;Course&gt;&gt; coursesByDept,
+                                                   Map&lt;String, List&lt;Enrollment&gt;&gt; enrollmentsByDept) {
+<span class="nc" id="L201">        List&lt;Course&gt; deptCourses = coursesByDept.getOrDefault(dept, Collections.emptyList());</span>
+<span class="nc" id="L202">        List&lt;Enrollment&gt; deptEnrollments = enrollmentsByDept.getOrDefault(dept, Collections.emptyList());</span>
+        
+<span class="nc" id="L204">        DepartmentStats stat = new DepartmentStats();</span>
+<span class="nc" id="L205">        stat.setDepartment(dept);</span>
+<span class="nc" id="L206">        stat.setTotalCourses((long) deptCourses.size());</span>
+<span class="nc" id="L207">        stat.setTotalEnrollments((long) deptEnrollments.size());</span>
+<span class="nc" id="L208">        stat.setTotalStudents(countUniqueStudents(deptEnrollments));</span>
+<span class="nc" id="L209">        stat.setAverageGpa(calculateAverageGpa(deptEnrollments));</span>
+        
+<span class="nc" id="L211">        return stat;</span>
+    }
+
+    private List&lt;EnrollmentTrend&gt; calculateEnrollmentTrends(List&lt;Enrollment&gt; enrollments) {
+        // Group by semester_year key
+<span class="nc" id="L216">        Map&lt;String, List&lt;Enrollment&gt;&gt; grouped = enrollments.stream()</span>
+<span class="nc" id="L217">                .collect(Collectors.groupingBy(this::getSemesterYearKey));</span>
+        
+<span class="nc" id="L219">        return grouped.entrySet().stream()</span>
+<span class="nc" id="L220">                .map(this::buildEnrollmentTrend)</span>
+<span class="nc" id="L221">                .sorted(Comparator.comparing(EnrollmentTrend::getAcademicYear)</span>
+<span class="nc" id="L222">                        .thenComparing(t -&gt; getSemesterOrder(t.getSemester())))</span>
+<span class="nc" id="L223">                .collect(Collectors.toList());</span>
+    }
+
+    private EnrollmentTrend buildEnrollmentTrend(Map.Entry&lt;String, List&lt;Enrollment&gt;&gt; entry) {
+<span class="nc" id="L227">        String[] parts = entry.getKey().split(&quot;_&quot;);</span>
+<span class="nc" id="L228">        String semester = parts[0];</span>
+<span class="nc" id="L229">        Integer year = Integer.parseInt(parts[1]);</span>
+<span class="nc" id="L230">        List&lt;Enrollment&gt; periodEnrollments = entry.getValue();</span>
+        
+<span class="nc" id="L232">        EnrollmentTrend trend = new EnrollmentTrend();</span>
+<span class="nc" id="L233">        trend.setSemester(semester);</span>
+<span class="nc" id="L234">        trend.setAcademicYear(year);</span>
+<span class="nc" id="L235">        trend.setPeriod(formatSemester(semester) + &quot; &quot; + year);</span>
+<span class="nc" id="L236">        trend.setEnrollmentCount((long) periodEnrollments.size());</span>
+<span class="nc" id="L237">        trend.setCompletedCount(countByStatus(periodEnrollments, EnrollmentStatus.COMPLETED));</span>
+<span class="nc" id="L238">        trend.setAverageScore(calculateAverageScore(periodEnrollments));</span>
+        
+<span class="nc" id="L240">        return trend;</span>
+    }
+
+    private List&lt;CreditDistribution&gt; calculateCreditDistribution(List&lt;Enrollment&gt; enrollments, List&lt;Course&gt; courses) {
+        // Group courses by credits
+<span class="nc" id="L245">        Map&lt;Integer, Long&gt; coursesByCredits = courses.stream()</span>
+<span class="nc" id="L246">                .collect(Collectors.groupingBy(Course::getCredits, Collectors.counting()));</span>
+        
+        // Group enrollments by credits
+<span class="nc" id="L249">        Map&lt;Integer, Long&gt; enrollmentsByCredits = enrollments.stream()</span>
+<span class="nc" id="L250">                .collect(Collectors.groupingBy(</span>
+<span class="nc" id="L251">                        e -&gt; e.getCourseOffering().getCourse().getCredits(),</span>
+<span class="nc" id="L252">                        Collectors.counting()));</span>
+        
+        // Combine all credit values
+<span class="nc" id="L255">        Set&lt;Integer&gt; allCredits = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L256">        allCredits.addAll(coursesByCredits.keySet());</span>
+<span class="nc" id="L257">        allCredits.addAll(enrollmentsByCredits.keySet());</span>
+        
+<span class="nc" id="L259">        return allCredits.stream()</span>
+<span class="nc" id="L260">                .map(credit -&gt; new CreditDistribution(</span>
+                        credit,
+<span class="nc" id="L262">                        coursesByCredits.getOrDefault(credit, 0L),</span>
+<span class="nc" id="L263">                        enrollmentsByCredits.getOrDefault(credit, 0L)))</span>
+<span class="nc" id="L264">                .sorted(Comparator.comparing(CreditDistribution::getCredits))</span>
+<span class="nc" id="L265">                .collect(Collectors.toList());</span>
+    }
+
+    // ==================== Helper Methods (Reusable utilities) ====================
+
+    private String getSemesterYearKey(Enrollment e) {
+<span class="nc" id="L271">        CourseOffering offering = e.getCourseOffering();</span>
+<span class="nc" id="L272">        return offering.getSemester().name() + &quot;_&quot; + offering.getAcademicYear();</span>
+    }
+
+    private boolean isValidDepartment(String dept) {
+<span class="nc bnc" id="L276" title="All 4 branches missed.">        return dept != null &amp;&amp; !dept.isBlank();</span>
+    }
+
+    private long countByStatus(List&lt;Enrollment&gt; enrollments, EnrollmentStatus status) {
+<span class="nc" id="L280">        return enrollments.stream()</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">                .filter(e -&gt; e.getStatus() == status)</span>
+<span class="nc" id="L282">                .count();</span>
+    }
+
+    private long countUniqueStudents(List&lt;Enrollment&gt; enrollments) {
+<span class="nc" id="L286">        return enrollments.stream()</span>
+<span class="nc" id="L287">                .map(e -&gt; e.getStudent().getId())</span>
+<span class="nc" id="L288">                .distinct()</span>
+<span class="nc" id="L289">                .count();</span>
+    }
+
+    private double calculateAverageGpa(List&lt;Enrollment&gt; enrollments) {
+<span class="nc" id="L293">        return round(enrollments.stream()</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">                .filter(e -&gt; e.getGpaValue() != null)</span>
+<span class="nc" id="L295">                .mapToDouble(Enrollment::getGpaValue)</span>
+<span class="nc" id="L296">                .average()</span>
+<span class="nc" id="L297">                .orElse(0.0));</span>
+    }
+
+    private double calculateAverageScore(List&lt;Enrollment&gt; enrollments) {
+<span class="nc" id="L301">        return round(enrollments.stream()</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">                .filter(e -&gt; e.getFinalScore() != null)</span>
+<span class="nc" id="L303">                .mapToDouble(Enrollment::getFinalScore)</span>
+<span class="nc" id="L304">                .average()</span>
+<span class="nc" id="L305">                .orElse(0.0));</span>
+    }
+
+    private double round(double value) {
+<span class="nc" id="L309">        return Math.round(value * 100.0) / 100.0;</span>
+    }
+
+    private String formatSemester(String semester) {
+<span class="nc bnc" id="L313" title="All 5 branches missed.">        switch (semester) {</span>
+<span class="nc" id="L314">            case &quot;SPRING&quot;: return &quot;Spring&quot;;</span>
+<span class="nc" id="L315">            case &quot;SUMMER&quot;: return &quot;Summer&quot;;</span>
+<span class="nc" id="L316">            case &quot;FALL&quot;: return &quot;Fall&quot;;</span>
+<span class="nc" id="L317">            case &quot;WINTER&quot;: return &quot;Winter&quot;;</span>
+<span class="nc" id="L318">            default: return semester;</span>
+        }
+    }
+
+    private int getSemesterOrder(String semester) {
+<span class="nc bnc" id="L323" title="All 5 branches missed.">        switch (semester) {</span>
+<span class="nc" id="L324">            case &quot;SPRING&quot;: return 1;</span>
+<span class="nc" id="L325">            case &quot;SUMMER&quot;: return 2;</span>
+<span class="nc" id="L326">            case &quot;FALL&quot;: return 3;</span>
+<span class="nc" id="L327">            case &quot;WINTER&quot;: return 4;</span>
+<span class="nc" id="L328">            default: return 5;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

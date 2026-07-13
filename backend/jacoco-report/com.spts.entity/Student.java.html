@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Student.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.entity</a> &gt; <span class="el_source">Student.java</span></div><h1>Student.java</h1><pre class="source lang-java linenums">package com.spts.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Student entity - the primary entity in the SPTS system.
+ * 
+ * Contains student's academic profile, GPA, and current status.
+ * 
+ * OCL Constraints:
+ * - gpa &gt;= 0.0 AND gpa &lt;= 4.0 (GPA stored on 4-point scale)
+ * 
+ * @author SPTS Team
+ */
+@Entity
+@Table(name = &quot;students&quot;)
+public class Student {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = &quot;student_id&quot;, unique = true, nullable = false, length = 20)
+    @NotBlank(message = &quot;Student ID is required&quot;)
+    @Size(max = 20, message = &quot;Student ID must not exceed 20 characters&quot;)
+    private String studentId;
+
+    @Column(name = &quot;first_name&quot;, nullable = false, length = 50)
+    @NotBlank(message = &quot;First name is required&quot;)
+    @Size(max = 50, message = &quot;First name must not exceed 50 characters&quot;)
+    private String firstName;
+
+    @Column(name = &quot;last_name&quot;, nullable = false, length = 50)
+    @NotBlank(message = &quot;Last name is required&quot;)
+    @Size(max = 50, message = &quot;Last name must not exceed 50 characters&quot;)
+    private String lastName;
+
+    @Column(name = &quot;email&quot;, unique = true, nullable = false)
+    @Email(message = &quot;Invalid email format&quot;)
+    @NotBlank(message = &quot;Email is required&quot;)
+    private String email;
+
+    @Column(name = &quot;date_of_birth&quot;)
+    @Past(message = &quot;Date of birth must be in the past&quot;)
+    private LocalDate dateOfBirth;
+
+    @Column(name = &quot;enrollment_date&quot;)
+    @PastOrPresent(message = &quot;Enrollment date cannot be in the future&quot;)
+    private LocalDate enrollmentDate;
+
+    /**
+     * OCL Constraint: gpa &gt;= 0.0 AND gpa &lt;= 4.0
+     * GPA is stored on 4-point scale
+     */
+    @Column(name = &quot;gpa&quot;)
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;GPA cannot be less than 0.0&quot;)
+    @DecimalMax(value = &quot;4.0&quot;, message = &quot;GPA cannot exceed 4.0&quot;)
+    private Double gpa;
+
+<span class="fc" id="L65">    @Column(name = &quot;total_credits&quot;)</span>
+    @Min(value = 0, message = &quot;Total credits cannot be negative&quot;)
+<span class="fc" id="L67">    private Integer totalCredits = 0;</span>
+
+    /**
+     * Student academic status - managed by State Pattern
+     * Values: NORMAL, AT_RISK, PROBATION, GRADUATED
+     */
+<span class="fc" id="L73">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;status&quot;, nullable = false)
+    private StudentStatus status = StudentStatus.NORMAL;
+
+    @Column(name = &quot;created_at&quot;)
+    private LocalDateTime createdAt;
+
+    @Column(name = &quot;updated_at&quot;)
+    private LocalDateTime updatedAt;
+
+    /**
+     * Student's enrollments in course offerings
+     */
+<span class="fc" id="L86">    @OneToMany(mappedBy = &quot;student&quot;, cascade = CascadeType.ALL, fetch = FetchType.LAZY)</span>
+    private List&lt;Enrollment&gt; enrollments = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L89">    @OneToMany(mappedBy = &quot;student&quot;, cascade = CascadeType.ALL, fetch = FetchType.LAZY)</span>
+    private List&lt;Alert&gt; alerts = new ArrayList&lt;&gt;();
+
+    // Constructors
+<span class="fc" id="L93">    public Student() {</span>
+<span class="fc" id="L94">        this.createdAt = LocalDateTime.now();</span>
+<span class="fc" id="L95">        this.updatedAt = LocalDateTime.now();</span>
+<span class="fc" id="L96">    }</span>
+
+<span class="fc" id="L98">    public Student(String studentId, String firstName, String lastName, String email) {</span>
+<span class="fc" id="L99">        this.studentId = studentId;</span>
+<span class="fc" id="L100">        this.firstName = firstName;</span>
+<span class="fc" id="L101">        this.lastName = lastName;</span>
+<span class="fc" id="L102">        this.email = email;</span>
+<span class="fc" id="L103">        this.status = StudentStatus.NORMAL;</span>
+<span class="fc" id="L104">        this.createdAt = LocalDateTime.now();</span>
+<span class="fc" id="L105">        this.updatedAt = LocalDateTime.now();</span>
+<span class="fc" id="L106">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L110">        this.updatedAt = LocalDateTime.now();</span>
+<span class="nc" id="L111">    }</span>
+
+    // Getters and Setters
+    public Long getId() {
+<span class="nc" id="L115">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="fc" id="L119">        this.id = id;</span>
+<span class="fc" id="L120">    }</span>
+
+    public String getStudentId() {
+<span class="fc" id="L123">        return studentId;</span>
+    }
+
+    public void setStudentId(String studentId) {
+<span class="fc" id="L127">        this.studentId = studentId;</span>
+<span class="fc" id="L128">    }</span>
+
+    public String getFirstName() {
+<span class="nc" id="L131">        return firstName;</span>
+    }
+
+    public void setFirstName(String firstName) {
+<span class="fc" id="L135">        this.firstName = firstName;</span>
+<span class="fc" id="L136">    }</span>
+
+    public String getLastName() {
+<span class="nc" id="L139">        return lastName;</span>
+    }
+
+    public void setLastName(String lastName) {
+<span class="fc" id="L143">        this.lastName = lastName;</span>
+<span class="fc" id="L144">    }</span>
+
+    public String getFullName() {
+<span class="fc" id="L147">        return firstName + &quot; &quot; + lastName;</span>
+    }
+
+    public String getEmail() {
+<span class="nc" id="L151">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="nc" id="L155">        this.email = email;</span>
+<span class="nc" id="L156">    }</span>
+
+    public LocalDate getDateOfBirth() {
+<span class="nc" id="L159">        return dateOfBirth;</span>
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+<span class="nc" id="L163">        this.dateOfBirth = dateOfBirth;</span>
+<span class="nc" id="L164">    }</span>
+
+    public LocalDate getEnrollmentDate() {
+<span class="nc" id="L167">        return enrollmentDate;</span>
+    }
+
+    public void setEnrollmentDate(LocalDate enrollmentDate) {
+<span class="nc" id="L171">        this.enrollmentDate = enrollmentDate;</span>
+<span class="nc" id="L172">    }</span>
+
+    public Double getGpa() {
+<span class="nc" id="L175">        return gpa;</span>
+    }
+
+    public void setGpa(Double gpa) {
+        // Enforce OCL constraint
+<span class="nc bnc" id="L180" title="All 6 branches missed.">        if (gpa != null &amp;&amp; (gpa &lt; 0.0 || gpa &gt; 4.0)) {</span>
+<span class="nc" id="L181">            throw new IllegalArgumentException(&quot;GPA must be between 0.0 and 4.0&quot;);</span>
+        }
+<span class="nc" id="L183">        this.gpa = gpa;</span>
+<span class="nc" id="L184">    }</span>
+
+    public Integer getTotalCredits() {
+<span class="nc" id="L187">        return totalCredits;</span>
+    }
+
+    public void setTotalCredits(Integer totalCredits) {
+<span class="nc" id="L191">        this.totalCredits = totalCredits;</span>
+<span class="nc" id="L192">    }</span>
+
+    public StudentStatus getStatus() {
+<span class="fc" id="L195">        return status;</span>
+    }
+
+    public void setStatus(StudentStatus status) {
+<span class="fc" id="L199">        this.status = status;</span>
+<span class="fc" id="L200">    }</span>
+
+    public LocalDateTime getCreatedAt() {
+<span class="nc" id="L203">        return createdAt;</span>
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+<span class="nc" id="L207">        this.createdAt = createdAt;</span>
+<span class="nc" id="L208">    }</span>
+
+    public LocalDateTime getUpdatedAt() {
+<span class="nc" id="L211">        return updatedAt;</span>
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+<span class="nc" id="L215">        this.updatedAt = updatedAt;</span>
+<span class="nc" id="L216">    }</span>
+
+    public List&lt;Enrollment&gt; getEnrollments() {
+<span class="nc" id="L219">        return enrollments;</span>
+    }
+
+    public void setEnrollments(List&lt;Enrollment&gt; enrollments) {
+<span class="nc" id="L223">        this.enrollments = enrollments;</span>
+<span class="nc" id="L224">    }</span>
+
+    public void addEnrollment(Enrollment enrollment) {
+<span class="nc" id="L227">        enrollments.add(enrollment);</span>
+<span class="nc" id="L228">        enrollment.setStudent(this);</span>
+<span class="nc" id="L229">    }</span>
+
+    public List&lt;Alert&gt; getAlerts() {
+<span class="nc" id="L232">        return alerts;</span>
+    }
+
+    public void setAlerts(List&lt;Alert&gt; alerts) {
+<span class="nc" id="L236">        this.alerts = alerts;</span>
+<span class="nc" id="L237">    }</span>
+
+    public void addAlert(Alert alert) {
+<span class="nc" id="L240">        alerts.add(alert);</span>
+<span class="nc" id="L241">        alert.setStudent(this);</span>
+<span class="nc" id="L242">    }</span>
+
+    /**
+     * Get completed enrollments only
+     */
+    public List&lt;Enrollment&gt; getCompletedEnrollments() {
+<span class="nc" id="L248">        return enrollments.stream()</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">                .filter(e -&gt; e.getStatus() == EnrollmentStatus.COMPLETED)</span>
+<span class="nc" id="L250">                .toList();</span>
+    }
+
+    /**
+     * Calculate cumulative GPA from completed enrollments
+     */
+    public Double calculateCumulativeGpa() {
+<span class="nc" id="L257">        List&lt;Enrollment&gt; completed = getCompletedEnrollments();</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">        if (completed.isEmpty()) {</span>
+<span class="nc" id="L259">            return null;</span>
+        }
+
+<span class="nc" id="L262">        double totalWeightedGpa = 0.0;</span>
+<span class="nc" id="L263">        int totalCredits = 0;</span>
+
+<span class="nc bnc" id="L265" title="All 2 branches missed.">        for (Enrollment enrollment : completed) {</span>
+<span class="nc bnc" id="L266" title="All 4 branches missed.">            if (enrollment.getGpaValue() != null &amp;&amp; enrollment.getCredits() != null) {</span>
+<span class="nc" id="L267">                totalWeightedGpa += enrollment.getGpaValue() * enrollment.getCredits();</span>
+<span class="nc" id="L268">                totalCredits += enrollment.getCredits();</span>
+            }
+<span class="nc" id="L270">        }</span>
+
+<span class="nc bnc" id="L272" title="All 2 branches missed.">        return totalCredits &gt; 0 ? totalWeightedGpa / totalCredits : null;</span>
+    }
+
+    /**
+     * Calculate total earned credits from completed enrollments
+     */
+    public Integer calculateTotalCredits() {
+<span class="nc" id="L279">        return getCompletedEnrollments().stream()</span>
+<span class="nc bnc" id="L280" title="All 4 branches missed.">                .filter(e -&gt; e.getGpaValue() != null &amp;&amp; e.getGpaValue() &gt;= 1.0) // Passing grade</span>
+<span class="nc" id="L281">                .mapToInt(Enrollment::getCredits)</span>
+<span class="nc" id="L282">                .sum();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

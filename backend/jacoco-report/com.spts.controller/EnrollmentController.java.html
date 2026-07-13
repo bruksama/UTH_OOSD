@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnrollmentController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.controller</a> &gt; <span class="el_source">EnrollmentController.java</span></div><h1>EnrollmentController.java</h1><pre class="source lang-java linenums">package com.spts.controller;
+
+import com.spts.dto.EnrollmentDTO;
+import com.spts.entity.EnrollmentStatus;
+import com.spts.service.EnrollmentService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+import jakarta.validation.Valid;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * REST controller for Enrollment management.
+ * Provides endpoints for CRUD operations, grade submission, and enrollment queries.
+ * 
+ * Enrollment links Student to CourseOffering and stores final grades.
+ * 
+ * @author SPTS Team
+ */
+@RestController
+@RequestMapping(&quot;/api/enrollments&quot;)
+@Tag(name = &quot;Enrollments&quot;, description = &quot;Enrollment management APIs&quot;)
+public class EnrollmentController {
+
+    private final EnrollmentService enrollmentService;
+
+<span class="fc" id="L37">    public EnrollmentController(EnrollmentService enrollmentService) {</span>
+<span class="fc" id="L38">        this.enrollmentService = enrollmentService;</span>
+<span class="fc" id="L39">    }</span>
+
+    // ==================== CRUD Operations ====================
+
+    @GetMapping
+    @Operation(summary = &quot;Get all enrollments&quot;, description = &quot;Retrieves a list of all enrollments&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved list of enrollments&quot;)
+    public ResponseEntity&lt;List&lt;EnrollmentDTO&gt;&gt; getAllEnrollments() {
+<span class="nc" id="L47">        return ResponseEntity.ok(enrollmentService.getAllEnrollments());</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Get enrollment by ID&quot;, description = &quot;Retrieves an enrollment by its database ID&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Enrollment found&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;EnrollmentDTO&gt; getEnrollmentById(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L58">        return ResponseEntity.ok(enrollmentService.getEnrollmentById(id));</span>
+    }
+
+    @PostMapping
+    @Operation(summary = &quot;Create new enrollment&quot;, description = &quot;Enrolls a student in a course offering&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;201&quot;, description = &quot;Enrollment created successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data or no available seats&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student or course offering not found&quot;),
+        @ApiResponse(responseCode = &quot;409&quot;, description = &quot;Student is already enrolled in this offering&quot;)
+    })
+    public ResponseEntity&lt;EnrollmentDTO&gt; createEnrollment(
+            @Valid @RequestBody EnrollmentDTO dto) {
+<span class="nc" id="L71">        return new ResponseEntity&lt;&gt;(enrollmentService.createEnrollment(dto), HttpStatus.CREATED);</span>
+    }
+
+    @PostMapping(&quot;/bulk&quot;)
+    @Operation(summary = &quot;Bulk enroll student&quot;, description = &quot;Enrolls a student in multiple course offerings at once&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;201&quot;, description = &quot;All enrollments created successfully&quot;),
+        @ApiResponse(responseCode = &quot;207&quot;, description = &quot;Partial success - some enrollments failed&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;)
+    })
+    public ResponseEntity&lt;List&lt;EnrollmentDTO&gt;&gt; createBulkEnrollments(
+            @Valid @RequestBody List&lt;EnrollmentDTO&gt; dtos) {
+<span class="nc" id="L83">        List&lt;EnrollmentDTO&gt; created = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L84">        List&lt;String&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        for (EnrollmentDTO dto : dtos) {</span>
+            try {
+<span class="nc" id="L87">                created.add(enrollmentService.createEnrollment(dto));</span>
+<span class="nc" id="L88">            } catch (Exception e) {</span>
+<span class="nc" id="L89">                errors.add(&quot;studentId=&quot; + dto.getStudentId()</span>
+<span class="nc" id="L90">                        + &quot;, offeringId=&quot; + dto.getCourseOfferingId()</span>
+<span class="nc" id="L91">                        + &quot;: &quot; + e.getMessage());</span>
+<span class="nc" id="L92">            }</span>
+<span class="nc" id="L93">        }</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        if (created.isEmpty()) {</span>
+<span class="nc" id="L95">            return ResponseEntity.badRequest().build();</span>
+        }
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        return new ResponseEntity&lt;&gt;(created, errors.isEmpty() ? HttpStatus.CREATED : HttpStatus.MULTI_STATUS);</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Update enrollment&quot;, description = &quot;Updates an existing enrollment (status and grades)&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Enrollment updated successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Invalid input data&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;EnrollmentDTO&gt; updateEnrollment(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long id,
+            @Valid @RequestBody EnrollmentDTO dto) {
+<span class="nc" id="L110">        return ResponseEntity.ok(enrollmentService.updateEnrollment(id, dto));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    @Operation(summary = &quot;Delete enrollment&quot;, description = &quot;Deletes an enrollment record&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;204&quot;, description = &quot;Enrollment deleted successfully&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;Void&gt; deleteEnrollment(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L121">        enrollmentService.deleteEnrollment(id);</span>
+<span class="nc" id="L122">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // ==================== Grade Operations ====================
+
+    @PostMapping(&quot;/{id}/complete&quot;)
+    @Operation(summary = &quot;Complete enrollment with grade&quot;, description = &quot;Completes an enrollment with final score, auto-calculates letter grade and GPA&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Enrollment completed successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Enrollment already completed or withdrawn&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;EnrollmentDTO&gt; completeEnrollment(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long id,
+            @Parameter(description = &quot;Final score (0-10 scale)&quot;) @RequestParam Double score) {
+<span class="nc" id="L137">        return ResponseEntity.ok(enrollmentService.completeEnrollment(id, score));</span>
+    }
+
+    @PostMapping(&quot;/{id}/complete-with-strategy&quot;)
+    @Operation(summary = &quot;Complete enrollment using grading strategy&quot;, description = &quot;Completes an enrollment using the course's configured grading strategy&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Enrollment completed successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Enrollment already completed or withdrawn&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;EnrollmentDTO&gt; completeEnrollmentWithStrategy(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long id,
+            @Parameter(description = &quot;Final score (0-10 scale)&quot;) @RequestParam Double score) {
+<span class="nc" id="L150">        return ResponseEntity.ok(enrollmentService.completeEnrollmentWithStrategy(id, score));</span>
+    }
+
+    @PostMapping(&quot;/{id}/grade&quot;)
+    @Operation(summary = &quot;Submit grade&quot;, description = &quot;Submits or updates a grade without changing enrollment status&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Grade submitted successfully&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;EnrollmentDTO&gt; submitGrade(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long id,
+            @Parameter(description = &quot;Score (0-10 scale)&quot;) @RequestParam Double score) {
+<span class="nc" id="L162">        return ResponseEntity.ok(enrollmentService.submitGrade(id, score));</span>
+    }
+
+    @PostMapping(&quot;/{id}/withdraw&quot;)
+    @Operation(summary = &quot;Withdraw from enrollment&quot;, description = &quot;Withdraws a student from an enrollment&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Withdrawn successfully&quot;),
+        @ApiResponse(responseCode = &quot;400&quot;, description = &quot;Enrollment already completed or withdrawn&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Enrollment not found&quot;)
+    })
+    public ResponseEntity&lt;EnrollmentDTO&gt; withdrawEnrollment(
+            @Parameter(description = &quot;Enrollment database ID&quot;) @PathVariable Long id) {
+<span class="nc" id="L174">        return ResponseEntity.ok(enrollmentService.withdrawEnrollment(id));</span>
+    }
+
+    // ==================== Queries ====================
+
+    @GetMapping(&quot;/student/{studentId}&quot;)
+    @Operation(summary = &quot;Get enrollments by student&quot;, description = &quot;Retrieves all enrollments for a student&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved enrollments&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Student not found&quot;)
+    })
+    public ResponseEntity&lt;List&lt;EnrollmentDTO&gt;&gt; getByStudent(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long studentId) {
+<span class="nc" id="L187">        return ResponseEntity.ok(enrollmentService.getEnrollmentsByStudent(studentId));</span>
+    }
+
+    @GetMapping(&quot;/offering/{offeringId}&quot;)
+    @Operation(summary = &quot;Get enrollments by offering&quot;, description = &quot;Retrieves all enrollments for a course offering&quot;)
+    @ApiResponses({
+        @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved enrollments&quot;),
+        @ApiResponse(responseCode = &quot;404&quot;, description = &quot;Course offering not found&quot;)
+    })
+    public ResponseEntity&lt;List&lt;EnrollmentDTO&gt;&gt; getByOffering(
+            @Parameter(description = &quot;Course offering database ID&quot;) @PathVariable Long offeringId) {
+<span class="nc" id="L198">        return ResponseEntity.ok(enrollmentService.getEnrollmentsByOffering(offeringId));</span>
+    }
+
+    @GetMapping(&quot;/status/{status}&quot;)
+    @Operation(summary = &quot;Get enrollments by status&quot;, description = &quot;Retrieves enrollments with a specific status&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved enrollments&quot;)
+    public ResponseEntity&lt;List&lt;EnrollmentDTO&gt;&gt; getByStatus(
+            @Parameter(description = &quot;Enrollment status (IN_PROGRESS, COMPLETED, WITHDRAWN)&quot;) @PathVariable EnrollmentStatus status) {
+<span class="nc" id="L206">        return ResponseEntity.ok(enrollmentService.getEnrollmentsByStatus(status));</span>
+    }
+
+    @GetMapping(&quot;/student/{studentId}/in-progress&quot;)
+    @Operation(summary = &quot;Get in-progress enrollments&quot;, description = &quot;Retrieves in-progress enrollments for a student&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved enrollments&quot;)
+    public ResponseEntity&lt;List&lt;EnrollmentDTO&gt;&gt; getInProgressEnrollments(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long studentId) {
+<span class="nc" id="L214">        return ResponseEntity.ok(enrollmentService.getInProgressEnrollments(studentId));</span>
+    }
+
+    @GetMapping(&quot;/student/{studentId}/completed&quot;)
+    @Operation(summary = &quot;Get completed enrollments&quot;, description = &quot;Retrieves completed enrollments for a student&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Successfully retrieved enrollments&quot;)
+    public ResponseEntity&lt;List&lt;EnrollmentDTO&gt;&gt; getCompletedEnrollments(
+            @Parameter(description = &quot;Student database ID&quot;) @PathVariable Long studentId) {
+<span class="nc" id="L222">        return ResponseEntity.ok(enrollmentService.getCompletedEnrollments(studentId));</span>
+    }
+
+    @GetMapping(&quot;/check&quot;)
+    @Operation(summary = &quot;Check if student is enrolled&quot;, description = &quot;Checks if a student is enrolled in a specific course offering&quot;)
+    @ApiResponse(responseCode = &quot;200&quot;, description = &quot;Check completed&quot;)
+    public ResponseEntity&lt;Boolean&gt; isStudentEnrolled(
+            @Parameter(description = &quot;Student database ID&quot;) @RequestParam Long studentId,
+            @Parameter(description = &quot;Course offering database ID&quot;) @RequestParam Long offeringId) {
+<span class="nc" id="L231">        return ResponseEntity.ok(enrollmentService.isStudentEnrolled(studentId, offeringId));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

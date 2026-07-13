@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProbationState.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.patterns.state</a> &gt; <span class="el_source">ProbationState.java</span></div><h1>ProbationState.java</h1><pre class="source lang-java linenums">package com.spts.patterns.state;
+
+import com.spts.entity.Student;
+import org.springframework.stereotype.Component;
+
+/**
+ * Academic probation state.
+ * 
+ * Criteria: GPA &lt; 1.5
+ * - Restricted course registration (12 credits max)
+ * - Mandatory academic counseling
+ * - Critical alerts generated
+ * - Risk of academic dismissal
+ * 
+ * @author SPTS Team
+ */
+@Component
+<span class="fc" id="L18">public class ProbationState extends StudentState {</span>
+
+    private static final String STATE_NAME = &quot;PROBATION&quot;;
+    private static final int MAX_CREDITS = 12;
+    private static final double AT_RISK_THRESHOLD = 1.5;
+    private static final double NORMAL_THRESHOLD = 2.0;
+
+    @Override
+    public String getStateName() {
+<span class="nc" id="L27">        return STATE_NAME;</span>
+    }
+
+    @Override
+    public boolean canRegisterCourses() {
+        // Can register but with restrictions
+<span class="fc" id="L33">        return true;</span>
+    }
+
+    @Override
+    public boolean requiresCounseling() {
+<span class="fc" id="L38">        return true;</span>
+    }
+
+    @Override
+    public int getMaxCreditHours() {
+<span class="fc" id="L43">        return MAX_CREDITS;</span>
+    }
+
+    @Override
+    public StudentState handleGpaChange(Student student, double newGpa) {
+<span class="nc bnc" id="L48" title="All 2 branches missed.">        if (newGpa &gt;= NORMAL_THRESHOLD) {</span>
+            // Significant improvement: transition to Normal state
+<span class="nc" id="L50">            return new NormalState();</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        } else if (newGpa &gt;= AT_RISK_THRESHOLD) {</span>
+            // Improvement: transition to AtRisk state
+<span class="nc" id="L53">            return new AtRiskState();</span>
+        }
+        // Remain in Probation state
+<span class="nc" id="L56">        return this;</span>
+    }
+
+    @Override
+    public String getRequiredActions() {
+<span class="nc" id="L61">        return &quot;MANDATORY: Meet with academic advisor immediately. &quot; +</span>
+               &quot;Complete academic success workshop. &quot; +
+               &quot;Reduced course load required. &quot; +
+               &quot;Progress monitored weekly.&quot;;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

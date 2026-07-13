@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Enrollment.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">SPTS - Student Performance Tracking System</a> &gt; <a href="index.source.html" class="el_package">com.spts.entity</a> &gt; <span class="el_source">Enrollment.java</span></div><h1>Enrollment.java</h1><pre class="source lang-java linenums">package com.spts.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Enrollment entity - Represents a student's enrollment in a specific course offering.
+ * 
+ * This is a junction table between Student and CourseOffering that also stores
+ * the final grade and enrollment status.
+ * 
+ * OCL Constraints:
+ * - finalScore &gt;= 0 AND finalScore &lt;= 10
+ * - gpaValue &gt;= 0.0 AND gpaValue &lt;= 4.0
+ * 
+ * @author SPTS Team
+ */
+@Entity
+@Table(name = &quot;enrollments&quot;,
+       uniqueConstraints = @UniqueConstraint(
+           columnNames = {&quot;student_id&quot;, &quot;course_offering_id&quot;},
+           name = &quot;uk_enrollment_student_offering&quot;
+       ))
+public class Enrollment {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;student_id&quot;, nullable = false)
+    @NotNull(message = &quot;Student is required&quot;)
+    private Student student;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;course_offering_id&quot;, nullable = false)
+    @NotNull(message = &quot;Course offering is required&quot;)
+    private CourseOffering courseOffering;
+
+    /**
+     * Final score on 10-point scale
+     * OCL: finalScore &gt;= 0 AND finalScore &lt;= 10
+     */
+    @Column(name = &quot;final_score&quot;)
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;Final score cannot be less than 0&quot;)
+    @DecimalMax(value = &quot;10.0&quot;, message = &quot;Final score cannot exceed 10&quot;)
+    private Double finalScore;
+
+    /**
+     * Letter grade (A, B+, B, C+, C, D+, D, F)
+     */
+    @Column(name = &quot;letter_grade&quot;, length = 2)
+    private String letterGrade;
+
+    /**
+     * GPA value on 4-point scale
+     * OCL: gpaValue &gt;= 0.0 AND gpaValue &lt;= 4.0
+     */
+    @Column(name = &quot;gpa_value&quot;)
+    @DecimalMin(value = &quot;0.0&quot;, message = &quot;GPA value cannot be less than 0&quot;)
+    @DecimalMax(value = &quot;4.0&quot;, message = &quot;GPA value cannot exceed 4.0&quot;)
+    private Double gpaValue;
+
+<span class="fc" id="L67">    @Enumerated(EnumType.STRING)</span>
+    @Column(name = &quot;status&quot;, nullable = false)
+    private EnrollmentStatus status = EnrollmentStatus.IN_PROGRESS;
+
+    @Column(name = &quot;enrolled_at&quot;)
+    private LocalDateTime enrolledAt;
+
+    @Column(name = &quot;completed_at&quot;)
+    private LocalDateTime completedAt;
+
+    /**
+     * Grade entries for this enrollment (component scores and final grade)
+     */
+<span class="fc" id="L80">    @OneToMany(mappedBy = &quot;enrollment&quot;, cascade = CascadeType.ALL, fetch = FetchType.LAZY)</span>
+    private List&lt;GradeEntry&gt; gradeEntries = new ArrayList&lt;&gt;();
+
+    // Constructors
+<span class="fc" id="L84">    public Enrollment() {</span>
+<span class="fc" id="L85">        this.enrolledAt = LocalDateTime.now();</span>
+<span class="fc" id="L86">    }</span>
+
+<span class="fc" id="L88">    public Enrollment(Student student, CourseOffering courseOffering) {</span>
+<span class="fc" id="L89">        this.student = student;</span>
+<span class="fc" id="L90">        this.courseOffering = courseOffering;</span>
+<span class="fc" id="L91">        this.status = EnrollmentStatus.IN_PROGRESS;</span>
+<span class="fc" id="L92">        this.enrolledAt = LocalDateTime.now();</span>
+<span class="fc" id="L93">    }</span>
+
+    // Getters and Setters
+    public Long getId() {
+<span class="fc" id="L97">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="fc" id="L101">        this.id = id;</span>
+<span class="fc" id="L102">    }</span>
+
+    public Student getStudent() {
+<span class="fc" id="L105">        return student;</span>
+    }
+
+    public void setStudent(Student student) {
+<span class="nc" id="L109">        this.student = student;</span>
+<span class="nc" id="L110">    }</span>
+
+    public CourseOffering getCourseOffering() {
+<span class="fc" id="L113">        return courseOffering;</span>
+    }
+
+    public void setCourseOffering(CourseOffering courseOffering) {
+<span class="nc" id="L117">        this.courseOffering = courseOffering;</span>
+<span class="nc" id="L118">    }</span>
+
+    public Double getFinalScore() {
+<span class="fc" id="L121">        return finalScore;</span>
+    }
+
+    public void setFinalScore(Double finalScore) {
+<span class="pc bpc" id="L125" title="2 of 6 branches missed.">        if (finalScore != null &amp;&amp; (finalScore &lt; 0.0 || finalScore &gt; 10.0)) {</span>
+<span class="nc" id="L126">            throw new IllegalArgumentException(&quot;Final score must be between 0 and 10&quot;);</span>
+        }
+<span class="fc" id="L128">        this.finalScore = finalScore;</span>
+        // Auto-calculate letter grade and GPA value
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (finalScore != null) {</span>
+<span class="fc" id="L131">            this.letterGrade = calculateLetterGrade(finalScore);</span>
+<span class="fc" id="L132">            this.gpaValue = calculateGpaValue(finalScore);</span>
+        }
+<span class="fc" id="L134">    }</span>
+
+    public String getLetterGrade() {
+<span class="fc" id="L137">        return letterGrade;</span>
+    }
+
+    public void setLetterGrade(String letterGrade) {
+<span class="fc" id="L141">        this.letterGrade = letterGrade;</span>
+<span class="fc" id="L142">    }</span>
+
+    public Double getGpaValue() {
+<span class="fc" id="L145">        return gpaValue;</span>
+    }
+
+    public void setGpaValue(Double gpaValue) {
+<span class="pc bpc" id="L149" title="2 of 6 branches missed.">        if (gpaValue != null &amp;&amp; (gpaValue &lt; 0.0 || gpaValue &gt; 4.0)) {</span>
+<span class="nc" id="L150">            throw new IllegalArgumentException(&quot;GPA value must be between 0 and 4&quot;);</span>
+        }
+<span class="fc" id="L152">        this.gpaValue = gpaValue;</span>
+<span class="fc" id="L153">    }</span>
+
+    public EnrollmentStatus getStatus() {
+<span class="nc" id="L156">        return status;</span>
+    }
+
+    public void setStatus(EnrollmentStatus status) {
+<span class="nc" id="L160">        this.status = status;</span>
+<span class="nc" id="L161">    }</span>
+
+    public LocalDateTime getEnrolledAt() {
+<span class="nc" id="L164">        return enrolledAt;</span>
+    }
+
+    public void setEnrolledAt(LocalDateTime enrolledAt) {
+<span class="nc" id="L168">        this.enrolledAt = enrolledAt;</span>
+<span class="nc" id="L169">    }</span>
+
+    public LocalDateTime getCompletedAt() {
+<span class="nc" id="L172">        return completedAt;</span>
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+<span class="nc" id="L176">        this.completedAt = completedAt;</span>
+<span class="nc" id="L177">    }</span>
+
+    public List&lt;GradeEntry&gt; getGradeEntries() {
+<span class="nc" id="L180">        return gradeEntries;</span>
+    }
+
+    public void setGradeEntries(List&lt;GradeEntry&gt; gradeEntries) {
+<span class="nc" id="L184">        this.gradeEntries = gradeEntries;</span>
+<span class="nc" id="L185">    }</span>
+
+    public void addGradeEntry(GradeEntry gradeEntry) {
+<span class="nc" id="L188">        gradeEntries.add(gradeEntry);</span>
+<span class="nc" id="L189">        gradeEntry.setEnrollment(this);</span>
+<span class="nc" id="L190">    }</span>
+
+    /**
+     * Mark enrollment as completed with final score
+     */
+    public void complete(Double finalScore) {
+<span class="nc" id="L196">        setFinalScore(finalScore);</span>
+<span class="nc" id="L197">        this.status = EnrollmentStatus.COMPLETED;</span>
+<span class="nc" id="L198">        this.completedAt = LocalDateTime.now();</span>
+<span class="nc" id="L199">    }</span>
+
+    /**
+     * Mark enrollment as withdrawn
+     */
+    public void withdraw() {
+<span class="nc" id="L205">        this.status = EnrollmentStatus.WITHDRAWN;</span>
+<span class="nc" id="L206">        this.completedAt = LocalDateTime.now();</span>
+<span class="nc" id="L207">    }</span>
+
+    /**
+     * Calculate letter grade from score (10-point scale)
+     */
+    private String calculateLetterGrade(double score) {
+<span class="pc bpc" id="L213" title="1 of 2 branches missed.">        if (score &gt;= 9.0) return &quot;A&quot;;</span>
+<span class="pc bpc" id="L214" title="1 of 2 branches missed.">        if (score &gt;= 8.5) return &quot;A-&quot;;</span>
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        if (score &gt;= 8.0) return &quot;B+&quot;;</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">        if (score &gt;= 7.0) return &quot;B&quot;;</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">        if (score &gt;= 6.5) return &quot;C+&quot;;</span>
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">        if (score &gt;= 5.5) return &quot;C&quot;;</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">        if (score &gt;= 5.0) return &quot;D+&quot;;</span>
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">        if (score &gt;= 4.0) return &quot;D&quot;;</span>
+<span class="fc" id="L221">        return &quot;F&quot;;</span>
+    }
+
+    /**
+     * Calculate GPA value from score (10-point to 4-point conversion)
+     */
+    private double calculateGpaValue(double score) {
+<span class="pc bpc" id="L228" title="1 of 2 branches missed.">        if (score &gt;= 9.0) return 4.0;</span>
+<span class="pc bpc" id="L229" title="1 of 2 branches missed.">        if (score &gt;= 8.5) return 3.7;</span>
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">        if (score &gt;= 8.0) return 3.5;</span>
+<span class="fc bfc" id="L231" title="All 2 branches covered.">        if (score &gt;= 7.0) return 3.0;</span>
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">        if (score &gt;= 6.5) return 2.5;</span>
+<span class="pc bpc" id="L233" title="1 of 2 branches missed.">        if (score &gt;= 5.5) return 2.0;</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">        if (score &gt;= 5.0) return 1.5;</span>
+<span class="pc bpc" id="L235" title="1 of 2 branches missed.">        if (score &gt;= 4.0) return 1.0;</span>
+<span class="fc" id="L236">        return 0.0;</span>
+    }
+
+    /**
+     * Get course credits (delegated from course offering)
+     */
+    public Integer getCredits() {
+<span class="nc bnc" id="L243" title="All 4 branches missed.">        return courseOffering != null &amp;&amp; courseOffering.getCourse() != null </span>
+<span class="nc" id="L244">               ? courseOffering.getCourse().getCredits() </span>
+<span class="nc" id="L245">               : 0;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
