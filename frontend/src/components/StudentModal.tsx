@@ -162,7 +162,7 @@ const StudentModal = ({
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
               <span className="w-6 h-px bg-slate-200" />
-              Personal Information
+              <span>Personal Information</span>
               <span className="flex-1 h-px bg-slate-200" />
             </h3>
 
@@ -265,7 +265,7 @@ const StudentModal = ({
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider flex items-center gap-2">
                 <span className="w-6 h-px bg-slate-200" />
-                Academic Information
+                <span>Academic Information</span>
                 <span className="flex-1 h-px bg-slate-200" />
               </h3>
 
