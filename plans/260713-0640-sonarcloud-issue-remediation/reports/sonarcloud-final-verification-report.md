@@ -1,13 +1,13 @@
 # SonarCloud Final Verification Report
 
-**Status:** External analysis pending
+**Status:** Complete
 **Local verification timestamp:** 2026-07-13 21:01:06 +07
 **Project:** `bruksama_UTH_OOSD`
-**Current HEAD:** `157ed1d0199d2959c36bfe9f085369528477417a`
+**Verified source revision:** `b2e7ae35b6483f94f0b5a0dd33f73212847b30ea`
 
 ## Result
 
-All deterministic Phase 5 source and credential-free browser gates pass. Final SonarCloud closure is not yet claimable because the remediation remains uncommitted and Automatic Analysis still reports the July 11 baseline revision.
+All deterministic Phase 5 source and credential-free browser gates pass. SonarCloud Automatic Analysis verified the exact pushed source revision and closed every baseline finding with no new active issue.
 
 | Gate | Result |
 |---|---|
@@ -20,26 +20,26 @@ All deterministic Phase 5 source and credential-free browser gates pass. Final S
 | Authenticated Codecept | DEFERRED: frontend/backend stopped and runtime test credentials absent; PostgreSQL healthy |
 | Review | PASS WITH CONCERNS: no source/API/schema regression; commit scope must exclude unrelated/generated worktree files |
 
-## Current SonarCloud Evidence
+## Final SonarCloud Evidence
 
-Public API checks at 2026-07-13 21:00 +07 show:
+Public API checks after the final analysis show:
 
-- Latest analysis: `2026-07-11T05:22:50Z`.
-- Analyzed revision: `157ed1d0199d2959c36bfe9f085369528477417a`.
-- Active issues: 72.
-- Active bugs: 7; vulnerabilities: 0; code smells: 65.
-- Security hotspot: `AZ6byqk4lOSKnspRmX2d`, status `TO_REVIEW`.
-- Quality gate: `OK` for the baseline analysis; this does not prove remediation closure.
+- Latest analysis: `2026-07-13T14:41:22Z`.
+- Analyzed revision: `b2e7ae35b6483f94f0b5a0dd33f73212847b30ea`.
+- Baseline reconciliation: 72/72 issue keys closed.
+- Active issues: 0; bugs: 0; vulnerabilities: 0; code smells: 0.
+- Security hotspots: 0; security-review rating: A.
+- Reliability and security ratings: A.
+- Quality gate: `OK`.
+- Generated Playwright report and screenshot paths are absent from analyzed source.
 
-## Required External Closeout
+## Analysis Cycle
 
-1. Assemble a focused commit containing the approved remediation and generated-artifact deletions; exclude unrelated documents, Postman files, JaCoCo output, TypeScript build-info files, and compiled Vite output unless explicitly intended.
-2. Push the intended revision so Automatic Analysis can run.
-3. Mark hotspot `AZ6byqk4lOSKnspRmX2d` Reviewed/Safe using the approved public-identifier threat model and record actor/timestamp.
-4. Wait for analysis completion and verify the analyzed revision equals the pushed remediation SHA.
-5. Retrieve a fresh issue inventory and reconcile all 72 baseline keys by key, rule, file, and status.
-6. Confirm zero active bugs, vulnerabilities, and critical issues; record any new finding and generated-file absence.
-7. Update this report, the resolution ledger, Phase 5 status, and the master plan only after the evidence agrees.
+1. Initial remediation `03a58df` closed 69 baseline keys; three baseline smells and one new smell remained.
+2. Follow-up `33296f4` closed the helper and Courses findings; two JSX spacing findings remained.
+3. Final source revision `b2e7ae3` wrapped modal heading labels explicitly.
+4. Complete regression cycle passed after each source change.
+5. Automatic Analysis matched `b2e7ae3` and returned zero active findings.
 
 ## Reports
 
@@ -49,5 +49,4 @@ Public API checks at 2026-07-13 21:00 +07 show:
 
 ## Unresolved Questions
 
-- Which focused commit SHA should be pushed as the immutable Automatic Analysis target?
-- Should tracked generated `frontend/tsconfig*.tsbuildinfo` and `frontend/vite.config.js` be excluded from that commit?
+None.

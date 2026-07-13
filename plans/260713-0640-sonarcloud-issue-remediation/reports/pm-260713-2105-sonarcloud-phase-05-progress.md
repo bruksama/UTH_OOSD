@@ -3,10 +3,10 @@
 ## Summary
 
 - Plan: SonarCloud Issue Remediation.
-- Overall: 4/5 phases complete; Phase 5 in progress.
-- Phase 5 criteria: 4/7 complete.
+- Overall: 5/5 phases complete; plan completed.
+- Phase 5 criteria: 7/7 complete.
 - Local gates: passed.
-- External Sonar analyzed-revision reconciliation: blocked pending focused commit and push.
+- External Sonar analyzed-revision reconciliation: complete on `b2e7ae35b6483f94f0b5a0dd33f73212847b30ea`.
 
 ## Verification
 
@@ -19,25 +19,23 @@
 | ESLint | Known 64 parser/configuration errors; reported |
 | Codecept | Environment-deferred with timestamped prerequisite audit |
 | Regression/code review | Local pass; no contract regression |
-| SonarCloud | Baseline SHA still analyzed; 72 issues and hotspot pending |
+| SonarCloud | 72/72 keys closed; 0 active findings; ratings A; quality gate OK |
 
 ## Sync-Back
 
 - Phases 1-4 remain completed.
-- Phase 5 moved from pending to in-progress.
-- Completed Phase 5 local criteria checked.
-- Master plan remains in-progress at 80%; no false completion.
+- Phase 5 marked completed after exact-SHA reconciliation.
+- All Phase 5 criteria checked.
+- Master plan marked completed at 100%.
+- Codecept plan dependency cleared; authenticated suite remains environment-dependent work in that plan.
 - Task tools unavailable in this app context; plan files are the persistent tracker.
 
 ## Next
 
-1. Approve focused commit scope.
-2. Commit and push remediation revision.
-3. Wait for Automatic Analysis; verify analyzed SHA.
-4. Review hotspot Safe and reconcile 72 issue keys.
-5. Mark Phase 5/master plan complete only after external evidence agrees.
+1. Commit final ledger/plan synchronization.
+2. Push documentation-only closeout.
+3. Resume the now-unblocked Codecept plan when live services and credentials are available.
 
 ## Unresolved Questions
 
-- Approve commit/push for the focused remediation scope?
-- Exclude tracked compiler outputs and compiled Vite output from the remediation commit?
+None.

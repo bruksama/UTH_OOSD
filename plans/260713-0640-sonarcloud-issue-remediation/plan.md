@@ -3,7 +3,7 @@ title: SonarCloud Issue Remediation
 description: >-
   Remove all 72 active SonarCloud findings, review the security hotspot, and
   verify closure without unintended behavior changes.
-status: in-progress
+status: completed
 priority: P1
 branch: main
 tags:
@@ -24,7 +24,7 @@ source: skill
 
 # SonarCloud Issue Remediation
 
-**Progress:** 4/5 phases complete (80%).
+**Progress:** 5/5 phases complete (100%).
 
 ## Overview
 
@@ -53,7 +53,7 @@ Phase allocation: 5 generated findings; 13 Firebase/Auth/StudentModal findings p
 | 2 | [Resolve Critical Firebase Auth and Student Modal Findings](./phase-02-resolve-critical-firebase-auth-and-student-modal-findings.md) | Completed |
 | 3 | [Repair Accessibility and Form Semantics](./phase-03-repair-accessibility-and-form-semantics.md) | Completed |
 | 4 | [Clear Remaining Maintainability Findings](./phase-04-clear-remaining-maintainability-findings.md) | Completed |
-| 5 | [Verify Reconcile and Close SonarCloud Findings](./phase-05-verify-reconcile-and-close-sonarcloud-findings.md) | Pending |
+| 5 | [Verify Reconcile and Close SonarCloud Findings](./phase-05-verify-reconcile-and-close-sonarcloud-findings.md) | Completed |
 
 ## Dependencies
 
@@ -64,12 +64,12 @@ Phase allocation: 5 generated findings; 13 Firebase/Auth/StudentModal findings p
 
 ## Acceptance Criteria
 
-- [ ] All 72 baseline issue keys are fixed or removed through generated-file exclusion.
-- [ ] Security hotspot `typescript:S2245` is reviewed Safe with the public-identifier threat model; server-side ID allocation remains a separate reliability improvement.
-- [ ] No new blocker, critical, bug, vulnerability, or unreviewed hotspot is introduced.
-- [ ] Focused tests, full Vitest, TypeScript check, production build, and selected Playwright scenarios pass.
-- [ ] Authenticated Codecept passes when its documented environment prerequisites are available; otherwise its existing plan remains explicitly environment-blocked and does not block this plan's completion.
-- [ ] Fresh SonarCloud report reconciles every baseline issue key and records any new finding before completion.
+- [x] All 72 baseline issue keys are fixed or removed through generated-file exclusion.
+- [x] Security hotspot `typescript:S2245` is reviewed Safe with the public-identifier threat model; server-side ID allocation remains a separate reliability improvement.
+- [x] No new blocker, critical, bug, vulnerability, or unreviewed hotspot is introduced.
+- [x] Focused tests, full Vitest, TypeScript check, production build, and selected Playwright scenarios pass.
+- [x] Authenticated Codecept passes when its documented environment prerequisites are available; otherwise its existing plan remains explicitly environment-blocked and does not block this plan's completion.
+- [x] Fresh SonarCloud report reconciles every baseline issue key and records any new finding before completion.
 
 ## Not In Scope
 

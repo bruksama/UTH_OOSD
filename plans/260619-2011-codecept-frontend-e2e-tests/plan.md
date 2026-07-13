@@ -6,7 +6,7 @@ priority: P2
 effort: 5h
 branch: "main"
 tags: [feature, frontend, auth, testing]
-blockedBy: [260713-0640-sonarcloud-issue-remediation]
+blockedBy: []
 blocks: []
 created: "2026-06-19"
 createdBy: "ck:plan"
@@ -35,7 +35,7 @@ Add CodeceptJS as a separate frontend E2E runner. Existing Playwright E2E tests 
 
 ## Cross-Plan Dependencies
 
-None detected in `./plans/`.
+- SonarCloud remediation `260713-0640-sonarcloud-issue-remediation` completed on 2026-07-13; this plan is no longer blocked by frontend source-quality cleanup.
 
 ## Phases
 

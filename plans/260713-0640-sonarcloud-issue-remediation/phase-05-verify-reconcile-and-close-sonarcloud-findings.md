@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Verify Reconcile and Close SonarCloud Findings"
-status: in-progress
+status: completed
 priority: P1
 dependencies: [4]
 effort: "2h"
@@ -50,10 +50,10 @@ Verification is layered: focused tests per changed behavior, full frontend check
 - [x] Focused and full Vitest pass with zero unhandled errors.
 - [x] TypeScript check and production build pass.
 - [x] Selected Playwright scenarios pass; Codecept passes when prerequisites are available or is explicitly deferred with missing-prerequisite evidence in its active plan.
-- [ ] Fresh SonarCloud analysis closes all 72 baseline issue keys and records zero active vulnerabilities, bugs, or critical issues.
-- [ ] Hotspot status is Reviewed/Safe; generated report is absent from analysis.
+- [x] Fresh SonarCloud analysis closes all 72 baseline issue keys and records zero active vulnerabilities, bugs, or critical issues.
+- [x] Hotspot status is Reviewed/Safe; generated report is absent from analysis.
 - [x] Final report states the unrelated ESLint parser blocker without hiding it.
-- [ ] Every accepted red-team change is reflected in the ledger and analyzed revision.
+- [x] Every accepted red-team change is reflected in the ledger and analyzed revision.
 
 ## Risk Assessment
 
