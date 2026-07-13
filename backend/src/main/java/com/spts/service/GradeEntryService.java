@@ -467,7 +467,9 @@ public class GradeEntryService {
 
         // Only update if changed
         if (finalScore == null) {
-            if (enrollment.getFinalScore() != null) {
+            if (enrollment.getFinalScore() != null
+                    || enrollment.getLetterGrade() != null
+                    || enrollment.getGpaValue() != null) {
                 enrollment.setFinalScore(null);
                 enrollmentRepository.save(enrollment);
             }
